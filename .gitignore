@@ -17,8 +17,12 @@
 /uploads/*
 !/uploads/.gitkeep
 
-# Twig-Cache und Bearbeitungsverlauf – laufzeitgeneriert, rein lokal.
+# Twig-Cache – laufzeitgeneriert, rein lokal.
 /cache/*
 !/cache/.gitkeep
+
+# Bearbeitungsverlauf (Admin → Sicherung) – rein lokal, wächst mit jedem
+# Speichern im Admin, gehört nicht in die Versionsgeschichte.
+/data/.history/
 
 .DS_Store

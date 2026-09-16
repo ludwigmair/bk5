@@ -736,7 +736,8 @@ final class Admin
         $this->addDirToZip($zip, $core, 'core');
         $zip->close();
 
-        $this->redirectToPanel('Update-Paket ' . $version . ' erstellt (core/version.json wurde mit hochgezählt).', 'panel-update-package');
+        $this->redirectToPanel('Update-Paket ' . $version . ' erstellt (core/version.json wurde mit hochgezählt). '
+            . 'Noch nicht live für andere Instanzen – dafür zusätzlich "php dev/build-release.php ' . $version . ' --repo <releases-repo>" ausführen (siehe docs/UPDATE-CORE.md).', 'panel-update-package');
     }
 
     private function addDirToZip(\ZipArchive $zip, string $dir, string $localBase): void
@@ -999,7 +1000,8 @@ final class Admin
         $this->addDirToZip($zip, $components, 'components');
         $zip->close();
 
-        $this->redirectToPanel('Components-Update-Paket ' . $version . ' erstellt (components/version.json wurde mit hochgezählt).', 'panel-components-update');
+        $this->redirectToPanel('Components-Update-Paket ' . $version . ' erstellt (components/version.json wurde mit hochgezählt). '
+            . 'Noch nicht live für andere Instanzen – dafür zusätzlich "php dev/build-release.php ' . $version . ' --repo <releases-repo> --target components" ausführen (siehe docs/UPDATE-COMPONENTS.md).', 'panel-components-update');
     }
 
     /**
@@ -1090,7 +1092,7 @@ final class Admin
         $root = $this->cms->root();
         $dest = dirname($root) . '/project-instances/' . $slug;
         if (is_dir($dest)) {
-            $this->redirectToPanel("„$slug“ existiert bereits unter project-instances/ - anderen Namen wählen oder Ordner vorher entfernen.", 'panel-export-instance');
+            $this->redirectToPanel("„{$slug}“ existiert bereits unter project-instances/ - anderen Namen wählen oder Ordner vorher entfernen.", 'panel-export-instance');
         }
         mkdir($dest, 0775, true);
 
@@ -1165,7 +1167,66 @@ final class Admin
             copy($componentsVersionFile, $dest . '/themes-and-plugins/components/version.json');
         }
 
-        $this->redirectToPanel("Projekt-Instanz „$slug“ erstellt unter project-instances/$slug/ (composer install dort noch nötig, falls vendor/ nicht mitkam).", 'panel-export-instance');
+        $message = "Projekt-Instanz „{$slug}“ erstellt unter project-instances/{$slug}/ (composer install dort noch nötig, falls vendor/ nicht mitkam).";
+        if ($this->hasDevTools() && ($_POST['git_workflow'] ?? '') === '1') {
+            $gitError = $this->setUpGitWorkflow($dest);
+            $message .= $gitError !== ''
+                ? ' Git-Setup fehlgeschlagen: ' . $gitError
+                : ' Git-Repo mit main/develop/staging angelegt (auf develop), FTP-Deploy-Workflow liegt unter .github/workflows/deploy-staging.yml bereit - im Ziel-Repo noch die GitHub-Secrets FTP_SERVER/FTP_USERNAME/FTP_PASSWORD/FTP_TARGET_DIR/BACKUP_URL/BACKUP_TOKEN setzen.';
+        }
+        $this->redirectToPanel($message, 'panel-export-instance');
+    }
+
+    /**
+     * Optional beim Export: eigenes Git-Repo mit main/develop/staging-Branches
+     * + einem auf dieses Projekt zugeschnittenen FTP-Deploy-Workflow (siehe
+     * dev/templates/) - fürs spätere Verbinden mit einem eigenen GitHub-Repo
+     * und CI-gestütztem Staging-Deploy. Legt bewusst KEIN Remote an und
+     * pusht nichts - das verknüpft man selbst, wenn man so weit ist. Wird
+     * nur aufgerufen, wenn hasDevTools() true ist: "git init" + Shell-
+     * Aufrufe aus dem Admin heraus wollen wir nicht auf einer live
+     * deployten Kunden-Instanz anbieten.
+     *
+     * data/config.json, data/content.json, uploads/ und cache/ bleiben
+     * bewusst außerhalb des Deploy-Payloads (siehe .gitignore-Vorlage und
+     * den exclude-Block im Workflow) - die werden auf dem Zielserver live
+     * über den Admin-Bereich der jeweiligen Instanz gepflegt, ein
+     * automatischer Deploy darf sie nie überschreiben.
+     *
+     * @return string leere Zeichenkette bei Erfolg, sonst eine Fehlermeldung
+     */
+    private function setUpGitWorkflow(string $dest): string
+    {
+        $templatesDir = dirname($this->cms->root()) . '/dev/templates';
+        $gitignoreSrc = $templatesDir . '/instance.gitignore';
+        $workflowSrc = $templatesDir . '/deploy-staging.yml';
+        if (!is_file($gitignoreSrc) || !is_file($workflowSrc)) {
+            return 'Vorlagen unter dev/templates/ fehlen.';
+        }
+
+        copy($gitignoreSrc, $dest . '/.gitignore');
+        mkdir($dest . '/.github/workflows', 0775, true);
+        copy($workflowSrc, $dest . '/.github/workflows/deploy-staging.yml');
+        touch($dest . '/cache/.gitkeep');
+        touch($dest . '/uploads/.gitkeep');
+
+        foreach ([
+            'git init -q',
+            'git symbolic-ref HEAD refs/heads/main',
+            'git add -A',
+            'git commit -q -m ' . escapeshellarg('Initial import'),
+            'git branch develop',
+            'git branch staging',
+            'git checkout -q develop',
+        ] as $cmd) {
+            exec('cd ' . escapeshellarg($dest) . ' && ' . $cmd . ' 2>&1', $output, $code);
+            if ($code !== 0) {
+                return 'Abbruch bei "' . $cmd . '": ' . implode(' / ', $output);
+            }
+            $output = [];
+        }
+
+        return '';
     }
 
     /** Region-Varianten-Name aus config.json → layout, wie CMS::renderShell() es liest (Topbar verschachtelt, Rest flach). */

@@ -136,62 +136,62 @@
             "label": {
                 "de": "Atelier"
             },
-            "href": "#atelier-1",
+            "href": "#atelier",
             "active": true
         },
         {
             "label": {
                 "de": "Werkstätten"
             },
-            "href": "#werkstaetten-1",
+            "href": "#werkstaetten",
             "active": true
         },
         {
             "label": {
                 "de": "Galerie"
             },
-            "href": "#galerie-1",
+            "href": "#galerie",
             "active": true
         },
         {
             "label": {
                 "de": "Rezensionen"
             },
-            "href": "#reviews-1",
+            "href": "#rezensionen",
             "active": true
         },
         {
             "label": {
                 "de": "Mobiliar"
             },
-            "href": "#mobiliar-1",
+            "href": "#mobiliar",
             "active": true
         },
         {
             "label": {
                 "de": "Sonnenschutz"
             },
-            "href": "#sonnenschutz-1",
+            "href": "#sonnenschutz",
             "active": true
         },
         {
             "label": {
                 "de": "FAQ"
             },
-            "href": "#faq-1",
+            "href": "#faqs",
             "active": true
         },
         {
             "label": {
                 "de": "Kontakt"
             },
-            "href": "#contact-1",
+            "href": "#kontakt",
             "active": true
         }
     ],
     "sections": [
         {
-            "id": "hero-1",
+            "id": "hero",
             "type": "hero-slider",
             "sort": 10,
             "label": "Hero",
@@ -266,7 +266,7 @@
             }
         },
         {
-            "id": "aktuelles-1",
+            "id": "aktuelles",
             "type": "aktuelles",
             "sort": 20,
             "label": "",
@@ -291,7 +291,7 @@
             }
         },
         {
-            "id": "trust-1",
+            "id": "trust",
             "type": "trust-badges",
             "sort": 25,
             "label": "Trust Points",
@@ -339,7 +339,7 @@
             }
         },
         {
-            "id": "atelier-1",
+            "id": "atelier",
             "type": "content-block",
             "sort": 30,
             "label": "Atilier",
@@ -381,7 +381,7 @@
             }
         },
         {
-            "id": "werkstaetten-1",
+            "id": "werkstaetten",
             "type": "cards",
             "sort": 40,
             "label": "Werkstätten",
@@ -498,7 +498,7 @@
             }
         },
         {
-            "id": "galerie-1",
+            "id": "galerie",
             "type": "vorher-nachher-galerie",
             "sort": 50,
             "label": "Projekte Vor/Nach",
@@ -541,7 +541,7 @@
             }
         },
         {
-            "id": "reviews-1",
+            "id": "rezensionen",
             "type": "google-reviews",
             "sort": 55,
             "label": "Rezensionen",
@@ -557,10 +557,6 @@
                 "intro": {
                     "de": ""
                 },
-                "fallback_rating": {
-                    "de": "4.7"
-                },
-                "fallback_rating_count": 6,
                 "show_rating_summary": true,
                 "reviews_url": "",
                 "reviews_url_label": {
@@ -637,7 +633,7 @@
             }
         },
         {
-            "id": "mobiliar-1",
+            "id": "mobiliar",
             "type": "content-block",
             "sort": 60,
             "label": "Mobiliar",
@@ -679,7 +675,7 @@
             }
         },
         {
-            "id": "sonnenschutz-1",
+            "id": "sonnenschutz",
             "type": "content-block",
             "sort": 70,
             "label": "Sonnenschutz",
@@ -721,7 +717,7 @@
             }
         },
         {
-            "id": "faq-1",
+            "id": "faqs",
             "type": "faq",
             "sort": 90,
             "label": "FAQs",
@@ -787,7 +783,7 @@
             }
         },
         {
-            "id": "contact-1",
+            "id": "kontakt",
             "type": "contact-form",
             "sort": 100,
             "label": "",

@@ -697,6 +697,13 @@
                                 <input class="mt-1 block h-10 w-56 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="slug" placeholder="z. B. kurzeder-live" pattern="[a-z0-9][a-z0-9-]{1,39}" required>
                             </label>
                             <button class="h-10 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">{{ has_dev_tools ? 'Instanz erstellen' : 'Snapshot erstellen' }}</button>
+                            {% if has_dev_tools %}
+                            <label class="flex w-full items-center gap-2 text-sm">
+                                <input type="checkbox" name="git_workflow" value="1" class="h-4 w-4 rounded border-[#241E18]/30 text-[#355E4B] focus:ring-[#355E4B]/30">
+                                Git-Repo + FTP-Deploy-Workflow einrichten
+                            </label>
+                            <p class="w-full text-[11px] text-[#241E18]/40">Legt lokal <code>main</code>/<code>develop</code>/<code>staging</code> an (kein Remote, kein Push) und einen an dieses Projekt angepassten <code>.github/workflows/deploy-staging.yml</code> (SFTP-Deploy bei develop→staging-Merge). <code>data/config.json</code>, <code>data/content.json</code> und <code>uploads/</code> bleiben davon ausgenommen – die pflegt der Kunde live im Admin.</p>
+                            {% endif %}
                         </form>
                         <p class="mt-2 text-[11px] text-[#241E18]/40">Landet unter <code>project-instances/&lt;Ordnername&gt;/</code>, direkt neben diesem Projekt – nie in <code>web/</code>. Danach dort ggf. noch <code>composer install</code> ausführen und eigene Admin-Zugänge in <code>data/config.json</code> setzen.</p>
                     </div>
