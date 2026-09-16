@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang|default('de') }}" id="top">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% set seoTitle = seo.title|default(site.title)|default('CMS') %}
+    {% set seoDescription = seo.description|default(site.tagline)|default('') %}
+    {% set ogTitle = seo.og_title|default('')|trim is not empty ? seo.og_title : seoTitle %}
+    {% set ogDescription = seo.og_description|default('')|trim is not empty ? seo.og_description : seoDescription %}
+    {% set canonicalBase = config.seo.domain|default('')|trim('/', 'right') %}
+    {% set pageUrl = canonicalBase ? canonicalBase ~ current_path|default('/') : '' %}
+    <title>{{ seoTitle }}</title>
+    <meta name="description" content="{{ seoDescription }}">
+    <meta name="robots" content="{{ seo.robots_noindex|default(false) ? 'noindex,nofollow' : 'index,follow' }}">
+    <meta name="theme-color" content="{{ brand.primary|default('#355E4B') }}">
+    {% if business.name|default('') %}
+    <meta name="author" content="{{ business.name }}{% if business.owner %}, Inhaber {{ business.owner }}{% endif %}">
+    {% endif %}
+    {% if canonicalBase %}
+    <link rel="canonical" href="{{ pageUrl }}">
+    {% endif %}
+    {% if seo.favicon|default('') %}
+    {% set faviconUrl = seo.favicon starts with 'http' ? seo.favicon : '/' ~ seo.favicon %}
+    <link rel="icon" href="{{ faviconUrl }}">
+    <link rel="apple-touch-icon" href="{{ faviconUrl }}">
+    {% endif %}
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ site.title|default('') }}">
+    <meta property="og:locale" content="{{ site.lang|default('de') == 'de' ? 'de_DE' : site.lang }}">
+    <meta property="og:title" content="{{ ogTitle }}">
+    <meta property="og:description" content="{{ ogDescription }}">
+    {% if pageUrl %}
+    <meta property="og:url" content="{{ pageUrl }}">
+    {% endif %}
+    {% if seo.og_image|default('') %}
+    {% set ogImageUrl = seo.og_image starts with 'http' ? seo.og_image : (canonicalBase ~ '/' ~ seo.og_image|trim('/')) %}
+    <meta property="og:image" content="{{ ogImageUrl }}">
+    {% if og_image_size %}
+    <meta property="og:image:width" content="{{ og_image_size.width }}">
+    <meta property="og:image:height" content="{{ og_image_size.height }}">
+    {% endif %}
+    <meta property="og:image:alt" content="{{ ogTitle }}">
+    {% endif %}
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ ogTitle }}">
+    <meta name="twitter:description" content="{{ ogDescription }}">
+    {% if seo.og_image|default('') %}
+    <meta name="twitter:image" content="{{ ogImageUrl }}">
+    {% endif %}
+    {% if structured_data|default('') %}
+    <script type="application/ld+json">{{ structured_data|raw }}</script>
+    {% endif %}
+
+    {% set fontDisplay = (brand.font_display|default('Commissioner'))|replace({' ': '+'}) %}
+    {% set fontBody = (brand.font_body|default('Source Serif 4'))|replace({' ': '+'}) %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family={{ fontDisplay }}:wght@400;500;600;700&family={{ fontBody }}:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '{{ brand.primary|default("#355E4B") }}',
+              secondary: '{{ brand.secondary|default("#B87333") }}',
+              ash: '{{ brand.ash|default("#E7E4DC") }}',
+              walnut: '{{ brand.walnut|default("#241E18") }}'
+            },
+            fontFamily: {
+              display: ['{{ brand.font_display|default("Commissioner") }}', 'sans-serif'],
+              sans: ['{{ brand.font_body|default("Source Serif 4") }}', 'serif']
+            }
+          }
+        }
+      }
+    </script>
+    {% if needs_swiper %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11.2.10/swiper-bundle.min.css">
+    {% endif %}
+    <style>
+      :root {
+        --brand-primary: {{ brand.primary|default('#355E4B') }};
+        --brand-secondary: {{ brand.secondary|default('#B87333') }};
+        --brand-walnut: {{ brand.walnut|default('#241E18') }};
+        --brand-ash: {{ brand.ash|default('#E7E4DC') }};
+        --brand-radius: {{ brand.radius|default('0.125rem') }};
+      }
+    </style>
+    <link rel="stylesheet" href="/core/assets/style.css">
+    {% if theme_css_url|default('') %}
+    <link rel="stylesheet" href="{{ theme_css_url }}">
+    {% endif %}
+</head>
+<body class="font-sans bg-ash text-walnut antialiased">
+    <div class="pointer-events-none fixed inset-y-0 left-0 z-50 hidden w-2 bg-walnut md:block" aria-hidden="true"></div>
+    {{ topbar|raw }}
+    {{ header|raw }}
+    <main>
+        {{ sections|raw }}
+    </main>
+    {{ footer|raw }}
+
+    {{ sticky_bar|raw }}
+
+    {{ cookie_banner|raw }}
+
+    <div class="fixed inset-0 z-50 hidden items-center justify-center bg-walnut/60 p-4 backdrop-blur-sm" data-content-modal>
+        <div class="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-[var(--brand-radius)] bg-white p-8 shadow-2xl">
+            <button type="button" class="absolute right-4 top-4 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-walnut/50 transition hover:bg-ash hover:text-walnut" data-content-modal-close aria-label="Schließen">✕</button>
+            <div data-content-modal-body></div>
+        </div>
+    </div>
+    <script>
+      (function () {
+        // Der sticky Header überdeckt sonst die Zielsection beim Anker-Scroll
+        // (Klick auf Nav-Link) - Höhe wird gemessen statt fest verdrahtet, weil sie
+        // je Theme/Breakpoint unterschiedlich ist. Absichtlich nur der <header>
+        // selbst (nicht in einen gemeinsamen Wrapper mit der Topbar packen!) -
+        // ein Wrapper, der nur so hoch wie sein Inhalt ist, nimmt "position:
+        // sticky" den Spielraum zum Stehenbleiben (das Containing Block ist dann
+        // schon an seiner Unterkante, sobald man einen Pixel weiterscrollt) und
+        // der Header scrollt komplett weg statt oben kleben zu bleiben. Die
+        // Topbar selbst ist nicht sticky und beim eigentlichen Scrollen zu einer
+        // Zielsection ohnehin schon aus dem Bild, zählt hier also nicht mit.
+        var header = document.querySelector('header');
+        if (!header) return;
+        // Volle Header-Höhe abzüglich eines Puffers: verhindert die Verdeckung,
+        // ohne dass sich Header-Höhe und das eigene Top-Padding der Zielsection
+        // zu einer spürbar zu großen Lücke aufsummieren - der Puffer bleibt
+        // bewusst kleiner als das übliche Section-Padding, sodass nie Text
+        // (statt nur Leerraum) verdeckt wird.
+        function updateHeaderOffset() {
+          var offset = Math.max(0, header.getBoundingClientRect().height - 40);
+          document.documentElement.style.setProperty('--header-offset', offset + 'px');
+        }
+        updateHeaderOffset();
+        window.addEventListener('resize', updateHeaderOffset);
+        window.addEventListener('load', updateHeaderOffset);
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(updateHeaderOffset);
+        }
+      })();
+    </script>
+    <script>
+      (function () {
+        var modal = document.querySelector('[data-content-modal]');
+        if (!modal) return;
+        var body = modal.querySelector('[data-content-modal-body]');
+
+        function openModal(targetId) {
+          var tpl = document.querySelector('[data-modal-content="' + targetId + '"]');
+          if (!tpl) return;
+          body.innerHTML = '';
+          body.appendChild(tpl.content.cloneNode(true));
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          document.body.style.overflow = '';
+        }
+
+        document.addEventListener('click', function (e) {
+          var openBtn = e.target.closest('[data-modal-open]');
+          if (openBtn) {
+            openModal(openBtn.getAttribute('data-modal-target'));
+            return;
+          }
+          if (e.target === modal || e.target.closest('[data-content-modal-close]')) {
+            closeModal();
+          }
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        var WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+        var MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+
+        function formatDate(d) {
+          function pad(n) { return n < 10 ? '0' + n : '' + n; }
+          return WEEKDAYS[d.getDay()] + ', ' + d.getDate() + '. ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() + ', ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' Uhr';
+        }
+
+        document.querySelectorAll('[data-mail-template]').forEach(function (a) {
+          a.addEventListener('click', function () {
+            var dateStr = formatDate(new Date());
+            var subject = (a.getAttribute('data-mail-subject') || '').replace(/\{date\}/g, dateStr);
+            var body = (a.getAttribute('data-mail-body') || '').replace(/\{date\}/g, dateStr);
+            var address = a.getAttribute('data-mail-address') || '';
+            var params = [];
+            if (subject) params.push('subject=' + encodeURIComponent(subject));
+            if (body) params.push('body=' + encodeURIComponent(body));
+            a.href = 'mailto:' + address + (params.length ? '?' + params.join('&') : '');
+          });
+        });
+      })();
+    </script>
+    <script>
+      document.querySelectorAll('[data-crossfade]').forEach(function (group) {
+        var slides = group.querySelectorAll('[data-crossfade-slide]');
+        var dots = group.querySelectorAll('[data-crossfade-dot]');
+        var prevBtn = group.querySelector('[data-crossfade-prev]');
+        var nextBtn = group.querySelector('[data-crossfade-next]');
+        if (slides.length < 2) return;
+        var index = 0;
+        var timer = null;
+
+        function show(i) {
+          index = (i + slides.length) % slides.length;
+          slides.forEach(function (s, idx) {
+            s.classList.toggle('opacity-100', idx === index);
+            s.classList.toggle('opacity-0', idx !== index);
+          });
+          dots.forEach(function (d, idx) { d.classList.toggle('!bg-secondary', idx === index); });
+        }
+
+        function restart() {
+          if (timer) clearInterval(timer);
+          timer = setInterval(function () { show(index + 1); }, 5200);
+        }
+
+        dots.forEach(function (d, idx) {
+          d.addEventListener('click', function () { show(idx); restart(); });
+        });
+        if (prevBtn) prevBtn.addEventListener('click', function () { show(index - 1); restart(); });
+        if (nextBtn) nextBtn.addEventListener('click', function () { show(index + 1); restart(); });
+        group.crossfadeShow = function (i) { show(i); restart(); };
+        restart();
+      });
+    </script>
+    <script>
+      (function () {
+        function closeLightbox(lightbox) {
+          lightbox.classList.add('hidden');
+          lightbox.classList.remove('flex');
+          document.body.style.overflow = '';
+        }
+
+        document.addEventListener('click', function (e) {
+          var openBtn = e.target.closest('[data-vng-open]');
+          if (openBtn) {
+            var lightbox = document.querySelector('[data-vng-lightbox="' + openBtn.getAttribute('data-vng-lightbox-target') + '"]');
+            if (!lightbox) return;
+            var index = openBtn.getAttribute('data-vng-index');
+            var activePanel = null;
+            lightbox.querySelectorAll('[data-vng-panel]').forEach(function (panel) {
+              var isActive = panel.getAttribute('data-vng-panel') === index;
+              panel.classList.toggle('hidden', !isActive);
+              if (isActive) activePanel = panel;
+            });
+            var startAt = openBtn.getAttribute('data-vng-start');
+            if (activePanel && startAt !== null) {
+              var group = activePanel.querySelector('[data-crossfade]');
+              if (group && group.crossfadeShow) group.crossfadeShow(parseInt(startAt, 10));
+            }
+            lightbox.classList.remove('hidden');
+            lightbox.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            return;
+          }
+          var openLightbox = e.target.closest('[data-vng-lightbox]');
+          if (openLightbox && (e.target === openLightbox || e.target.closest('[data-vng-close]'))) {
+            closeLightbox(openLightbox);
+          }
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key !== 'Escape') return;
+          document.querySelectorAll('[data-vng-lightbox]:not(.hidden)').forEach(closeLightbox);
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        var KEY = 'cookie-consent';
+        var banner = document.querySelector('[data-cookie-banner]');
+        if (!banner) return;
+        var stored = null;
+        try { stored = localStorage.getItem(KEY); } catch (e) {}
+        if (stored) return;
+        banner.classList.remove('hidden');
+
+        function setConsent(value) {
+          try { localStorage.setItem(KEY, value); } catch (e) {}
+          banner.classList.add('hidden');
+        }
+
+        var acceptBtn = banner.querySelector('[data-cookie-accept]');
+        var necessaryBtn = banner.querySelector('[data-cookie-necessary]');
+        if (acceptBtn) acceptBtn.addEventListener('click', function () { setConsent('all'); });
+        if (necessaryBtn) necessaryBtn.addEventListener('click', function () { setConsent('necessary'); });
+      })();
+    </script>
+    {% if needs_swiper %}
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11.2.10/swiper-bundle.min.js"></script>
+    <script>
+      document.querySelectorAll('[data-hero-swiper]').forEach(function (el) {
+        new Swiper(el, {
+          loop: true,
+          effect: 'fade',
+          fadeEffect: { crossFade: true },
+          autoplay: { delay: 5200, disableOnInteraction: false },
+          pagination: { el: el.querySelector('.swiper-pagination'), clickable: true },
+          navigation: { nextEl: el.querySelector('[data-hero-next]'), prevEl: el.querySelector('[data-hero-prev]') }
+        });
+      });
+      document.querySelectorAll('[data-hero-swiper-plain]').forEach(function (el) {
+        new Swiper(el, {
+          loop: true,
+          autoplay: { delay: 5200, disableOnInteraction: false },
+          pagination: { el: el.querySelector('.swiper-pagination'), clickable: true },
+          navigation: { nextEl: el.querySelector('[data-hero-next]'), prevEl: el.querySelector('[data-hero-prev]') }
+        });
+      });
+      document.querySelectorAll('[data-gallery-categories-swiper]').forEach(function (el) {
+        new Swiper(el, {
+          slidesPerView: 'auto',
+          spaceBetween: 16,
+          navigation: {
+            nextEl: el.parentElement.querySelector('.swiper-button-next'),
+            prevEl: el.parentElement.querySelector('.swiper-button-prev')
+          }
+        });
+      });
+      document.querySelectorAll('[data-gallery-lightbox]').forEach(function (lightbox) {
+        var section = lightbox.closest('section');
+        var mainEl = lightbox.querySelector('[data-gallery-swiper-main]');
+        var mainSwiper = new Swiper(mainEl, {
+          spaceBetween: 16,
+          navigation: {
+            nextEl: mainEl.querySelector('.swiper-button-next'),
+            prevEl: mainEl.querySelector('.swiper-button-prev')
+          }
+        });
+
+        function loadCategory(idx) {
+          var tpl = section.querySelector('template[data-gallery-slides="' + idx + '"]');
+          if (!tpl) return;
+          mainSwiper.removeAllSlides();
+          mainSwiper.appendSlide(Array.from(tpl.content.cloneNode(true).children));
+          mainSwiper.slideTo(0, 0);
+          lightbox.querySelectorAll('[data-gallery-thumb]').forEach(function (t) {
+            var active = t.getAttribute('data-gallery-category') === String(idx);
+            t.classList.toggle('border-secondary', active);
+            t.classList.toggle('opacity-100', active);
+            t.classList.toggle('opacity-60', !active);
+          });
+        }
+
+        function openLightbox(idx) {
+          loadCategory(idx);
+          lightbox.classList.remove('hidden');
+          lightbox.classList.add('flex');
+          document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+          lightbox.classList.add('hidden');
+          lightbox.classList.remove('flex');
+          document.body.style.overflow = '';
+        }
+
+        section.querySelectorAll('[data-gallery-open]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            openLightbox(btn.getAttribute('data-gallery-category'));
+          });
+        });
+
+        lightbox.querySelectorAll('[data-gallery-thumb]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            loadCategory(btn.getAttribute('data-gallery-category'));
+          });
+        });
+
+        lightbox.querySelector('[data-gallery-close]').addEventListener('click', closeLightbox);
+        lightbox.addEventListener('click', function (e) {
+          if (e.target === lightbox) closeLightbox();
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) closeLightbox();
+        });
+      });
+      document.querySelectorAll('[data-reviews-swiper]').forEach(function (el) {
+        var scope = el.closest('section') || el.parentElement;
+        new Swiper(el, {
+          slidesPerView: 1,
+          spaceBetween: 24,
+          autoplay: { delay: 7000, disableOnInteraction: true },
+          pagination: { el: scope.querySelector('.swiper-pagination'), clickable: true },
+          navigation: { prevEl: scope.querySelector('[data-reviews-prev]'), nextEl: scope.querySelector('[data-reviews-next]') },
+          breakpoints: { 768: { slidesPerView: 2 }, 1024: { slidesPerView: 3 } }
+        });
+      });
+    </script>
+    {% endif %}
+</body>
+</html>

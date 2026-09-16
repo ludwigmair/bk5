@@ -1,0 +1,54 @@
+{
+    "type": "image-gallery",
+    "label": "Bildgalerie",
+    "requires_core": "1.0.0",
+    "needs_swiper": true,
+    "fields": [
+        {
+            "name": "kicker",
+            "type": "text",
+            "label": "Kicker"
+        },
+        {
+            "name": "heading",
+            "type": "text",
+            "label": "Überschrift",
+            "ai_supported": true
+        },
+        {
+            "name": "categories",
+            "type": "repeater",
+            "label": "Kategorien",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "text",
+                    "label": "Kategorie-Name"
+                },
+                {
+                    "name": "cover_image",
+                    "type": "image",
+                    "label": "Kategoriebild"
+                },
+                {
+                    "name": "images",
+                    "type": "repeater",
+                    "label": "Bilder in dieser Kategorie",
+                    "fields": [
+                        {
+                            "name": "image",
+                            "type": "image",
+                            "label": "Bild"
+                        },
+                        {
+                            "name": "alt",
+                            "type": "text",
+                            "label": "Alt-Text",
+                            "ai_supported": true
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

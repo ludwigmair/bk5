@@ -1,0 +1,24 @@
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+:root { --header-offset: 0px; }
+[id] { scroll-margin-top: var(--header-offset); }
+.rich-note { display: block; margin-top: 0.25em; font-size: 0.85em; opacity: 0.65; }
+.rich-highlight { color: var(--brand-secondary); font-weight: 600; }
+.rich-list { list-style: none; margin: 0.75em 0 0; padding: 0; display: grid; gap: 0.5em; }
+.rich-list li { position: relative; padding-left: 1.6em; }
+.rich-list li::before { content: '\2713'; position: absolute; left: 0; top: 0.05em; color: var(--brand-secondary); font-weight: 700; }
+/* Pill-Pagination (Punkte breiter als hoch, aktiver Punkt in Akzentfarbe) statt
+   Swipers runden Standard-Bullets – angelehnt an bk4.typopublic.com. */
+.swiper-pagination-bullet { width: 16px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.55); opacity: 1; transition: background-color .2s; }
+.swiper-pagination-bullet-active { background: var(--brand-secondary); }
+.swiper-pagination-dark .swiper-pagination-bullet { background: color-mix(in srgb, var(--brand-walnut) 20%, transparent); }
+/* Gemeinsame Basis für runde Swiper-Pfeil-Buttons (hero-slider, vorher-nachher-
+   galerie, google-reviews) - Aussehen (Radius/Farbe) je Variante darunter. */
+.swiper-nav-btn { display: flex; height: 40px; width: 40px; align-items: center; justify-content: center; cursor: pointer; transition: background-color .2s; }
+.swiper-nav-btn.swiper-button-disabled { opacity: .35; cursor: default; pointer-events: none; }
+.hero-nav-arrow { border-radius: 8px; border: 1px solid rgba(255,255,255,.7); background: color-mix(in srgb, var(--brand-walnut) 30%, transparent); color: #fff; }
+.hero-nav-arrow:hover { background: color-mix(in srgb, var(--brand-walnut) 50%, transparent); }
+.review-nav-arrow { border-radius: 9999px; background: color-mix(in srgb, var(--brand-walnut) 15%, transparent); color: var(--brand-primary); }
+.review-nav-arrow:hover { background: color-mix(in srgb, var(--brand-walnut) 25%, transparent); }
+.review-nav-arrow--next { background: var(--brand-primary); color: #fff; }
+.review-nav-arrow--next:hover { filter: brightness(1.1); }

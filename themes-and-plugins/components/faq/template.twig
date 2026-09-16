@@ -1,0 +1,22 @@
+<section id="{{ id }}" class="mx-auto max-w-3xl px-4 py-20 md:px-8">
+    {% if kicker %}
+    <p class="font-display text-xs font-medium uppercase tracking-[0.28em] text-primary">{{ kicker }}</p>
+    {% endif %}
+    <h2 class="mt-2 font-display text-3xl font-semibold md:text-4xl">{{ heading }}</h2>
+    {% if intro %}
+    <p class="mt-4 leading-relaxed text-walnut/75">{{ intro|rich }}</p>
+    {% endif %}
+    <div class="mt-10 divide-y divide-walnut/10 border-y border-walnut/10">
+        {% for item in items|default([])|filter(item => item.active is not defined or item.active) %}
+        <details class="group py-4">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-lg font-semibold [&::-webkit-details-marker]:hidden">
+                {{ item.question }}
+                <span class="shrink-0 text-xl leading-none text-primary transition group-open:rotate-45">+</span>
+            </summary>
+            {% if item.answer %}
+            <div class="mt-3 max-w-2xl leading-relaxed text-walnut/75">{{ item.answer|rich_block }}</div>
+            {% endif %}
+        </details>
+        {% endfor %}
+    </div>
+</section>

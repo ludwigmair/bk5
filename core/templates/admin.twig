@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin · {{ site_name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
+    <style>
+      .section-nav-link.is-active,
+      .section-nav-link.is-active:hover { background: #355E4B; color: #fff; }
+      [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-[#E7E4DC] font-['IBM_Plex_Sans',sans-serif] text-[#241E18]">
+    <header class="sticky top-0 z-20 border-b border-[#241E18]/10 bg-[#FBF8F2]">
+        <div class="border-b border-[#241E18]/10 bg-[#241E18]/[0.05]">
+            <div class="mx-auto max-w-6xl px-4 py-1.5">
+                <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#B87333]">
+                    <span class="flex items-center gap-2">
+                        Core {{ version }}
+                        {% if has_dev_tools and core_modified %}
+                        <a class="rounded-full border border-red-700/30 bg-red-700/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-red-700 no-underline transition hover:bg-red-700/15" href="#panel-update-package" title="core/ weicht vom Stand des letzten Update-Pakets ab - Update-Paket neu erstellen, um Kunden-Instanzen zu aktualisieren.">core/ verändert</a>
+                        {% endif %}
+                    </span>
+                    <span class="text-[#241E18]/20">|</span>
+                    <span class="flex items-center gap-2">
+                        Components {{ components_version }}
+                        {% if has_dev_tools and components_modified %}
+                        <a class="rounded-full border border-red-700/30 bg-red-700/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-red-700 no-underline transition hover:bg-red-700/15" href="#panel-components-update" title="themes-and-plugins/components/ weicht vom Stand des letzten Update-Pakets ab - Components-Update-Paket neu erstellen, um Kunden-Instanzen zu aktualisieren.">components/ verändert</a>
+                        {% endif %}
+                    </span>
+                </p>
+            </div>
+        </div>
+        <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+            <div>
+                <h1 class="font-['Commissioner',sans-serif] text-xl font-semibold tracking-tight">{{ site_name }}</h1>
+            </div>
+            <div class="flex items-center gap-3 text-sm">
+                <div class="relative" x-data="adminContentSearch()" @keydown.escape.window="open = false">
+                    <input type="search" x-model="query" @input.debounce.200ms="runSearch()" @focus="runSearch()"
+                        placeholder="Inhalte durchsuchen…" autocomplete="off"
+                        class="h-9 w-56 rounded-lg border border-[#241E18]/15 bg-white px-3 text-sm outline-none transition focus:border-[#355E4B]/40 focus:ring-4 focus:ring-[#355E4B]/10">
+                    <div x-show="open && results.length" x-cloak @click.outside="open = false"
+                        class="absolute left-0 z-30 mt-1 max-h-80 w-96 overflow-y-auto rounded-xl border border-[#241E18]/10 bg-white p-1.5 shadow-xl">
+                        <template x-for="(r, i) in results" :key="i">
+                            <button type="button" @click="goTo(r)" class="block w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm transition hover:bg-[#355E4B]/5">
+                                <span class="block truncate font-semibold text-[#241E18]" x-text="r.label"></span>
+                                <span class="block truncate text-xs text-[#241E18]/50" x-text="r.panelLabel + ' · ' + r.snippet"></span>
+                            </button>
+                        </template>
+                    </div>
+                    <div x-show="open && query.trim().length >= 2 && !results.length" x-cloak
+                        class="absolute left-0 z-30 mt-1 w-96 rounded-xl border border-[#241E18]/10 bg-white p-3 text-sm text-[#241E18]/50 shadow-xl">
+                        Keine Treffer.
+                    </div>
+                </div>
+                {% if languages is defined and languages|length > 1 %}
+                <div class="flex items-center gap-1 rounded-lg border border-[#241E18]/10 bg-white p-0.5" data-lang-switch-group title="Felder auf diese Sprache umschalten">
+                    {% for lang in languages %}
+                    <button type="button" class="cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold uppercase transition {% if loop.first %}bg-[#355E4B] text-white{% else %}text-[#241E18]/50 hover:bg-[#241E18]/5{% endif %}" data-lang-switch="{{ lang }}">{{ lang }}</button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <span class="text-[#241E18]/60">Angemeldet als {{ current_user }}</span>
+                <a class="underline" href="./" target="_blank" rel="noreferrer">Seite</a>
+                <a class="underline" href="?admin=1&amp;do=logout">Abmelden</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl space-y-8 px-4 py-8 pb-24">
+        {% if flash %}<p class="border border-[#355E4B]/30 bg-[#FBF8F2] px-4 py-3 text-sm">{{ flash }}</p>{% endif %}
+        {% if update_info %}
+        <div class="rounded-xl border border-[#241E18]/5 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] px-4 py-3 text-sm">
+            <p>{{ update_info.message }}</p>
+            {% if update_info.incompatible|default([]) is not empty %}
+            <p class="mt-2 text-red-700">⚠ Für Core {{ update_info.latest }} nicht als kompatibel deklariert, vor dem Update prüfen: {{ update_info.incompatible|join(', ') }}.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if components_update_info %}
+        <div class="rounded-xl border border-[#241E18]/5 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] px-4 py-3 text-sm">
+            <p>{{ components_update_info.message }}</p>
+        </div>
+        {% endif %}
+
+        <div class="flex flex-wrap items-start gap-6" id="sections-editor">
+            <nav class="w-full shrink-0 rounded-xl border border-[#241E18]/5 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] sm:w-52" aria-label="Sections">
+                <div class="space-y-1 p-3">
+                    <h2 class="mb-1 text-xs font-semibold uppercase tracking-wide text-[#B87333]">Sections</h2>
+                    <div data-section-list>
+                        {% for section in content.sections %}
+                            {% set schema = null %}
+                            {% for s in schemas %}
+                                {% if s.type == section.type %}{% set schema = s %}{% endif %}
+                            {% endfor %}
+                            {% if schema %}
+                            <div class="flex items-center gap-1" data-section-item data-section-id="{{ section.id }}">
+                                {% if current_is_admin %}
+                                <span class="flex h-6 w-5 shrink-0 cursor-grab select-none items-center justify-center rounded border border-[#241E18]/25 bg-[#E7E1D3] text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B] active:cursor-grabbing" draggable="true" data-drag-handle-section title="Ziehen zum Sortieren">
+                                    <svg width="8" height="13" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+                                        <circle cx="2" cy="2" r="1.5"></circle>
+                                        <circle cx="8" cy="2" r="1.5"></circle>
+                                        <circle cx="2" cy="8" r="1.5"></circle>
+                                        <circle cx="8" cy="8" r="1.5"></circle>
+                                        <circle cx="2" cy="14" r="1.5"></circle>
+                                        <circle cx="8" cy="14" r="1.5"></circle>
+                                    </svg>
+                                </span>
+                                <div class="flex shrink-0 flex-col gap-0.5">
+                                    <button class="flex h-3 w-4 cursor-pointer items-center justify-center rounded-t border border-[#241E18]/25 bg-[#E7E1D3] text-[8px] leading-none text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B]" type="button" data-move-section="up" title="Nach oben">▲</button>
+                                    <button class="flex h-3 w-4 cursor-pointer items-center justify-center rounded-b border border-[#241E18]/25 bg-[#E7E1D3] text-[8px] leading-none text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B]" type="button" data-move-section="down" title="Nach unten">▼</button>
+                                </div>
+                                {% endif %}
+                                <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-{{ section.id }}">{{ section.label|default(schema.label|default(section.type)) }}</a>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% if current_is_admin %}
+                    <form method="post" class="mt-2 space-y-1.5 border-t border-[#241E18]/10 pt-2">
+                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                        <input type="hidden" name="do" value="add">
+                        <select class="block h-9 w-full rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-[13px] text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="type" required>
+                            <option value="" disabled selected>Section wählen…</option>
+                            {% for schema in schemas %}
+                            <option value="{{ schema.type }}">{{ schema.label|default(schema.type) }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="block w-full cursor-pointer rounded-lg bg-[#355E4B] px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#2c4f40] hover:shadow-md active:translate-y-px" type="submit">+ Sektion hinzufügen</button>
+                    </form>
+                    {% endif %}
+                </div>
+
+                <div class="border-t border-[#241E18]/10 p-3">
+                    <h2 class="mb-1 text-xs font-semibold uppercase tracking-wide text-[#B87333]">Stammdaten</h2>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-site">Seite</a>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-business">Betrieb / Kontaktdaten</a>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-seo">SEO / Meta-Daten</a>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-legal">Rechtliches</a>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-images">Bildverwaltung</a>
+                </div>
+
+                {% if current_is_admin %}
+                <div class="border-t border-[#241E18]/10 p-3">
+                    <h2 class="mb-1 text-xs font-semibold uppercase tracking-wide text-[#B87333]">Admin</h2>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-nav">Navigation</a>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-labels">Beschriftungen</a>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-theme">Themes</a>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-history">Sicherung</a>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-users">Benutzer verwalten</a>
+                </div>
+                <div class="border-t border-[#241E18]/10 p-3">
+                    <h2 class="mb-1 text-xs font-semibold uppercase tracking-wide text-[#B87333]">Projekte</h2>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-export-instance">{{ has_dev_tools ? 'Projekt-Instanz erstellen' : 'Projekt-Instanz-Snapshot erstellen' }}</a>
+                    {% if dev_imports is not empty %}
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-dev-import">Projekt-Import (lokal)</a>
+                    {% endif %}
+                </div>
+                <div class="border-t border-[#241E18]/10 p-3">
+                    <div class="mb-1 flex items-center gap-1.5">
+                        <h2 class="text-xs font-semibold uppercase tracking-wide text-[#B87333]">System-Updates</h2>
+                        <span class="relative inline-flex h-4 w-4 shrink-0">
+                            <button type="button" class="flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-[#241E18]/20 bg-[#241E18]/[0.06] text-[9px] font-bold text-[#241E18]/70" data-info-icon>i</button>
+                            <span class="pointer-events-none absolute left-0 top-full z-20 mt-1.5 hidden w-64 rounded-lg bg-[#241E18] p-2.5 text-[11px] font-normal normal-case leading-snug tracking-normal text-white shadow-lg" data-info-tooltip><strong>Core</strong> ist der generische CMS-Motor (Boot, Admin, Basis-Templates), <strong>Components</strong> der gemeinsame Pool an Bausteinen (Cards, FAQ, Kontaktformular, …) – beide unabhängig voneinander versionierbar. Deine Inhalte (Texte, Bilder, Sections) sind davon nie betroffen, nur der Code wird ausgetauscht.</span>
+                        </span>
+                    </div>
+                    <p class="mt-1 px-3 text-[10px] font-semibold uppercase tracking-wide text-[#241E18]/35">Core</p>
+                    {% if has_dev_tools %}
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-update-package">Update-Paket erstellen</a>
+                    {% endif %}
+                    {% set updateReady = (config.update.manifest_url|default(''))|trim is not empty %}
+                    <form method="post">
+                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                        <input type="hidden" name="do" value="check-update">
+                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if updateReady %}cursor-pointer text-[#241E18]/70 hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not updateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt"{% endif %}>Update prüfen</button>
+                    </form>
+                    <form method="post">
+                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                        <input type="hidden" name="do" value="update">
+                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if updateReady %}cursor-pointer text-[#B87333] hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not updateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt"{% endif %}>Core aktualisieren</button>
+                    </form>
+                    <p class="mt-3 border-t border-[#241E18]/10 px-3 pt-3 text-[10px] font-semibold uppercase tracking-wide text-[#241E18]/35">Components</p>
+                    {% if has_dev_tools %}
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-components-update">Components-Update-Paket erstellen</a>
+                    {% endif %}
+                    {% set componentsUpdateReady = (config.update.components_manifest_url|default(''))|trim is not empty %}
+                    <form method="post">
+                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                        <input type="hidden" name="do" value="check-components-update">
+                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if componentsUpdateReady %}cursor-pointer text-[#241E18]/70 hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not componentsUpdateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt (update.components_manifest_url)"{% endif %}>Components prüfen</button>
+                    </form>
+                    <form method="post">
+                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                        <input type="hidden" name="do" value="components-update">
+                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if componentsUpdateReady %}cursor-pointer text-[#B87333] hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not componentsUpdateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt (update.components_manifest_url)"{% endif %}>Components aktualisieren</button>
+                    </form>
+                </div>
+                {% endif %}
+            </nav>
+
+            <div class="min-w-0 flex-1">
+                <form method="post" enctype="multipart/form-data" id="content-form">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <input type="hidden" name="do" value="save">
+
+                    <section id="panel-site" class="section-panel space-y-3 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-site" hidden>
+                        <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Seite</h2>
+                        {% include 'admin-field.twig' with {
+                            field: {name: 'title', type: 'text', label: 'Titel'},
+                            value: content.site.title|default(''),
+                            prefix: 'site'
+                        } %}
+                        {% include 'admin-field.twig' with {
+                            field: {name: 'tagline', type: 'text', label: 'Unterzeile'},
+                            value: content.site.tagline|default(''),
+                            prefix: 'site'
+                        } %}
+                        {% include 'admin-field.twig' with {
+                            field: {name: 'logo_text', type: 'text', label: 'Logo-Text'},
+                            value: content.site.logo_text|default(''),
+                            prefix: 'site'
+                        } %}
+                        {% include 'admin-field.twig' with {
+                            field: {name: 'logo_image', type: 'image', label: 'Logo-Bild (optional, ersetzt Logo-Text im Header sofern vom Theme unterstützt)'},
+                            value: content.site.logo_image|default(''),
+                            prefix: 'site'
+                        } %}
+
+                        {% for region in ['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] %}
+                            {% set layoutSchema = attribute(layoutSchemas, region) %}
+                            {% if layoutSchema.fields is defined and layoutSchema.fields is not empty %}
+                            <div class="border-t border-[#241E18]/10 pt-3">
+                                <div class="flex items-center gap-2">
+                                    <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">{{ layoutSchema.label|default(region) }}</p>
+                                    {% if layoutSchema.has_toggle|default(false) %}
+                                        {% if attribute(config.layout|default({}), region).enabled|default(false) %}
+                                        <span class="rounded-full border border-[#355E4B] bg-[#355E4B] px-2 py-0.5 text-[10px] font-semibold text-white">Aktiv</span>
+                                        {% else %}
+                                        <span class="rounded-full border border-[#241E18]/20 bg-[#241E18]/[0.08] px-2 py-0.5 text-[10px] font-semibold text-[#241E18]/60">Inaktiv</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                                {% for field in layoutSchema.fields %}
+                                    {% include 'admin-field.twig' with {
+                                        field: field,
+                                        value: attribute(attribute(content, region)|default({}), field.name)|default(''),
+                                        prefix: region
+                                    } %}
+                                {% endfor %}
+                                {% if layoutSchema.help|default('') %}
+                                <p class="mt-2 text-xs text-[#241E18]/40">{{ layoutSchema.help }}</p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </section>
+
+                    <section id="panel-business" class="section-panel space-y-3 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-business" hidden>
+                        <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Betrieb / Kontaktdaten</h2>
+                        {% include 'admin-field.twig' with {field: {name: 'name', type: 'text', label: 'Firmenname'}, value: content.business.name|default(''), prefix: 'business'} %}
+                        {% include 'admin-field.twig' with {field: {name: 'owner', type: 'text', label: 'Inhaber'}, value: content.business.owner|default(''), prefix: 'business'} %}
+                        {% include 'admin-field.twig' with {field: {name: 'street', type: 'text', label: 'Straße'}, value: content.business.street|default(''), prefix: 'business'} %}
+                        <div class="grid grid-cols-[14rem_1fr] gap-3">
+                            {% include 'admin-field.twig' with {field: {name: 'zip', type: 'text', label: 'PLZ'}, value: content.business.zip|default(''), prefix: 'business'} %}
+                            {% include 'admin-field.twig' with {field: {name: 'city', type: 'text', label: 'Ort'}, value: content.business.city|default(''), prefix: 'business'} %}
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            {% include 'admin-field.twig' with {field: {name: 'phone', type: 'text', label: 'Telefon'}, value: content.business.phone|default(''), prefix: 'business'} %}
+                            {% include 'admin-field.twig' with {field: {name: 'email', type: 'text', label: 'E-Mail'}, value: content.business.email|default(''), prefix: 'business'} %}
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            {% include 'admin-field.twig' with {field: {name: 'vat_id', type: 'text', label: 'USt-IdNr.'}, value: content.business.vat_id|default(''), prefix: 'business'} %}
+                            {% include 'admin-field.twig' with {field: {name: 'register', type: 'text', label: 'Handelsregister'}, value: content.business.register|default(''), prefix: 'business'} %}
+                        </div>
+                        {% include 'admin-field.twig' with {field: {name: 'hours', type: 'text', label: 'Öffnungszeiten', hint: 'z. B. Mo–Fr 8–17 Uhr, Termine nach Vereinbarung'}, value: content.business.hours|default(''), prefix: 'business'} %}
+                        {% include 'admin-field.twig' with {field: {name: 'maps_query', type: 'text', label: 'Karten-Suchbegriff (optional)', hint: 'Steuert, wo die Google-Maps-Karte im Kontaktformular hinzeigt. Leer lassen, um automatisch aus Name + Adresse oben zu suchen.'}, value: content.business.maps_query|default(''), prefix: 'business'} %}
+                    </section>
+
+                    <section id="panel-seo" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-seo" hidden>
+                        <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">SEO / Meta-Daten</h2>
+
+                        <div>
+                            <p class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Basis-URL</p>
+                            <p class="mt-1 text-[15px] text-[#241E18]">
+                                {% if config.seo.domain|default('') %}{{ config.seo.domain }}{% else %}<span class="text-[#241E18]/35">nicht gesetzt</span>{% endif %}
+                                <span class="ml-1 text-xs italic text-[#241E18]/35">config-Wert · {config.seo.domain}</span>
+                            </p>
+                            <p class="mt-1 text-xs text-[#241E18]/40">Technische Einstellung, nur in <code>config.json</code> änderbar. Wird für Canonical-Link, og:url und absolute Bild-URLs verwendet.</p>
+                        </div>
+
+                        {% include 'admin-field.twig' with {field: {name: 'title', type: 'text', label: 'Titel', hint: 'Browser-Tab + Titel in der Google-Suche. Standard: Titel aus „Seite“, 50–60 Zeichen empfohlen.'}, value: content.seo.title|default(''), prefix: 'seo'} %}
+                        {% include 'admin-field.twig' with {field: {name: 'description', type: 'textarea', label: 'Beschreibung', hint: 'Snippet unter dem Google-Titel. Standard: Unterzeile aus „Seite“, 120–160 Zeichen empfohlen.'}, value: content.seo.description|default(''), prefix: 'seo'} %}
+                        {% include 'admin-field.twig' with {field: {name: 'og_title', type: 'text', label: 'OG-Titel', hint: 'Titel beim Teilen auf Social Media (Open Graph/Twitter Card). Standard: Titel oben, 40–65 Zeichen empfohlen.'}, value: content.seo.og_title|default(''), prefix: 'seo'} %}
+                        {% include 'admin-field.twig' with {field: {name: 'og_description', type: 'textarea', label: 'OG-Beschreibung', hint: 'Beschreibung beim Teilen auf Social Media. Standard: Beschreibung oben, 120–160 Zeichen empfohlen.'}, value: content.seo.og_description|default(''), prefix: 'seo'} %}
+
+                        {% include 'admin-field.twig' with {
+                            field: {name: 'og_image', type: 'image', label: 'OG-Bild (Social, 1200×630)'},
+                            value: content.seo.og_image|default(''),
+                            prefix: 'seo'
+                        } %}
+                        {% include 'admin-field.twig' with {
+                            field: {name: 'favicon', type: 'image', label: 'Favicon'},
+                            value: content.seo.favicon|default(''),
+                            prefix: 'seo'
+                        } %}
+                        <label class="flex items-center gap-2 text-sm">
+                            <input type="hidden" name="seo[robots_noindex]" value="0">
+                            <input type="checkbox" name="seo[robots_noindex]" value="1" {% if content.seo.robots_noindex|default(false) %}checked{% endif %} class="h-4 w-4 rounded border-[#241E18]/30 text-[#355E4B] focus:ring-[#355E4B]/30">
+                            Von Suchmaschinen ausschließen (noindex) – z. B. für Staging/Testbetrieb
+                        </label>
+                    </section>
+
+                    {% if current_is_admin %}
+                    <section id="panel-labels" class="section-panel space-y-3 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-labels" hidden>
+                        <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Beschriftungen</h2>
+                        <p class="text-xs text-[#241E18]/40">Wiederkehrende Bedienelement-Texte auf der Live-Seite (Sticky-Leiste, Cookie-Banner, Footer, Barrierefreiheits-Labels). Leer lassen übernimmt die deutsche Standardbeschriftung.</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            {% for key, fallback in {
+                                nav_menu: 'Menü',
+                                read_more: 'Weiterlesen',
+                                sticky_call: 'Anrufen',
+                                sticky_mail: 'Mail',
+                                sticky_inquiry: 'Anfrage',
+                                sticky_top: 'Nach oben',
+                                cookie_accept: 'Verstanden',
+                                cookie_necessary: 'Nur notwendige',
+                                cookie_privacy_link: 'Datenschutzerklärung',
+                                back_to_home: 'Zurück zur Startseite',
+                                footer_impressum: 'Impressum',
+                                footer_datenschutz: 'Datenschutz'
+                            } %}
+                            {% include 'admin-field.twig' with {
+                                field: {name: key, type: 'text', label: key, hint: 'Standard: „' ~ fallback ~ '“'},
+                                value: attribute(content.labels|default({}), key)|default(''),
+                                prefix: 'labels'
+                            } %}
+                            {% endfor %}
+                        </div>
+                        {% include 'admin-field.twig' with {
+                            field: {name: 'cookie_text', type: 'textarea', label: 'cookie_text'},
+                            value: content.labels.cookie_text|default(''),
+                            prefix: 'labels'
+                        } %}
+                        <div class="border-t border-[#241E18]/10 pt-3">
+                            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">E-Mail-Vorbelegung (Mail-Links auf der Seite)</p>
+                            <p class="mt-1 text-xs text-[#241E18]/40">Platzhalter: <code>{date}</code> wird beim Klick durch Datum/Uhrzeit ersetzt (z. B. „Sa, 12. Sep 2026, 16:39 Uhr“), <code>{business.name}</code> usw. durch die Stammdaten.</p>
+                            {% include 'admin-field.twig' with {
+                                field: {name: 'mail_subject', type: 'text', label: 'mail_subject', hint: 'z. B. Anfrage vom {date}'},
+                                value: content.labels.mail_subject|default(''),
+                                prefix: 'labels'
+                            } %}
+                            {% include 'admin-field.twig' with {
+                                field: {name: 'mail_body', type: 'textarea', label: 'mail_body'},
+                                value: content.labels.mail_body|default(''),
+                                prefix: 'labels'
+                            } %}
+                        </div>
+                    </section>
+                    {% endif %}
+
+                    <section id="panel-nav" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-nav" hidden>
+                        <div class="flex items-center gap-2">
+                            <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Navigation</h2>
+                            <span class="relative inline-flex h-5 w-5 shrink-0">
+                                <button type="button" class="flex h-5 w-5 cursor-help items-center justify-center rounded-full border border-[#241E18]/20 bg-[#241E18]/[0.06] text-[10px] font-bold text-[#241E18]/70" data-info-icon>i</button>
+                                <span class="pointer-events-none absolute left-0 top-full z-20 mt-1.5 hidden w-64 rounded-lg bg-[#241E18] p-2.5 text-[11px] font-normal normal-case leading-snug tracking-normal text-white shadow-lg" data-info-tooltip>Jeder Punkt verlinkt auf eine Section (Anker) oder eine externe URL. Sortierbar per Drag &amp; Drop oder Pfeiltasten. „Aktiv“ blendet den Punkt in Header/Footer aus, ohne ihn zu löschen.</span>
+                            </span>
+                        </div>
+                        <div data-repeater-list data-repeater-prefix="nav">
+                            {% set navItems = content.nav is iterable ? content.nav : [] %}
+                            {% if navItems is empty %}{% set navItems = [{}] %}{% endif %}
+                            {% for item in navItems %}
+                            <div class="flex flex-wrap items-start gap-3 border-t border-[#241E18]/5 pt-3 first:border-t-0 first:pt-0" data-repeater-item>
+                                <div class="flex gap-1 pt-6">
+                                    <span class="flex h-7 w-6 shrink-0 cursor-grab select-none items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B] active:cursor-grabbing" draggable="true" data-drag-handle title="Ziehen zum Sortieren">
+                                        <svg width="9" height="14" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+                                            <circle cx="2" cy="2" r="1.5"></circle>
+                                            <circle cx="8" cy="2" r="1.5"></circle>
+                                            <circle cx="2" cy="8" r="1.5"></circle>
+                                            <circle cx="8" cy="8" r="1.5"></circle>
+                                            <circle cx="2" cy="14" r="1.5"></circle>
+                                            <circle cx="8" cy="14" r="1.5"></circle>
+                                        </svg>
+                                    </span>
+                                    <div class="flex shrink-0 flex-col gap-0.5">
+                                        <button class="flex h-[13px] w-6 cursor-pointer items-center justify-center rounded-t-md border border-[#241E18]/25 bg-[#E7E1D3] text-[8px] leading-none text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B]" type="button" data-move="up" title="Nach oben">▲</button>
+                                        <button class="flex h-[13px] w-6 cursor-pointer items-center justify-center rounded-b-md border border-[#241E18]/25 bg-[#E7E1D3] text-[8px] leading-none text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B]" type="button" data-move="down" title="Nach unten">▼</button>
+                                    </div>
+                                </div>
+                                <div class="w-64 shrink-0">
+                                    {% include 'admin-field.twig' with {
+                                        field: {name: 'label', type: 'text', label: 'Label'},
+                                        value: item.label|default(''),
+                                        prefix: 'nav[' ~ loop.index0 ~ ']'
+                                    } %}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    {% include 'admin-field.twig' with {
+                                        field: {name: 'href', type: 'url', label: 'Ziel'},
+                                        value: item.href|default(''),
+                                        prefix: 'nav[' ~ loop.index0 ~ ']'
+                                    } %}
+                                </div>
+                                <label class="relative mt-6 inline-flex h-6 w-11 shrink-0 cursor-pointer items-center" title="Aktiv / Inaktiv">
+                                    <input type="checkbox" name="nav[{{ loop.index0 }}][active]" value="1" {% if item.active is not defined or item.active %}checked{% endif %} class="peer sr-only">
+                                    <span class="absolute inset-0 rounded-full bg-[#241E18]/15 transition-colors peer-checked:bg-[#355E4B]"></span>
+                                    <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-5"></span>
+                                </label>
+                                <button type="button" class="mt-6 flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-red-800/10 bg-red-800/5 text-base font-semibold text-red-700/80 shadow-sm transition hover:border-red-800/30 hover:bg-red-50 hover:text-red-700" data-remove-item title="Eintrag entfernen">✕</button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="cursor-pointer text-sm text-[#355E4B]" type="button" data-repeater-add="nav">Eintrag hinzufügen</button>
+                    </section>
+
+                    <section id="panel-legal" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-legal" hidden>
+                        <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Rechtliches</h2>
+                        <p class="text-xs text-[#241E18]/40">Text für Impressum und Datenschutzerklärung. Kontaktdaten (Adresse, Telefon, E-Mail, USt-IdNr.) werden im Impressum automatisch aus Betrieb / Kontaktdaten ergänzt – hier nur der Fließtext darum herum.</p>
+                        {% include 'admin-field.twig' with {
+                            field: {name: 'body', type: 'textarea', label: 'Impressum'},
+                            value: content.legal.impressum.body|default(''),
+                            prefix: 'legal[impressum]'
+                        } %}
+                        {% include 'admin-field.twig' with {
+                            field: {name: 'body', type: 'textarea', label: 'Datenschutzerklärung'},
+                            value: content.legal.datenschutz.body|default(''),
+                            prefix: 'legal[datenschutz]'
+                        } %}
+                    </section>
+
+                    {% for section in content.sections %}
+                        {% set schema = null %}
+                        {% for s in schemas %}
+                            {% if s.type == section.type %}{% set schema = s %}{% endif %}
+                        {% endfor %}
+                        {% if schema %}
+                        <article id="panel-{{ section.id }}" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-{{ section.id }}" hidden>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <h2 class="font-['Commissioner',sans-serif] text-base font-semibold tracking-tight">{{ section.label|default(schema.label|default(section.type)) }}</h2>
+                                {% if current_is_admin %}
+                                <button class="h-7 cursor-pointer rounded-lg border border-red-800/40 transition hover:border-red-800 hover:bg-red-800 hover:text-white px-2 text-xs text-red-800" type="submit" form="delete-{{ section.id }}">{{ section.label|default(schema.label|default(section.type)) }} löschen</button>
+                                {% endif %}
+                                <label class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40" title="Eigener Name für diese Section in der linken Navigation (optional, sonst Komponenten-Name).">
+                                    Bezeichnung
+                                    <input class="h-8 w-40 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-xs font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="sections[{{ section.id }}][label]" value="{{ section.label|default('') }}" placeholder="optional">
+                                </label>
+                                <label class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40" title="Technischer Anker für Links (#anker), z. B. in der Navigation. Nur Kleinbuchstaben, Ziffern, Bindestriche - Umbenennen zieht passende Nav-Links automatisch mit.">
+                                    Anker
+                                    <input class="h-8 w-40 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 font-mono text-xs font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="sections[{{ section.id }}][anchor_id]" value="{{ section.id }}" pattern="[a-z][a-z0-9-]{1,59}">
+                                </label>
+                                <label class="ml-auto flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40" title="Hintergrund dieser Section (oder – bei Anker-Gruppe – des ganzen Blocks). „Automatisch“ wechselt weiß/getönt je nach Position auf der Seite ab.">
+                                    Hintergrund
+                                    <select class="h-8 w-32 cursor-pointer rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-xs font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="sections[{{ section.id }}][background]">
+                                        {% for value, label in {auto: 'Automatisch', white: 'Weiß', tint: 'Getönt', accent: 'Akzent'} %}
+                                        <option value="{{ value }}" {% if (section.background|default('auto')) == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+                                <label class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40" title="Sections mit demselben Wert teilen sich einen gemeinsamen Anker für die Navigation. Dafür müssen sie direkt untereinander stehen.">
+                                    Anker-Gruppe
+                                    <input class="h-8 w-44 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-xs font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="sections[{{ section.id }}][group]" value="{{ section.group|default('') }}" placeholder="optional">
+                                </label>
+                            </div>
+                            <input type="hidden" name="sections[{{ section.id }}][sort]" value="{{ section.sort }}">
+                            <input type="hidden" name="sections[{{ section.id }}][type]" value="{{ section.type }}">
+                            {% if schema.help|default('') %}
+                            <p class="text-xs text-[#241E18]/40">{{ schema.help }}</p>
+                            {% endif %}
+                            {% for field in schema.fields %}
+                                {% set fieldHasValue = field.name in (section.data|keys) %}
+                                {% include 'admin-field.twig' with {
+                                    field: field,
+                                    value: fieldHasValue ? attribute(section.data, field.name) : (field.default is defined ? field.default : (field.type == 'repeater' ? [] : '')),
+                                    prefix: 'sections[' ~ section.id ~ '][data]'
+                                } %}
+                            {% endfor %}
+                        </article>
+                        {% endif %}
+                    {% endfor %}
+                </form>
+
+                {% for section in content.sections %}
+                    {% set schema = null %}
+                    {% for s in schemas %}
+                        {% if s.type == section.type %}{% set schema = s %}{% endif %}
+                    {% endfor %}
+                <form id="delete-{{ section.id }}" method="post" data-confirm="„{{ section.label|default(schema.label|default(section.type)) }}“ wirklich löschen?">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <input type="hidden" name="do" value="delete">
+                    <input type="hidden" name="id" value="{{ section.id }}">
+                </form>
+                {% endfor %}
+
+                {% if current_is_admin %}
+                <section id="panel-theme" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-theme" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Themes</h2>
+                    <p class="text-xs text-[#241E18]/40">Ein Theme bündelt Marken-Farben/-Fonts sowie Header-/Footer-/Sticky-Leisten-Variante. Anwenden ändert diese Werte in config.json direkt – wie eine einzelne Sektion speichern, kein Neuladen der Seite nötig.</p>
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        {% for theme in themes %}
+                        <div class="flex h-full flex-col overflow-hidden rounded-xl border border-[#241E18]/10 bg-white">
+                            <div class="flex h-12 shrink-0">
+                                <div class="flex-1" style="background-color: {{ theme.brand.primary|default('#ccc') }};"></div>
+                                <div class="flex-1" style="background-color: {{ theme.brand.secondary|default('#999') }};"></div>
+                            </div>
+                            <div class="flex flex-1 flex-col gap-2 p-4">
+                                <div class="flex items-center gap-2">
+                                    <p class="font-semibold text-[#241E18]">{{ theme.label|default(theme.name) }}</p>
+                                    {% if active_theme == theme.name %}
+                                    <span class="rounded-full border border-[#355E4B] bg-[#355E4B] px-2 py-0.5 text-[10px] font-semibold text-white">Aktiv</span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-xs text-[#241E18]/50">{{ theme.description|default('') }}</p>
+                                <p class="text-[11px] uppercase tracking-wide text-[#241E18]/35">{{ theme.brand.font_display|default('') }} / {{ theme.brand.font_body|default('') }}</p>
+                                <div class="mt-auto flex gap-2 pt-1">
+                                    <button type="button" class="flex h-9 flex-1 cursor-pointer items-center justify-center rounded-lg border border-[#355E4B]/30 text-sm font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5"
+                                       data-theme-edit
+                                       data-label="{{ theme.label|default(theme.name) }}"
+                                       data-description="{{ theme.description|default('') }}"
+                                       data-header="{{ theme.layout.header|default('') }}"
+                                       data-footer="{{ theme.layout.footer|default('') }}"
+                                       data-topbar="{{ theme.layout.topbar|default('') }}"
+                                       data-stickybar="{{ theme.layout.stickybar|default('') }}"
+                                       data-cookiebanner="{{ theme.layout.cookiebanner|default('') }}"
+                                       data-languages="{{ (theme.languages|default(['de']))|join(',') }}">Bearbeiten</button>
+                                    {% if active_theme != theme.name %}
+                                    <form class="flex-1" method="post">
+                                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                                        <input type="hidden" name="do" value="apply-theme">
+                                        <input type="hidden" name="theme" value="{{ theme.name }}">
+                                        <button class="h-9 w-full cursor-pointer rounded-lg bg-[#355E4B] text-sm font-semibold text-white transition hover:brightness-110" type="submit">Anwenden</button>
+                                    </form>
+                                    <form method="post" data-confirm="Theme „{{ theme.label|default(theme.name) }}“ wirklich löschen?">
+                                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                                        <input type="hidden" name="do" value="delete-theme">
+                                        <input type="hidden" name="theme" value="{{ theme.name }}">
+                                        <button class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-red-800/30 text-red-700 transition hover:border-red-800 hover:bg-red-800 hover:text-white" type="submit" title="Theme löschen">✕</button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div id="theme-builder" class="border-t border-[#241E18]/10 pt-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <h3 class="font-['Commissioner',sans-serif] text-base font-semibold tracking-tight">Theme bearbeiten oder neu erstellen</h3>
+                            <button type="button" class="text-xs font-semibold text-[#355E4B] underline-offset-2 transition hover:underline" data-theme-form-reset>+ Neues Theme (Felder leeren)</button>
+                        </div>
+                        <p class="mt-1 text-xs text-[#241E18]/40">Vorausgefüllt mit der Auswahl des aktiven Themes: einzelne Regionen ändern und unter demselben Namen speichern, um es zu bearbeiten. Für ein neues Theme oben "Felder leeren" klicken, dann Namen und Regionen frei wählen.</p>
+                        <form method="post" class="mt-3 space-y-3" data-theme-form>
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="build-theme">
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Name
+                                    <input class="mt-1 h-11 w-full rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="theme_label" value="{{ active_theme_data.label|default('') }}" placeholder="z. B. Mein Projekt 2026" required>
+                                </label>
+                                <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Beschreibung (optional)
+                                    <input class="mt-1 h-11 w-full rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="theme_description" value="{{ active_theme_data.description|default('') }}" placeholder="Kurzbeschreibung für die Theme-Karte">
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                {% for region, labelText in {header: 'Header', footer: 'Footer', topbar: 'Topbar', stickybar: 'Sticky-Leiste', cookiebanner: 'Cookie-Banner'} %}
+                                {% set currentVariant = attribute(active_theme_data.layout|default({}), region)|default('') %}
+                                <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">{{ labelText }}
+                                    <select class="mt-1 block h-11 w-full rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="regions[{{ region }}]">
+                                        <option value="" {% if currentVariant == '' %}selected{% endif %}>— Keine —</option>
+                                        {% for variant in attribute(regionVariants, region) %}
+                                        <option value="{{ variant.slug }}" {% if variant.slug == currentVariant %}selected{% endif %}>{{ variant.label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Sprachen</p>
+                                <p class="mt-0.5 text-xs text-[#241E18]/40">Deutsch ist immer aktiv (Standard-/Fallback-Sprache). Weitere aktivieren, um bei Texten pro Sprache umschalten zu können – ohne Übersetzung wird automatisch Deutsch gezeigt.</p>
+                                <div class="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                    {% set currentLanguages = active_theme_data.languages|default(['de']) %}
+                                    {% for code, langLabel in available_languages %}
+                                    <label class="flex items-center gap-2 rounded-lg border border-[#241E18]/10 bg-white px-3 py-2 text-sm {% if code == 'de' %}opacity-60{% endif %}" data-theme-lang-option>
+                                        <input type="checkbox" name="languages[]" value="{{ code }}" {% if code in currentLanguages %}checked{% endif %} {% if code == 'de' %}disabled{% endif %} class="h-4 w-4 rounded border-[#241E18]/30 text-[#355E4B] focus:ring-[#355E4B]/30">
+                                        {{ langLabel }} <span class="text-[#241E18]/40">({{ code }})</span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <button class="h-11 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2c4f40] hover:shadow-md active:translate-y-px" type="submit">Theme speichern &amp; aktivieren</button>
+                        </form>
+                    </div>
+                </section>
+
+                {% if has_dev_tools %}
+                <section id="panel-update-package" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-update-package" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Update-Paket erstellen</h2>
+                    <p class="text-xs text-[#241E18]/40">Entwickler-Werkzeug: zählt <code>core/version.json</code> hoch und zippt <code>core/</code> danach nach <code>cache/</code>. Ersetzt nur das Hochzählen + Zippen aus <code>docs/UPDATE-CORE.md</code> – ZIP und Manifest musst du selbst irgendwo öffentlich per HTTPS bereitstellen (z. B. Download hier + eigener Upload), bevor „Update prüfen" auf einer Instanz das nutzen kann.</p>
+
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <p class="font-semibold text-[#241E18]">Aktuelle Version: {{ version }}</p>
+                        <form class="mt-3 flex flex-wrap items-end gap-3" method="post">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="build-update-package">
+                            <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Neue Version
+                                <input class="mt-1 block h-10 w-36 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="version" placeholder="z. B. 1.1.0" pattern="\d+\.\d+\.\d+" required>
+                            </label>
+                            <button class="h-10 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Paket erstellen</button>
+                        </form>
+                    </div>
+
+                    {% if update_packages is not empty %}
+                    <div class="space-y-3">
+                        {% for pkg in update_packages %}
+                        <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p class="font-semibold text-[#241E18]">core-{{ pkg.version }}.zip</p>
+                                <div class="flex items-center gap-2">
+                                    <a class="h-8 inline-flex cursor-pointer items-center rounded-lg border border-[#355E4B]/30 px-3 text-xs font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5" href="?admin=1&amp;do=download-update-package&amp;file=core-{{ pkg.version }}.zip">Herunterladen</a>
+                                    <form method="post" data-confirm="Paket „core-{{ pkg.version }}.zip“ wirklich löschen? Nur die lokale Datei in cache/ - ein bereits veröffentlichtes GitHub-Release bleibt davon unberührt.">
+                                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                                        <input type="hidden" name="do" value="delete-update-package">
+                                        <input type="hidden" name="file" value="core-{{ pkg.version }}.zip">
+                                        <button class="h-8 cursor-pointer rounded-lg border border-red-800/30 px-3 text-xs font-semibold text-red-800 transition hover:bg-red-800/5" type="submit">Löschen</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <label class="mt-3 block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Manifest (zip_url nach dem Hochladen ersetzen)
+                                <textarea class="mt-1.5 h-24 w-full rounded-lg border border-[#241E18]/10 bg-[#241E18]/[0.03] px-2.5 py-2 font-mono text-xs text-[#241E18]/80 outline-none focus:border-[#355E4B]/30" readonly onclick="this.select()">{{ pkg.manifest }}</textarea>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </section>
+                {% endif %}
+
+                {% if has_dev_tools %}
+                <section id="panel-components-update" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-components-update" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Components-Update-Paket erstellen</h2>
+                    <p class="text-xs text-[#241E18]/40">Entwickler-Werkzeug: zählt <code>themes-and-plugins/components/version.json</code> hoch und zippt den ganzen Component-Pool danach nach <code>cache/</code> – exakt derselbe Mechanismus wie beim Core-Update, nur für <code>themes-and-plugins/components/</code> statt <code>core/</code> (siehe <code>docs/UPDATE-COMPONENTS.md</code>). ZIP und Manifest musst du selbst irgendwo öffentlich per HTTPS bereitstellen, bevor „Components prüfen" auf einer Instanz das nutzen kann.</p>
+
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <p class="font-semibold text-[#241E18]">Aktuelle Version: {{ components_version }}</p>
+                        <form class="mt-3 flex flex-wrap items-end gap-3" method="post">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="build-components-update-package">
+                            <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Neue Version
+                                <input class="mt-1 block h-10 w-36 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="version" placeholder="z. B. 1.1.0" pattern="\d+\.\d+\.\d+" required>
+                            </label>
+                            <button class="h-10 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Paket erstellen</button>
+                        </form>
+                    </div>
+
+                    {% if components_update_packages is not empty %}
+                    <div class="space-y-3">
+                        {% for pkg in components_update_packages %}
+                        <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <p class="font-semibold text-[#241E18]">components-{{ pkg.version }}.zip</p>
+                                <div class="flex items-center gap-2">
+                                    <a class="h-8 inline-flex cursor-pointer items-center rounded-lg border border-[#355E4B]/30 px-3 text-xs font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5" href="?admin=1&amp;do=download-components-update-package&amp;file=components-{{ pkg.version }}.zip">Herunterladen</a>
+                                    <form method="post" data-confirm="Paket „components-{{ pkg.version }}.zip“ wirklich löschen? Nur die lokale Datei in cache/ - ein bereits veröffentlichtes GitHub-Release bleibt davon unberührt.">
+                                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                                        <input type="hidden" name="do" value="delete-components-update-package">
+                                        <input type="hidden" name="file" value="components-{{ pkg.version }}.zip">
+                                        <button class="h-8 cursor-pointer rounded-lg border border-red-800/30 px-3 text-xs font-semibold text-red-800 transition hover:bg-red-800/5" type="submit">Löschen</button>
+                                    </form>
+                                </div>
+                            </div>
+                            <label class="mt-3 block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Manifest (zip_url nach dem Hochladen ersetzen)
+                                <textarea class="mt-1.5 h-24 w-full rounded-lg border border-[#241E18]/10 bg-[#241E18]/[0.03] px-2.5 py-2 font-mono text-xs text-[#241E18]/80 outline-none focus:border-[#355E4B]/30" readonly onclick="this.select()">{{ pkg.manifest }}</textarea>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </section>
+                {% endif %}
+
+                <section id="panel-export-instance" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-export-instance" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">{{ has_dev_tools ? 'Projekt-Instanz erstellen' : 'Projekt-Instanz-Snapshot erstellen' }}</h2>
+                    {% if has_dev_tools %}
+                    <p class="text-xs text-[#241E18]/40">Exportiert den aktuellen Stand (Inhalte, Bilder, aktives Theme <strong>{{ active_theme|default('–') }}</strong>) als eigenständigen, deploybaren Ordner unter <code>project-instances/</code> – nur core/ plus die tatsächlich genutzten Theme-/Component-Dateien, nicht der komplette gemeinsame Pool.</p>
+                    {% else %}
+                    <p class="text-xs text-[#241E18]/40">Zieht einen Snapshot des aktuellen Live-Stands dieser Instanz (Inhalte, Bilder, Theme <strong>{{ active_theme|default('–') }}</strong>) als eigenständigen Ordner unter <code>project-instances/</code> – z. B. vor einer riskanten Änderung, zum Klonen oder als Vorlage für ein ähnliches neues Projekt.</p>
+                    {% endif %}
+
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <form class="flex flex-wrap items-end gap-3" method="post">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="export-instance">
+                            <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Ordnername
+                                <input class="mt-1 block h-10 w-56 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="slug" placeholder="z. B. kurzeder-live" pattern="[a-z0-9][a-z0-9-]{1,39}" required>
+                            </label>
+                            <button class="h-10 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">{{ has_dev_tools ? 'Instanz erstellen' : 'Snapshot erstellen' }}</button>
+                        </form>
+                        <p class="mt-2 text-[11px] text-[#241E18]/40">Landet unter <code>project-instances/&lt;Ordnername&gt;/</code>, direkt neben diesem Projekt – nie in <code>web/</code>. Danach dort ggf. noch <code>composer install</code> ausführen und eigene Admin-Zugänge in <code>data/config.json</code> setzen.</p>
+                    </div>
+                </section>
+
+                <section id="panel-history" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-history" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Sicherung</h2>
+                    <p class="text-xs text-[#241E18]/40">Stellt nur Text-Felder wieder her (Titel, Texte, Fragen/Antworten usw.) – Bilder bleiben unverändert, egal welcher Stand gewählt wird.</p>
+
+                    {% if active_dev_import|default('') %}
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <p class="font-semibold text-[#241E18]">Auf Import-Stand zurücksetzen</p>
+                        <p class="mt-1 text-xs text-[#241E18]/50">Setzt alle Text-Felder auf den Stand von „{{ active_dev_import }}“ zum Zeitpunkt der Übernahme zurück – verwirft alle seitdem gespeicherten Text-Änderungen.</p>
+                        <form class="mt-3" method="post"
+                            data-confirm="Alle Text-Felder auf den Import-Stand von „{{ active_dev_import }}“ zurücksetzen? Seitdem gespeicherte Text-Änderungen gehen verloren (Bilder bleiben unangetastet)."
+                            data-confirm-title="Auf Import-Stand zurücksetzen?"
+                            data-confirm-action="Zurücksetzen"
+                            data-confirm-variant="primary">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="restore-import">
+                            <button class="h-9 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Zurücksetzen</button>
+                        </form>
+                    </div>
+                    {% endif %}
+
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <p class="font-semibold text-[#241E18]">Bearbeitungsstand wiederherstellen</p>
+                        {% if content_history is empty %}
+                        <p class="mt-1 text-xs text-[#241E18]/50">Noch kein Verlauf vorhanden – wird bei jedem „Änderungen speichern“ angelegt (bis zu 3 Stände).</p>
+                        {% else %}
+                        <ul class="mt-3 divide-y divide-[#241E18]/10 text-sm">
+                            {% for entry in content_history %}
+                            <li class="flex items-center justify-between gap-3 py-2.5">
+                                <span class="text-[#241E18]/70">Stand vom {{ entry.label }} Uhr</span>
+                                <form method="post"
+                                    data-confirm="Text-Felder auf den Stand vom {{ entry.label }} Uhr zurücksetzen? Der aktuelle Stand wird davor selbst als neuer Verlaufs-Eintrag gesichert."
+                                    data-confirm-title="Bearbeitungsstand wiederherstellen?"
+                                    data-confirm-action="Wiederherstellen"
+                                    data-confirm-variant="primary">
+                                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                                    <input type="hidden" name="do" value="restore-history">
+                                    <input type="hidden" name="file" value="{{ entry.file }}">
+                                    <button class="h-8 cursor-pointer rounded-lg border border-[#355E4B]/30 px-3 text-xs font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5" type="submit">Wiederherstellen</button>
+                                </form>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </section>
+
+                {% if dev_imports is not empty %}
+                <section id="panel-dev-import" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-dev-import" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Projekt-Import (lokal)</h2>
+                    <p class="text-xs text-[#241E18]/40">Nur auf dieser Maschine sichtbar – dev-imports/ existiert in keinem Deploy. Übernehmen ersetzt content.json/config.json vollständig durch die des gewählten Projekts; web/uploads/ nur, wenn das Projekt selbst mindestens ein Bild mitbringt.</p>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {% for project in dev_imports %}
+                        <div class="flex items-center justify-between gap-3 rounded-xl border border-[#241E18]/10 bg-white p-4">
+                            <div class="flex items-center gap-2">
+                                <p class="font-semibold text-[#241E18]">{{ project.label }}</p>
+                                {% if active_dev_import|default('') == project.slug %}
+                                <span class="rounded-full border border-[#355E4B] bg-[#355E4B] px-2 py-0.5 text-[10px] font-semibold text-white">Aktiv</span>
+                                {% endif %}
+                            </div>
+                            {% if active_dev_import|default('') != project.slug %}
+                            <form method="post"
+                                data-confirm="Projekt „{{ project.label }}“ übernehmen? Aktuelle Stammdaten (content.json/config.json) und web/uploads/ werden vollständig ersetzt."
+                                data-confirm-title="Projekt übernehmen?"
+                                data-confirm-action="Übernehmen"
+                                data-confirm-variant="primary">
+                                <input type="hidden" name="csrf" value="{{ csrf }}">
+                                <input type="hidden" name="do" value="switch-project">
+                                <input type="hidden" name="project" value="{{ project.slug }}">
+                                <button class="h-9 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Übernehmen</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+
+                <section id="panel-users" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-users" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Benutzer verwalten</h2>
+                    <ul class="divide-y divide-[#241E18]/10 text-sm">
+                        {% for u in users %}
+                        <li class="flex flex-wrap items-center justify-between gap-3 py-3">
+                            <span class="font-medium">{{ u.username }}{% if u.username == current_user %} <span class="text-xs text-[#355E4B]">(du)</span>{% endif %} <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide {% if u.is_admin|default(false) %}bg-[#B87333]/15 text-[#B87333]{% else %}bg-[#241E18]/[0.06] text-[#241E18]/50{% endif %}">{{ u.is_admin|default(false) ? 'Admin' : 'User' }}</span></span>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <form method="post" class="flex items-center gap-2">
+                                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                                    <input type="hidden" name="do" value="user-setpw">
+                                    <input type="hidden" name="username" value="{{ u.username }}">
+                                    <input class="h-9 rounded-lg border border-transparent bg-[#241E18]/[0.035] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10 px-2 text-xs" type="password" name="password" placeholder="neues Passwort" minlength="8" required autocomplete="new-password">
+                                    <button class="h-9 cursor-pointer border border-[#241E18]/20 px-3 text-xs" type="submit">Ändern</button>
+                                </form>
+                                {% if u.username != current_user %}
+                                <form method="post" data-confirm="Benutzer {{ u.username }} wirklich löschen?">
+                                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                                    <input type="hidden" name="do" value="user-remove">
+                                    <input type="hidden" name="username" value="{{ u.username }}">
+                                    <button class="h-9 cursor-pointer rounded-lg border border-red-800/40 transition hover:border-red-800 hover:bg-red-800 hover:text-white px-3 text-xs text-red-800" type="submit">Entfernen</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <form method="post" class="flex flex-wrap items-end gap-3 border-t border-[#241E18]/10 pt-4">
+                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                        <input type="hidden" name="do" value="user-add">
+                        <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Benutzername
+                            <input class="mt-1 h-10 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="username" required autocomplete="username">
+                        </label>
+                        <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Passwort
+                            <input class="mt-1 h-10 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="password" name="password" minlength="8" required autocomplete="new-password">
+                        </label>
+                        <label class="flex items-center gap-2 pb-2.5 text-sm">
+                            <input type="hidden" name="is_admin" value="0">
+                            <input type="checkbox" name="is_admin" value="1" class="h-4 w-4 rounded border-[#241E18]/30 text-[#355E4B] focus:ring-[#355E4B]/30">
+                            Admin-Rolle
+                        </label>
+                        <button class="h-10 cursor-pointer rounded-lg bg-[#355E4B] shadow-sm transition hover:bg-[#2c4f40] hover:shadow-md active:translate-y-px px-4 text-sm font-semibold text-white" type="submit">Hinzufügen</button>
+                    </form>
+                </section>
+                {% endif %}
+
+                <section id="panel-images" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-images" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Bildverwaltung</h2>
+
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                        {% for u in uploads %}
+                        <div class="space-y-2 border border-[#241E18]/10 p-2">
+                            <img class="h-24 w-full rounded-lg border border-[#241E18]/10 object-cover" src="/uploads/{{ u.name }}" alt="{{ u.name }}" loading="lazy">
+                            <p class="truncate text-xs text-[#241E18]/60" title="{{ u.name }}">{{ u.name }}</p>
+                            {% if u.used %}
+                            <p class="text-[10px] leading-tight text-[#241E18]/50">In Verwendung:<br>{{ u.usedIn|join(', ') }}</p>
+                            <button class="w-full cursor-not-allowed rounded-lg border border-[#241E18]/10 px-2 py-1 text-xs text-[#241E18]/30" type="button" disabled title="Erst dort entfernen, dann löschbar">Löschen</button>
+                            {% else %}
+                            <form method="post" data-confirm="Bild „{{ u.name }}“ wirklich löschen?">
+                                <input type="hidden" name="csrf" value="{{ csrf }}">
+                                <input type="hidden" name="do" value="image-delete">
+                                <input type="hidden" name="filename" value="{{ u.name }}">
+                                <button class="w-full cursor-pointer rounded-lg border border-red-800/40 transition hover:border-red-800 hover:bg-red-800 hover:text-white px-2 py-1 text-xs text-red-800" type="submit">Löschen</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        {% if uploads is empty %}
+                        <p class="col-span-full text-sm text-[#241E18]/50">Noch keine Bilder hochgeladen.</p>
+                        {% endif %}
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" class="border-t border-[#241E18]/10 pt-4">
+                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                        <input type="hidden" name="do" value="image-upload">
+                        <label id="image-dropzone" class="flex h-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#241E18]/15 bg-[#241E18]/[0.015] text-center transition">
+                            <span data-dropzone-text class="text-sm text-[#241E18]/60">Bild hierher ziehen oder klicken zum Auswählen</span>
+                            <span class="text-[11px] text-[#241E18]/35">jpg, png, webp, gif, svg</span>
+                            <input class="sr-only" type="file" name="image" accept=".jpg,.jpeg,.png,.webp,.gif,.svg" required>
+                        </label>
+                    </form>
+
+                    <form method="post" class="border-t border-[#241E18]/10 pt-4">
+                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                        <input type="hidden" name="do" value="image-import">
+                        <button class="h-9 cursor-pointer rounded-lg border border-[#241E18]/20 px-3 text-xs" type="submit">Externe Bilder aus Sections importieren</button>
+                        <p class="mt-1 text-xs text-[#241E18]/40">Lädt extern verlinkte Bilder (z. B. Unsplash-URLs) herunter und biegt die jeweilige Section-Referenz auf den lokalen Pool um.</p>
+                    </form>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <div class="fixed inset-x-0 bottom-0 z-30 border-t border-[#241E18]/10 bg-[#FBF8F2]/95 px-4 py-3 shadow-[0_-4px_16px_rgba(36,30,24,0.08)] backdrop-blur">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-3">
+            <a class="text-sm font-medium text-[#241E18]/50 underline-offset-2 transition hover:text-[#355E4B] hover:underline" href="?admin=1&do=manual" target="_blank" rel="noopener">Benutzerhandbuch</a>
+            <div class="flex items-center gap-3">
+                <button type="button" class="h-9 cursor-pointer rounded-lg border border-[#241E18]/15 px-4 text-sm font-medium text-[#241E18]/70 transition hover:bg-[#241E18]/5" data-discard-changes>Verwerfen</button>
+                <button class="h-9 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2c4f40] hover:shadow-md active:translate-y-px" type="submit" form="content-form">Änderungen speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="media-picker-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-[#241E18]/40 p-4 backdrop-blur-sm">
+        <div class="w-full max-w-2xl rounded-2xl border border-[#241E18]/5 bg-[#FBF8F2] p-6 shadow-2xl">
+            <div class="flex items-center justify-between">
+                <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold">Bild auswählen</h2>
+                <button type="button" class="h-7 w-7 cursor-pointer rounded-lg text-sm text-[#241E18]/40 transition hover:bg-[#241E18]/5" data-media-cancel title="Schließen">✕</button>
+            </div>
+            <div class="mt-4 grid max-h-96 grid-cols-4 gap-3 overflow-y-auto sm:grid-cols-5">
+                {% for u in uploads %}
+                <button type="button" class="aspect-square overflow-hidden rounded-lg border-2 border-transparent transition hover:border-[#355E4B]/50" data-media-option="uploads/{{ u.name }}" title="{{ u.name }}">
+                    <img class="h-full w-full object-cover" src="/uploads/{{ u.name }}" alt="{{ u.name }}" loading="lazy">
+                </button>
+                {% endfor %}
+                {% if uploads is empty %}
+                <p class="col-span-full text-sm text-[#241E18]/50">Noch keine Bilder hochgeladen.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-[#241E18]/40 p-4 backdrop-blur-sm">
+        <div class="w-full max-w-sm rounded-2xl border border-[#241E18]/5 bg-[#FBF8F2] p-6 shadow-2xl">
+            <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold" data-confirm-title>Wirklich löschen?</h2>
+            <p class="mt-2 text-sm text-[#241E18]/60" data-confirm-message></p>
+            <div class="mt-5 flex justify-end gap-3">
+                <button type="button" class="h-9 cursor-pointer rounded-lg border border-[#241E18]/15 px-4 text-sm font-medium transition hover:bg-[#241E18]/5" data-confirm-cancel>Abbrechen</button>
+                <button type="button" class="h-9 cursor-pointer rounded-lg bg-red-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800" data-confirm-ok>Löschen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="discard-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-[#241E18]/40 p-4 backdrop-blur-sm" data-modal-backdrop>
+        <div class="w-full max-w-sm rounded-2xl border border-[#241E18]/5 bg-[#FBF8F2] p-6 shadow-2xl">
+            <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold">Änderungen verwerfen?</h2>
+            <p class="mt-2 text-sm text-[#241E18]/60">Ungespeicherte Änderungen seit dem letzten Laden gehen dabei verloren.</p>
+            <div class="mt-5 flex justify-end gap-3">
+                <button type="button" class="h-9 cursor-pointer rounded-lg border border-[#241E18]/15 px-4 text-sm font-medium transition hover:bg-[#241E18]/5" data-modal-cancel>Abbrechen</button>
+                <button type="button" class="h-9 cursor-pointer rounded-lg bg-red-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-red-800" data-modal-confirm>Verwerfen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      // Volltext-Suche über alle Text-/Textarea-Felder in #content-form (Sections +
+      // Stammdaten) - durchsucht Wert UND Feld-Label, auch in gerade nicht sichtbaren
+      // Sprach-Panels/geschlossenen Repeater-Einträgen (deren Werte stehen trotzdem
+      // schon im DOM). Kein Server-Roundtrip nötig, da der komplette Content ohnehin
+      // schon als Formular auf der Seite liegt.
+      function adminContentSearch() {
+        return {
+          query: '',
+          results: [],
+          open: false,
+          runSearch: function () {
+            var q = this.query.trim().toLowerCase();
+            this.open = true;
+            if (q.length < 2) {
+              this.results = [];
+              return;
+            }
+            var form = document.getElementById('content-form');
+            if (!form) return;
+            var found = [];
+            form.querySelectorAll('input[type="text"], input:not([type]), input[type="tel"], input[type="url"], textarea').forEach(function (el) {
+              var val = (el.value || '').trim();
+              var wrap = el.closest('[data-field-wrap], [data-lang-panel]');
+              var label = wrap ? wrap.querySelector('label') : null;
+              var labelText = label ? label.textContent.trim() : '';
+              var idx = val.toLowerCase().indexOf(q);
+              var hitValue = idx !== -1;
+              var hitLabel = labelText.toLowerCase().indexOf(q) !== -1;
+              if (!hitValue && !hitLabel) return;
+              var panel = el.closest('[data-panel]');
+              var panelHeading = panel ? panel.querySelector('h2, legend') : null;
+              var snippet = hitValue ? (idx > 20 ? '…' + val.slice(idx - 15, idx + 40) : val.slice(0, 55)) : val.slice(0, 55);
+              found.push({
+                targetId: el.id,
+                panelId: panel ? panel.getAttribute('data-panel') : '',
+                panelLabel: panelHeading ? panelHeading.textContent.trim() : '',
+                label: labelText || '(ohne Titel)',
+                snippet: snippet || '(leer)'
+              });
+            });
+            this.results = found.slice(0, 20);
+          },
+          goTo: function (r) {
+            this.open = false;
+            this.query = '';
+            this.results = [];
+            if (r.panelId) location.hash = '#' + r.panelId;
+            setTimeout(function () {
+              var el = document.getElementById(r.targetId);
+              if (!el) return;
+              var details = el.closest('details');
+              while (details) {
+                details.open = true;
+                details = details.parentElement ? details.parentElement.closest('details') : null;
+              }
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.focus({ preventScroll: true });
+              el.classList.add('ring-4', 'ring-[#B87333]/50');
+              setTimeout(function () { el.classList.remove('ring-4', 'ring-[#B87333]/50'); }, 1600);
+            }, 60);
+          }
+        };
+      }
+
+      document.querySelectorAll('[data-repeater-add]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var wrap = btn.parentElement.querySelector('[data-repeater-list]');
+          var proto = wrap.querySelector('[data-repeater-item]');
+          if (!proto) return;
+          var clone = proto.cloneNode(true);
+          clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
+          clone.querySelectorAll('select[data-fill-url]').forEach(function (el) { el.value = ''; });
+          clone.querySelectorAll('[data-repeater-thumb], [data-value-preview]').forEach(function (el) {
+            el.removeAttribute('src');
+            el.classList.add('hidden');
+          });
+          clone.querySelectorAll('[data-value-name]').forEach(function (el) {
+            el.textContent = 'Kein Bild ausgewählt';
+          });
+          clone.querySelectorAll('[data-toggle-active]').forEach(function (el) {
+            el.setAttribute('aria-pressed', 'true');
+            el.textContent = 'Aktiv';
+            el.classList.add('border-[#355E4B]', 'bg-[#355E4B]', 'text-white');
+            el.classList.remove('border-[#241E18]/20', 'bg-[#241E18]/[0.08]', 'text-[#241E18]/60');
+          });
+          clone.querySelectorAll('[data-active-input]').forEach(function (el) { el.value = '1'; });
+          clone.querySelectorAll('[data-rating-field]').forEach(function (wrap) {
+            var maxVal = wrap.querySelectorAll('[data-rating-star]').length;
+            wrap.querySelectorAll('[data-rating-input]').forEach(function (el) { el.value = maxVal; });
+            wrap.querySelectorAll('[data-rating-star]').forEach(function (s) {
+              s.classList.add('text-[#B87333]');
+              s.classList.remove('text-[#241E18]/15');
+            });
+          });
+          var summary = clone.querySelector('[data-repeater-summary]');
+          if (summary) summary.textContent = 'Neuer Eintrag';
+          if (clone.tagName === 'DETAILS') clone.open = true;
+          wrap.appendChild(clone);
+          reindex(wrap, btn.getAttribute('data-repeater-add'));
+        });
+      });
+
+      function reindex(wrap, prefix) {
+        Array.from(wrap.children).filter(function (el) {
+          return el.matches('[data-repeater-item]');
+        }).forEach(function (item, i) {
+          item.querySelectorAll('[name]').forEach(function (el) {
+            el.name = el.name.replace(new RegExp(prefix.replace(/[[\]]/g, '\\$&') + '\\[\\d+\\]'), prefix + '[' + i + ']');
+          });
+        });
+      }
+
+      // Feld-Historie fürs ↶/↷: ein Snapshot-Stack pro Textarea.
+      var fieldHistory = new WeakMap();
+
+      function historyOf(textarea) {
+        if (!fieldHistory.has(textarea)) {
+          fieldHistory.set(textarea, { stack: [textarea.value], index: 0 });
+        }
+        return fieldHistory.get(textarea);
+      }
+
+      function recordHistory(textarea) {
+        var h = historyOf(textarea);
+        if (h.stack[h.index] === textarea.value) return;
+        h.stack = h.stack.slice(0, h.index + 1);
+        h.stack.push(textarea.value);
+        h.index = h.stack.length - 1;
+      }
+
+      var historyDebounce = new WeakMap();
+      document.addEventListener('input', function (e) {
+        var textarea = e.target;
+        if (textarea.tagName !== 'TEXTAREA') return;
+        clearTimeout(historyDebounce.get(textarea));
+        historyDebounce.set(textarea, setTimeout(function () { recordHistory(textarea); }, 500));
+      });
+
+      document.addEventListener('click', function (e) {
+        var undoBtn = e.target.closest('[data-undo]');
+        var redoBtn = e.target.closest('[data-redo]');
+        if (undoBtn || redoBtn) {
+          var wrap0 = (undoBtn || redoBtn).closest('[data-field-wrap]');
+          var ta = wrap0 ? wrap0.querySelector('textarea') : null;
+          if (!ta) return;
+          var h = historyOf(ta);
+          if (undoBtn && h.index > 0) { h.index--; ta.value = h.stack[h.index]; }
+          if (redoBtn && h.index < h.stack.length - 1) { h.index++; ta.value = h.stack[h.index]; }
+          ta.focus();
+          return;
+        }
+
+        var btn = e.target.closest('[data-format]');
+        if (!btn) return;
+        var wrap = btn.closest('[data-field-wrap]');
+        var textarea = wrap ? wrap.querySelector('textarea') : null;
+        if (!textarea) return;
+
+        var kind = btn.getAttribute('data-format');
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var value = textarea.value;
+
+        if (kind === 'list') {
+          recordHistory(textarea);
+          var raw = value.slice(start, end) || 'Punkt eins\nPunkt zwei\nPunkt drei';
+          var replacement = raw.split('\n').map(function (line) {
+            var trimmed = line.replace(/^-\s*/, '').trim();
+            return trimmed === '' ? '' : '- ' + trimmed;
+          }).filter(function (line) { return line !== ''; }).join('\n');
+          textarea.value = value.slice(0, start) + replacement + value.slice(end);
+          textarea.focus();
+          textarea.setSelectionRange(start, start + replacement.length);
+          recordHistory(textarea);
+          return;
+        }
+
+        var selected = value.slice(start, end) || 'Text';
+        var before, after;
+        if (kind === 'bold') { before = '**'; after = '**'; }
+        else if (kind === 'italic') { before = '*'; after = '*'; }
+        else if (kind === 'note') { before = '%%'; after = '%%'; }
+        else if (kind === 'highlight') { before = '::'; after = '::'; }
+        else if (kind === 'link') {
+          var url = prompt('Link-Ziel (URL, mailto:, tel: oder #anker):', 'https://');
+          if (!url) return;
+          before = '[';
+          after = '](' + url + ')';
+        } else {
+          return;
+        }
+
+        recordHistory(textarea);
+        textarea.value = value.slice(0, start) + before + selected + after + value.slice(end);
+        textarea.focus();
+        textarea.setSelectionRange(start + before.length, start + before.length + selected.length);
+        recordHistory(textarea);
+      });
+
+      function reindexWrap(wrap) {
+        var prefix = wrap.getAttribute('data-repeater-prefix');
+        if (prefix) reindex(wrap, prefix);
+      }
+
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-remove-item]');
+        if (!btn) return;
+        e.preventDefault();
+        var item = btn.closest('[data-repeater-item]');
+        var wrap = item ? item.parentElement : null;
+        if (!item || !wrap) return;
+        item.remove();
+        reindexWrap(wrap);
+      });
+
+      document.addEventListener('click', function (e) {
+        var toggleBtn = e.target.closest('[data-toggle-active]');
+        if (!toggleBtn) return;
+        e.preventDefault();
+        var host = toggleBtn.parentElement;
+        var input = host ? host.querySelector('[data-active-input]') : null;
+        var next = toggleBtn.getAttribute('aria-pressed') !== 'true';
+        toggleBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
+        toggleBtn.textContent = next ? 'Aktiv' : 'Inaktiv';
+        toggleBtn.classList.toggle('border-[#355E4B]', next);
+        toggleBtn.classList.toggle('bg-[#355E4B]', next);
+        toggleBtn.classList.toggle('text-white', next);
+        toggleBtn.classList.toggle('border-[#241E18]/20', !next);
+        toggleBtn.classList.toggle('bg-[#241E18]/[0.08]', !next);
+        toggleBtn.classList.toggle('text-[#241E18]/60', !next);
+        if (input) input.value = next ? '1' : '0';
+      });
+
+      document.addEventListener('click', function (e) {
+        var star = e.target.closest('[data-rating-star]');
+        if (!star) return;
+        var wrap = star.closest('[data-rating-field]');
+        var input = wrap ? wrap.querySelector('[data-rating-input]') : null;
+        if (!input) return;
+        var val = parseInt(star.getAttribute('data-rating-star'), 10);
+        input.value = val;
+        wrap.querySelectorAll('[data-rating-star]').forEach(function (s) {
+          var starVal = parseInt(s.getAttribute('data-rating-star'), 10);
+          s.classList.toggle('text-[#B87333]', starVal <= val);
+          s.classList.toggle('text-[#241E18]/15', starVal > val);
+        });
+      });
+
+      (function () {
+        // position:fixed statt absolute, Position per JS berechnet: Tooltips
+        // sitzen oft in Containern mit overflow-hidden (z. B. Repeater-Zeilen
+        // mit abgerundeten Ecken) – absolute Positionierung würde dort
+        // abgeschnitten, fixed entkommt jedem overflow-hidden-Vorfahren.
+        function showTip(icon, tip) {
+          tip.classList.remove('hidden');
+          tip.classList.add('block');
+          tip.style.position = 'fixed';
+          tip.style.margin = '0';
+          tip.style.transform = 'none';
+          var rect = icon.getBoundingClientRect();
+          var tipWidth = tip.offsetWidth;
+          var left = rect.left + rect.width / 2 - tipWidth / 2;
+          left = Math.max(8, Math.min(left, window.innerWidth - tipWidth - 8));
+          tip.style.left = left + 'px';
+          tip.style.top = (rect.bottom + 6) + 'px';
+        }
+        function hideTip(tip) { tip.classList.add('hidden'); tip.classList.remove('block'); }
+
+        document.querySelectorAll('[data-info-icon]').forEach(function (icon) {
+          var tip = icon.parentElement.querySelector('[data-info-tooltip]');
+          if (!tip) return;
+
+          icon.addEventListener('mouseenter', function () { showTip(icon, tip); });
+          icon.addEventListener('mouseleave', function () {
+            if (tip.getAttribute('data-pinned') !== '1') hideTip(tip);
+          });
+          icon.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var pinned = tip.getAttribute('data-pinned') === '1';
+            document.querySelectorAll('[data-info-tooltip]').forEach(function (t) {
+              if (t !== tip) { t.removeAttribute('data-pinned'); hideTip(t); }
+            });
+            if (pinned) {
+              tip.removeAttribute('data-pinned');
+              hideTip(tip);
+            } else {
+              tip.setAttribute('data-pinned', '1');
+              showTip(icon, tip);
+            }
+          });
+        });
+
+        document.addEventListener('click', function () {
+          document.querySelectorAll('[data-info-tooltip][data-pinned="1"]').forEach(function (tip) {
+            tip.removeAttribute('data-pinned');
+            hideTip(tip);
+          });
+        });
+      })();
+
+      (function () {
+        function refresh(input) {
+          var wrap = input.closest('[data-char-wrap]');
+          var feedback = wrap ? wrap.querySelector('[data-char-feedback]') : null;
+          if (!feedback) return;
+          var min = parseInt(input.getAttribute('data-char-min'), 10) || 0;
+          var max = parseInt(input.getAttribute('data-char-max'), 10) || 0;
+          var len = input.value.length;
+          var ok = len > 0 && len >= min && len <= max;
+          feedback.textContent = len + ' Zeichen · empfohlen ' + min + '–' + max;
+          feedback.classList.toggle('text-[#355E4B]', ok);
+          feedback.classList.toggle('text-[#241E18]/40', !ok);
+        }
+        document.querySelectorAll('[data-char-input]').forEach(refresh);
+        document.addEventListener('input', function (e) {
+          if (e.target.matches && e.target.matches('[data-char-input]')) refresh(e.target);
+        });
+      })();
+
+      (function () {
+        // Muss zu Icons::CUSTOM_PATH_PATTERN passen (nur Vorschau/UX - die
+        // eigentliche Absicherung gegen ungültige/gefährliche Eingaben
+        // passiert serverseitig in Admin::normalizeIconValue()).
+        var PATH_RE = /^[MmLlHhVvCcSsQqTtAaZz0-9.,\-\s]+$/;
+        function syncCustomIcon(textarea) {
+          var field = textarea.closest('[data-btn-group-field]');
+          if (!field) return;
+          var hidden = field.querySelector('[data-btn-group-input]');
+          var preview = field.querySelector('[data-custom-icon-preview]');
+          var val = textarea.value.trim();
+          if (val === '') {
+            if (hidden) hidden.value = '';
+            if (preview) preview.innerHTML = '';
+            return;
+          }
+          if (!PATH_RE.test(val)) return; // ungültige Zwischen-/Paste-Eingabe: bisherigen Wert nicht überschreiben
+          if (hidden) hidden.value = 'custom:' + val;
+          if (preview) {
+            preview.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' + val.replace(/"/g, '') + '"></path></svg>';
+          }
+        }
+        document.addEventListener('input', function (e) {
+          if (e.target.matches && e.target.matches('[data-custom-icon-input]')) syncCustomIcon(e.target);
+        });
+      })();
+
+      function renumberSections(wrap) {
+        var ids = [];
+        Array.from(wrap.children).filter(function (el) {
+          return el.matches('[data-section-item]');
+        }).forEach(function (item, i) {
+          var id = item.getAttribute('data-section-id');
+          ids.push(id);
+          var sortInput = document.querySelector('input[name="sections[' + id + '][sort]"]');
+          if (sortInput) sortInput.value = (i + 1) * 10; // haelt content-form konsistent, falls danach trotzdem gespeichert wird
+        });
+
+        // Sofort speichern statt auf "Änderungen speichern" zu warten (anders als Content-Felder).
+        var body = new FormData();
+        body.append('csrf', '{{ csrf }}');
+        body.append('do', 'reorder-sections');
+        ids.forEach(function (id) { body.append('order[]', id); });
+        fetch('?admin=1', { method: 'POST', body: body }).catch(function () {});
+      }
+
+      // Pfeil-Buttons: attrName steuert Richtung ('up'/'down'), itemSelector begrenzt auf die passende Liste.
+      function makeArrowReorderable(attrName, itemSelector, onReorder) {
+        document.addEventListener('click', function (e) {
+          var btn = e.target.closest('[' + attrName + ']');
+          if (!btn) return;
+          e.preventDefault();
+          var item = btn.closest(itemSelector);
+          var wrap = item ? item.parentElement : null;
+          if (!item || !wrap) return;
+          var dir = btn.getAttribute(attrName);
+          if (dir === 'up' && item.previousElementSibling) {
+            wrap.insertBefore(item, item.previousElementSibling);
+          } else if (dir === 'down' && item.nextElementSibling) {
+            wrap.insertBefore(item.nextElementSibling, item);
+          } else {
+            return;
+          }
+          onReorder(wrap);
+        });
+      }
+
+      // Drag & Drop mit wandernder Einfüge-Linie: Reihenfolge wird erst beim Drop übernommen,
+      // während des Ziehens bleibt das Item an Ort und Stelle (nur die Linie bewegt sich).
+      function makeDragReorderable(itemSelector, handleSelector, onReorder) {
+        var draggedItem = null;
+        var indicator = null;
+
+        function ensureIndicator() {
+          if (indicator) return indicator;
+          indicator = document.createElement('div');
+          indicator.className = 'relative h-0 pointer-events-none';
+          indicator.innerHTML =
+            '<div class="absolute inset-x-0 -top-px h-0.5 rounded-full bg-[#355E4B]"></div>' +
+            '<span class="absolute -top-2.5 left-0 rounded-lg bg-[#355E4B] px-1.5 py-0.5 text-[10px] font-medium text-white shadow">Hier ablegen</span>';
+          return indicator;
+        }
+
+        function removeIndicator() {
+          if (indicator && indicator.parentNode) indicator.parentNode.removeChild(indicator);
+          indicator = null;
+        }
+
+        document.addEventListener('dragstart', function (e) {
+          var handle = e.target.closest(handleSelector);
+          var item = handle ? handle.closest(itemSelector) : null;
+          if (!item) return;
+          draggedItem = item;
+          if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            try { e.dataTransfer.setData('text/plain', ''); } catch (err) {}
+          }
+          item.classList.add('opacity-40');
+        });
+
+        document.addEventListener('dragover', function (e) {
+          if (!draggedItem) return;
+          var over = e.target.closest(itemSelector);
+          if (!over || over === draggedItem || over.parentElement !== draggedItem.parentElement) return;
+          e.preventDefault();
+          var rect = over.getBoundingClientRect();
+          var before = (e.clientY - rect.top) < rect.height / 2;
+          over.parentElement.insertBefore(ensureIndicator(), before ? over : over.nextSibling);
+        });
+
+        document.addEventListener('drop', function (e) {
+          if (!draggedItem) return;
+          e.preventDefault();
+          if (indicator && indicator.parentNode) {
+            indicator.parentNode.insertBefore(draggedItem, indicator);
+          }
+        });
+
+        document.addEventListener('dragend', function () {
+          if (!draggedItem) return;
+          removeIndicator();
+          draggedItem.classList.remove('opacity-40');
+          onReorder(draggedItem.parentElement);
+          draggedItem = null;
+        });
+      }
+
+      makeArrowReorderable('data-move', '[data-repeater-item]', reindexWrap);
+      makeArrowReorderable('data-move-section', '[data-section-item]', renumberSections);
+      makeDragReorderable('[data-repeater-item]', '[data-drag-handle]', reindexWrap);
+      makeDragReorderable('[data-section-item]', '[data-drag-handle-section]', renumberSections);
+
+      (function () {
+        var zone = document.getElementById('image-dropzone');
+        if (!zone) return;
+        var input = zone.querySelector('input[type="file"]');
+        var text = zone.querySelector('[data-dropzone-text]');
+        var form = zone.closest('form');
+
+        function submit() {
+          if (text) text.textContent = 'Wird hochgeladen …';
+          form.requestSubmit();
+        }
+
+        input.addEventListener('change', function () {
+          if (input.files && input.files.length) submit();
+        });
+
+        ['dragenter', 'dragover'].forEach(function (evt) {
+          zone.addEventListener(evt, function (e) {
+            e.preventDefault();
+            zone.classList.add('border-[#355E4B]/60', 'bg-[#355E4B]/[0.06]');
+          });
+        });
+        ['dragleave', 'drop'].forEach(function (evt) {
+          zone.addEventListener(evt, function (e) {
+            e.preventDefault();
+            zone.classList.remove('border-[#355E4B]/60', 'bg-[#355E4B]/[0.06]');
+          });
+        });
+        zone.addEventListener('drop', function (e) {
+          var files = e.dataTransfer ? e.dataTransfer.files : null;
+          if (files && files.length) {
+            input.files = files;
+            submit();
+          }
+        });
+      })();
+
+      document.addEventListener('change', function (e) {
+        var sel = e.target.closest('[data-fill-url]');
+        if (!sel || !sel.value) return;
+        var wrap = sel.closest('div');
+        var input = wrap ? wrap.querySelector('[data-url-input]') : null;
+        if (input) {
+          input.value = sel.value;
+          input.focus();
+        }
+        sel.value = '';
+      });
+
+      document.addEventListener('change', function (e) {
+        var sel = e.target.closest('[data-insert-placeholder]');
+        if (!sel || !sel.value) return;
+        var wrap = sel.closest('[data-field-wrap]');
+        var field = wrap ? wrap.querySelector('input, textarea') : null;
+        if (!field) { sel.value = ''; return; }
+
+        var isTextarea = field.tagName === 'TEXTAREA';
+        if (isTextarea) recordHistory(field);
+
+        var token = '{' + sel.value + '}';
+        var start = field.selectionStart != null ? field.selectionStart : field.value.length;
+        var end = field.selectionEnd != null ? field.selectionEnd : field.value.length;
+        field.value = field.value.slice(0, start) + token + field.value.slice(end);
+        field.focus();
+        field.setSelectionRange(start + token.length, start + token.length);
+
+        if (isTextarea) recordHistory(field);
+        sel.value = '';
+      });
+
+      function setImageFieldValue(wrap, path) {
+        if (!wrap) return;
+        var input = wrap.querySelector('[data-url-input]');
+        var preview = wrap.querySelector('[data-value-preview]');
+        var nameEl = wrap.querySelector('[data-value-name]');
+        input.value = path;
+        if (path) {
+          preview.src = path.indexOf('http') === 0 ? path : '/' + path;
+          preview.classList.remove('hidden');
+          nameEl.textContent = path.split('/').pop();
+        } else {
+          preview.classList.add('hidden');
+          preview.removeAttribute('src');
+          nameEl.textContent = 'Kein Bild ausgewählt';
+        }
+      }
+
+      var activeImageField = null;
+      var mediaModal = document.getElementById('media-picker-modal');
+
+      function openMediaModal(wrap) {
+        activeImageField = wrap;
+        if (mediaModal) { mediaModal.classList.remove('hidden'); mediaModal.classList.add('flex'); }
+      }
+
+      function closeMediaModal() {
+        activeImageField = null;
+        if (mediaModal) { mediaModal.classList.add('hidden'); mediaModal.classList.remove('flex'); }
+      }
+
+      document.addEventListener('click', function (e) {
+        var langBtn = e.target.closest('[data-lang-switch]');
+        if (langBtn) {
+          var targetLang = langBtn.getAttribute('data-lang-switch');
+          document.querySelectorAll('[data-lang-switch]').forEach(function (b) {
+            var active = b === langBtn;
+            b.classList.toggle('bg-[#355E4B]', active);
+            b.classList.toggle('text-white', active);
+            b.classList.toggle('text-[#241E18]/50', !active);
+          });
+          document.querySelectorAll('[data-lang-panel]').forEach(function (p) {
+            p.classList.toggle('hidden', p.getAttribute('data-lang-panel') !== targetLang);
+            p.classList.toggle('block', p.getAttribute('data-lang-panel') === targetLang);
+          });
+          return;
+        }
+
+        var tabBtn = e.target.closest('[data-tab-btn]');
+        if (tabBtn) {
+          var tabsWrap = tabBtn.closest('[data-tabs]');
+          var targetCat = tabBtn.getAttribute('data-tab-btn');
+          tabsWrap.querySelectorAll('[data-tab-btn]').forEach(function (b) {
+            var active = b === tabBtn;
+            b.classList.toggle('bg-[#355E4B]/10', active);
+            b.classList.toggle('text-[#355E4B]', active);
+            b.classList.toggle('text-[#241E18]/50', !active);
+          });
+          tabsWrap.querySelectorAll('[data-tab-panel]').forEach(function (p) {
+            var active = p.getAttribute('data-tab-panel') === targetCat;
+            p.classList.toggle('grid', active);
+            p.classList.toggle('hidden', !active);
+          });
+          return;
+        }
+
+        var groupOptBtn = e.target.closest('[data-btn-group-option]');
+        if (groupOptBtn) {
+          var groupWrap = groupOptBtn.closest('[data-btn-group-field]');
+          var groupInput = groupWrap.querySelector('[data-btn-group-input]');
+          groupInput.value = groupOptBtn.getAttribute('data-btn-group-option');
+          groupWrap.querySelectorAll('[data-btn-group-option]').forEach(function (btn) {
+            var selected = btn === groupOptBtn;
+            btn.classList.toggle('border-[#355E4B]/40', selected);
+            btn.classList.toggle('bg-[#355E4B]/10', selected);
+            btn.classList.toggle('text-[#355E4B]', selected);
+            btn.classList.toggle('border-[#241E18]/15', !selected);
+            btn.classList.toggle('bg-white', !selected);
+          });
+          return;
+        }
+
+        var pickBtn = e.target.closest('[data-image-pick]');
+        if (pickBtn) {
+          openMediaModal(pickBtn.closest('[data-image-field]'));
+          return;
+        }
+
+        var clearBtn = e.target.closest('[data-image-clear]');
+        if (clearBtn) {
+          setImageFieldValue(clearBtn.closest('[data-image-field]'), '');
+          return;
+        }
+
+        var uploadBtn = e.target.closest('[data-image-upload]');
+        if (uploadBtn) {
+          var fileInput = uploadBtn.closest('[data-image-field]').querySelector('[data-image-file]');
+          if (fileInput) fileInput.click();
+          return;
+        }
+
+        if (mediaModal && (e.target === mediaModal || e.target.closest('[data-media-cancel]'))) {
+          closeMediaModal();
+          return;
+        }
+
+        var optBtn = e.target.closest('[data-media-option]');
+        if (optBtn && activeImageField) {
+          setImageFieldValue(activeImageField, optBtn.getAttribute('data-media-option'));
+          closeMediaModal();
+        }
+      });
+
+      document.addEventListener('change', function (e) {
+        var m = e.target.name && e.target.name.match(/\[([^\[\]]+)\]$/);
+        if (!m) return;
+        var scope = e.target.closest('[data-repeater-item]') || document;
+        scope.querySelectorAll('[data-show-when-field="' + m[1] + '"]').forEach(function (wrap) {
+          var allowed = (wrap.getAttribute('data-show-when-equals') || '').split(',');
+          wrap.hidden = allowed.indexOf(e.target.value) === -1;
+        });
+      });
+
+      document.addEventListener('change', function (e) {
+        var fileInput = e.target.closest('[data-image-file]');
+        if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+        var wrap = fileInput.closest('[data-image-field]');
+        var nameEl = wrap.querySelector('[data-value-name]');
+        var prevText = nameEl.textContent;
+        nameEl.textContent = 'Lädt hoch…';
+
+        var body = new FormData();
+        body.append('csrf', '{{ csrf }}');
+        body.append('do', 'image-upload');
+        body.append('ajax', '1');
+        body.append('image', fileInput.files[0]);
+
+        fetch('?admin=1', { method: 'POST', body: body })
+          .then(function (r) { return r.json(); })
+          .then(function (json) {
+            if (json.ok) {
+              setImageFieldValue(wrap, json.path);
+            } else {
+              nameEl.textContent = prevText;
+              alert(json.message || 'Upload fehlgeschlagen.');
+            }
+          })
+          .catch(function () {
+            nameEl.textContent = prevText;
+            alert('Upload fehlgeschlagen.');
+          })
+          .finally(function () { fileInput.value = ''; });
+      });
+
+      (function () {
+        var panels = document.querySelectorAll('.section-panel');
+        var navLinks = document.querySelectorAll('.section-nav-link');
+        if (!panels.length || !navLinks.length) return;
+
+        function activate(id) {
+          panels.forEach(function (p) {
+            var match = p.getAttribute('data-panel') === id;
+            p.hidden = !match;
+            p.style.display = match ? '' : 'none';
+          });
+          navLinks.forEach(function (a) {
+            a.classList.toggle('is-active', a.getAttribute('href') === '#' + id);
+          });
+        }
+
+        function fromHash() {
+          var id = (location.hash || '').replace('#', '');
+          if (!id || !document.getElementById(id)) {
+            id = document.getElementById('panel-site') ? 'panel-site' : navLinks[0].getAttribute('href').slice(1);
+          }
+          activate(id);
+        }
+
+        window.addEventListener('hashchange', fromHash);
+        fromHash();
+      })();
+
+      document.addEventListener('submit', function (e) {
+        if (e.defaultPrevented) return; // z. B. abgebrochener Löschen-Dialog
+        var btn = e.submitter;
+        if (!btn || btn.tagName !== 'BUTTON' || btn.disabled) return;
+        btn.dataset.label = btn.textContent;
+        btn.textContent = 'Bitte warten …';
+        btn.disabled = true;
+        btn.classList.add('opacity-60', 'cursor-wait');
+      });
+
+      (function () {
+        var modal = document.getElementById('confirm-modal');
+        if (!modal) return;
+        var msgEl = modal.querySelector('[data-confirm-message]');
+        var titleEl = modal.querySelector('[data-confirm-title]');
+        var okBtn = modal.querySelector('[data-confirm-ok]');
+        var pendingForm = null;
+
+        function open(form, message) {
+          pendingForm = form;
+          msgEl.textContent = message;
+          titleEl.textContent = form.dataset.confirmTitle || 'Wirklich löschen?';
+          okBtn.textContent = form.dataset.confirmAction || 'Löschen';
+          var isPrimary = form.dataset.confirmVariant === 'primary';
+          okBtn.classList.toggle('bg-red-700', !isPrimary);
+          okBtn.classList.toggle('hover:bg-red-800', !isPrimary);
+          okBtn.classList.toggle('bg-[#355E4B]', isPrimary);
+          okBtn.classList.toggle('hover:brightness-110', isPrimary);
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        }
+        function close() {
+          pendingForm = null;
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+
+        document.addEventListener('submit', function (e) {
+          var form = e.target;
+          var message = form.getAttribute && form.getAttribute('data-confirm');
+          if (!message) return;
+          if (form.dataset.confirmed === '1') {
+            delete form.dataset.confirmed;
+            return;
+          }
+          e.preventDefault();
+          open(form, message);
+        }, true);
+
+        modal.querySelector('[data-confirm-cancel]').addEventListener('click', close);
+        modal.querySelector('[data-confirm-ok]').addEventListener('click', function () {
+          if (pendingForm) {
+            pendingForm.dataset.confirmed = '1';
+            pendingForm.requestSubmit();
+          }
+          close();
+        });
+        modal.addEventListener('click', function (e) {
+          if (e.target === modal) close();
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
+        });
+      })();
+
+      (function () {
+        var modal = document.getElementById('discard-modal');
+        var discardBtn = document.querySelector('[data-discard-changes]');
+        if (!modal || !discardBtn) return;
+
+        function open() {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        }
+        function close() {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+
+        discardBtn.addEventListener('click', open);
+        modal.querySelector('[data-modal-cancel]').addEventListener('click', close);
+        modal.querySelector('[data-modal-confirm]').addEventListener('click', function () {
+          location.reload();
+        });
+        modal.addEventListener('click', function (e) {
+          if (e.target === modal) close();
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
+        });
+      })();
+
+      document.addEventListener('click', function (e) {
+        var resetBtn = e.target.closest('[data-theme-form-reset]');
+        if (resetBtn) {
+          var form = document.querySelector('[data-theme-form]');
+          if (!form) return;
+          form.querySelector('input[name="theme_label"]').value = '';
+          form.querySelector('input[name="theme_description"]').value = '';
+          form.querySelectorAll('select').forEach(function (select) {
+            select.selectedIndex = 0;
+          });
+          form.querySelectorAll('input[name="languages[]"]').forEach(function (cb) {
+            cb.checked = cb.disabled;
+          });
+          form.querySelector('input[name="theme_label"]').focus();
+          return;
+        }
+
+        var editLink = e.target.closest('[data-theme-edit]');
+        if (editLink) {
+          var themeForm = document.querySelector('[data-theme-form]');
+          if (!themeForm) return;
+          themeForm.querySelector('input[name="theme_label"]').value = editLink.dataset.label || '';
+          themeForm.querySelector('input[name="theme_description"]').value = editLink.dataset.description || '';
+          ['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'].forEach(function (region) {
+            var select = themeForm.querySelector('select[name="regions[' + region + ']"]');
+            var value = editLink.dataset[region];
+            if (select && value !== undefined) select.value = value;
+          });
+          var langs = (editLink.dataset.languages || 'de').split(',');
+          themeForm.querySelectorAll('input[name="languages[]"]').forEach(function (cb) {
+            cb.checked = cb.disabled || langs.indexOf(cb.value) !== -1;
+          });
+          var builder = document.getElementById('theme-builder');
+          if (builder) builder.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    </script>
+</body>
+</html>

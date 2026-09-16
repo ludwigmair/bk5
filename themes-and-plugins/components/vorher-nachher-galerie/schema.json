@@ -1,0 +1,51 @@
+{
+    "type": "vorher-nachher-galerie",
+    "label": "Vorher-Nachher-Galerie",
+    "help": "Karten-Raster mit Vorher-/Nachher-Bildpaaren, z. B. für Restaurierungen. Karte antippen zum Vergrößern, im Vergrößert-Modus per Pfeil zwischen Vorher und Nachher wechseln.",
+    "requires_core": "1.0.0",
+    "fields": [
+        {
+            "name": "kicker",
+            "type": "text",
+            "label": "Kicker"
+        },
+        {
+            "name": "heading",
+            "type": "text",
+            "label": "Überschrift"
+        },
+        {
+            "name": "lead",
+            "type": "textarea",
+            "label": "Einleitungstext",
+            "hint": "Optional, erscheint unter der Überschrift."
+        },
+        {
+            "name": "items",
+            "type": "repeater",
+            "label": "Projekte",
+            "fields": [
+                {
+                    "name": "title",
+                    "type": "text",
+                    "label": "Titel"
+                },
+                {
+                    "name": "text",
+                    "type": "textarea",
+                    "label": "Beschreibung"
+                },
+                {
+                    "name": "before_image",
+                    "type": "image",
+                    "label": "Vorher-Bild"
+                },
+                {
+                    "name": "after_image",
+                    "type": "image",
+                    "label": "Nachher-Bild"
+                }
+            ]
+        }
+    ]
+}

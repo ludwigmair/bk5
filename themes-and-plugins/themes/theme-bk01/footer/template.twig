@@ -1,0 +1,41 @@
+<footer class="bg-walnut text-ash">
+    <div class="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 md:flex-row md:items-start md:justify-between md:px-8">
+        <div>
+            <p class="text-lg font-semibold">{{ site.logo_text|default(site.title) }}</p>
+            {% set hasContact = (content.business.street|default('') ~ content.business.city|default('') ~ content.business.phone|default('') ~ content.business.email|default(''))|trim is not empty %}
+            {% if hasContact %}
+            <div class="mt-4 text-sm text-ash/80">
+                {% if content.business.street or content.business.city %}
+                <p>
+                    {{ content.business.name|default('') }}{% if content.business.name %}<br>{% endif %}
+                    {{ content.business.street|default('') }}{% if content.business.street %}<br>{% endif %}
+                    {{ content.business.zip|default('') }} {{ content.business.city|default('') }}
+                </p>
+                {% endif %}
+                {% if content.business.phone %}
+                <p class="mt-2">{{ content.labels.footer_phone_label|default('Tel.') }} <a class="hover:text-secondary" href="tel:{{ content.business.phone|replace({' ': ''}) }}">{{ content.business.phone }}</a></p>
+                {% endif %}
+                {% if content.business.email %}
+                <p><a class="hover:text-secondary" href="mailto:{{ content.business.email }}" data-mail-template data-mail-address="{{ content.business.email }}" data-mail-subject="{{ content.labels.mail_subject|default('') }}" data-mail-body="{{ content.labels.mail_body|default('') }}">{{ content.business.email }}</a></p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <ul class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            {% for item in nav %}
+                {% if item.active is not defined or item.active %}
+                <li><a class="text-ash/80 hover:text-secondary" href="{{ item.href starts with '#' ? '/' ~ item.href : item.href }}">{{ item.label }}</a></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="border-t border-white/10">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 text-sm text-ash/55 md:px-8">
+            <p>© {{ year }} {{ site.title|default('') }}</p>
+            <p class="flex gap-4">
+                <a class="hover:text-secondary" href="/impressum">{{ content.labels.footer_impressum|default('Impressum') }}</a>
+                <a class="hover:text-secondary" href="/datenschutz">{{ content.labels.footer_datenschutz|default('Datenschutz') }}</a>
+            </p>
+        </div>
+    </div>
+</footer>

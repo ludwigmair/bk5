@@ -1,0 +1,82 @@
+{
+    "type": "hero-slider",
+    "label": "Hero-Slider",
+    "help": "Layout wählen: Vollflächig legt den Text über das Bildkarussell (klassischer Hero, Text bleibt als Overlay stehen). Bildkarussell oben zeigt das Karussell in normaler Höhe, Text separat darunter. Geteilt zeigt Text und Bildkarussell nebeneinander auf hellem Grund, ohne Overlay.",
+    "requires_core": "1.0.0",
+    "needs_swiper": true,
+    "fields": [
+        {
+            "name": "layout",
+            "type": "select",
+            "label": "Layout",
+            "options": [
+                { "value": "overlay", "label": "Vollflächig, Text über dem Bild" },
+                { "value": "stacked", "label": "Bildkarussell oben, Text separat darunter" },
+                { "value": "split", "label": "Geteilt: Text neben Bildkarussell" }
+            ]
+        },
+        {
+            "name": "kicker",
+            "type": "text",
+            "label": "Kicker",
+            "ai_supported": true
+        },
+        {
+            "name": "heading",
+            "type": "text",
+            "label": "Überschrift",
+            "ai_supported": true
+        },
+        {
+            "name": "claim",
+            "type": "text",
+            "label": "Claim (kursive Zwischenzeile zwischen Überschrift und Einleitung, optional)",
+            "ai_supported": true
+        },
+        {
+            "name": "lead",
+            "type": "textarea",
+            "label": "Einleitung",
+            "ai_supported": true
+        },
+        {
+            "name": "cta_primary_label",
+            "type": "text",
+            "label": "Button 1 Text",
+            "ai_supported": true
+        },
+        {
+            "name": "cta_primary_href",
+            "type": "url",
+            "label": "Button 1 Link"
+        },
+        {
+            "name": "cta_secondary_label",
+            "type": "text",
+            "label": "Button 2 Text"
+        },
+        {
+            "name": "cta_secondary_href",
+            "type": "url",
+            "label": "Button 2 Link"
+        },
+        {
+            "name": "slides",
+            "type": "repeater",
+            "label": "Hintergrundbilder",
+            "fields": [
+                {
+                    "name": "image",
+                    "type": "image",
+                    "label": "Bild"
+                },
+                {
+                    "name": "alt",
+                    "type": "text",
+                    "label": "Alt-Text",
+                    "ai_supported": true
+                }
+            ]
+        }
+    ]
+}

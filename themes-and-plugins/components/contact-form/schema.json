@@ -1,0 +1,46 @@
+{
+    "type": "contact-form",
+    "label": "Kontaktformular",
+    "requires_core": "1.0.0",
+    "help": "Die Kontaktinfo-Karte (Adresse, Telefon, E-Mail) neben dem Formular wird automatisch aus Betrieb / Kontaktdaten übernommen und ist hier nicht separat editierbar.",
+    "fields": [
+        {
+            "name": "kicker",
+            "type": "text",
+            "label": "Kicker"
+        },
+        {
+            "name": "heading",
+            "type": "text",
+            "label": "Überschrift",
+            "ai_supported": true
+        },
+        {
+            "name": "intro",
+            "type": "textarea",
+            "label": "Einleitung",
+            "ai_supported": true
+        },
+        {
+            "name": "submit_label",
+            "type": "text",
+            "label": "Button-Text"
+        },
+        {
+            "name": "subject_options",
+            "type": "repeater",
+            "label": "Anliegen-Auswahl (optional)",
+            "hint": "Wenn mindestens eine Option angelegt ist, erscheint im Formular ein Auswahlfeld \"Anliegen\".",
+            "fields": [
+                { "name": "label", "type": "text", "label": "Option" }
+            ]
+        },
+        {
+            "name": "disclaimer",
+            "type": "textarea",
+            "label": "Hinweistext (optional)",
+            "hint": "Erscheint klein unter dem Nachrichtenfeld, z. B. ein Hinweis was das Formular nicht ersetzt.",
+            "ai_supported": true
+        }
+    ]
+}

@@ -1,0 +1,20 @@
+{
+    "type": "topbar-bk01",
+    "label": "Kontakt-Leiste oben, dunkel (BK01)",
+    "requires_core": "1.0.0",
+    "has_toggle": true,
+    "help": "Telefonnummer wird automatisch aus Betrieb / Kontaktdaten übernommen, der Link springt automatisch zur ersten Kontaktformular-Section.",
+    "fields": [
+        {
+            "name": "text",
+            "type": "text",
+            "label": "Ankündigungstext"
+        },
+        {
+            "name": "cta_label",
+            "type": "text",
+            "label": "Link-Beschriftung"
+        }
+    ],
+    "_source": "topbars/topbar-bk01 (kopiert 2026-09-14)"
+}

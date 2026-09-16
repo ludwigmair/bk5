@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Anmelden · {{ site_name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-[radial-gradient(circle_at_top,_#f2f0e9,_#E7E4DC_55%)] font-['IBM_Plex_Sans',sans-serif] text-[#241E18] antialiased">
+    <main class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-[#B87333]">Werkstatt-CMS</p>
+        <h1 class="mt-2 font-['Commissioner',sans-serif] text-3xl font-semibold tracking-tight">{{ site_name }}</h1>
+        <form method="post" class="mt-8 space-y-4 rounded-2xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] p-7 shadow-xl shadow-[#241E18]/[0.06]">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Benutzername
+                <input class="mt-1.5 h-12 w-full rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="username" required autofocus autocomplete="username">
+            </label>
+            <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Passwort
+                <input class="mt-1.5 h-12 w-full rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="password" name="password" required autocomplete="current-password">
+            </label>
+            {% if error %}
+            <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{{ error }}</p>
+            {% endif %}
+            <button class="h-12 w-full cursor-pointer rounded-lg bg-[#355E4B] text-sm font-semibold text-white shadow-md shadow-[#355E4B]/20 transition hover:bg-[#2c4f40] hover:shadow-lg hover:shadow-[#355E4B]/25 active:translate-y-px" type="submit">Anmelden</button>
+        </form>
+    </main>
+    <script>
+      document.querySelectorAll('input[name="username"], input[name="password"]').forEach(function (el) {
+        el.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            el.form.requestSubmit();
+          }
+        });
+      });
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Template für neue Projekt-Instanzen (siehe Admin::exportProjectInstance(),
+# Checkbox "Git-Repo + FTP-Deploy-Workflow einrichten"). Deckt sich mit der
+# Herkunfts-Tabelle in docs/DEPLOY.md: alles, was dort NICHT aus Git kommt,
+# landet hier.
+
+# Server-eigene Zugänge/Konfiguration – pro Deploy individuell, nie in Git.
+/data/config.json
+
+# Composer-Abhängigkeiten – auf dem Server per "composer install --no-dev"
+# oder im Deploy-Workflow selbst gebaut, nicht versioniert.
+/vendor/
+
+# Echte Projektbilder – werden live über den Admin-Upload verwaltet, nicht
+# über Git/CI ausgerollt (siehe deploy-staging.yml: uploads/** explizit von
+# der Übertragung ausgeschlossen, damit ein Deploy nie live hochgeladene
+# Bilder überschreibt oder löscht).
+/uploads/*
+!/uploads/.gitkeep
+
+# Twig-Cache und Bearbeitungsverlauf – laufzeitgeneriert, rein lokal.
+/cache/*
+!/cache/.gitkeep
+
+.DS_Store

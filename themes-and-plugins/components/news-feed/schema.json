@@ -1,0 +1,61 @@
+{
+    "type": "news-feed",
+    "label": "News-Raster",
+    "requires_core": "1.0.0",
+    "fields": [
+        {
+            "name": "kicker",
+            "type": "text",
+            "label": "Kicker"
+        },
+        {
+            "name": "heading",
+            "type": "text",
+            "label": "Überschrift",
+            "ai_supported": true
+        },
+        {
+            "name": "items",
+            "type": "repeater",
+            "label": "Beiträge",
+            "fields": [
+                {
+                    "name": "date",
+                    "type": "date",
+                    "label": "Datum"
+                },
+                {
+                    "name": "title",
+                    "type": "text",
+                    "label": "Titel",
+                    "ai_supported": true
+                },
+                {
+                    "name": "excerpt",
+                    "type": "textarea",
+                    "label": "Teaser",
+                    "ai_supported": true
+                },
+                {
+                    "name": "link_type",
+                    "type": "select",
+                    "label": "Link-Art",
+                    "options": [
+                        { "value": "section", "label": "Zu Section/Anker" },
+                        { "value": "modal", "label": "Popup mit eigenem Text" }
+                    ]
+                },
+                {
+                    "name": "href",
+                    "type": "url",
+                    "label": "Link (bei Link-Art: Zu Section/Anker)"
+                },
+                {
+                    "name": "modal_text",
+                    "type": "textarea",
+                    "label": "Popup-Text (bei Link-Art: Popup)"
+                }
+            ]
+        }
+    ]
+}

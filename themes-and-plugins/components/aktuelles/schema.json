@@ -1,0 +1,55 @@
+{
+    "type": "aktuelles",
+    "label": "Aktuelles",
+    "help": "Kleiner Ankündigungs-Streifen, meist direkt unter dem Hero. Mehrere Einträge möglich (z. B. für später), es wird immer nur der erste aktive angezeigt.",
+    "requires_core": "1.0.0",
+    "fields": [
+        {
+            "name": "items",
+            "type": "repeater",
+            "label": "Einträge",
+            "fields": [
+                {
+                    "name": "date",
+                    "type": "date",
+                    "label": "Datum",
+                    "hint": "Optional, ausblendbar: leer lassen = Eintrag ohne Datum. Anzeige als TT.MM.JJJJ."
+                },
+                {
+                    "name": "text",
+                    "type": "textarea",
+                    "label": "Text"
+                },
+                {
+                    "name": "phone_mode",
+                    "type": "select",
+                    "label": "Anruf-Button",
+                    "options": [
+                        { "value": "", "label": "Kein Anruf-Button (Link stattdessen)" },
+                        { "value": "business", "label": "Firmennummer aus Stammdaten" },
+                        { "value": "custom", "label": "Eigene Nummer" }
+                    ],
+                    "hint": "Firmennummer kommt aus Betrieb/Kontaktdaten oder eigene Nummer eintragen, wird zu einem tel:-Button. Bei Kein Anruf-Button greift stattdessen Link-Ziel (URL) unten. Beschriftung kommt in beiden Fällen aus Link-/Button-Text."
+                },
+                {
+                    "name": "custom_phone",
+                    "type": "tel",
+                    "label": "Eigene Nummer",
+                    "hint": "Individuelle Tel.-Nummerneingabe, nur bei Anruf-Button: Eigene Nummer. Nur Ziffern und + - / ( ) . erlaubt."
+                },
+                {
+                    "name": "button_text",
+                    "type": "text",
+                    "label": "Link-/Button-Text",
+                    "hint": "Beschriftung für Link oder Anruf-Button, z. B. Rufen Sie einfach an:"
+                },
+                {
+                    "name": "button_href",
+                    "type": "url",
+                    "label": "Link-Ziel (URL)",
+                    "hint": "Nur nötig ohne Anruf-Button. Fremde Domain öffnet in neuem Tab."
+                }
+            ]
+        }
+    ]
+}

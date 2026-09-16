@@ -1,0 +1,61 @@
+<section id="{{ id }}" class="mx-auto max-w-6xl px-4 py-20 md:px-8">
+    {% if kicker %}
+    <p class="font-display text-xs font-medium uppercase tracking-[0.28em] text-primary">{{ kicker }}</p>
+    {% endif %}
+    <h2 class="mt-2 font-display text-3xl font-semibold md:text-4xl">{{ heading }}</h2>
+
+    <div class="relative mt-10">
+        <div class="swiper" data-gallery-categories-swiper>
+            <div class="swiper-wrapper">
+                {% for cat in categories %}
+                {% if cat.active is not defined or cat.active %}
+                <div class="swiper-slide !w-[68%] sm:!w-[42%] md:!w-[30%] lg:!w-[23%]">
+                    <button type="button" class="group relative block aspect-[4/3] w-full overflow-hidden rounded-[var(--brand-radius)]" data-gallery-open data-gallery-category="{{ loop.index0 }}">
+                        <img class="h-full w-full object-cover transition duration-300 group-hover:scale-105" src="{{ cat.cover_image }}" alt="{{ cat.name|default('') }}" loading="lazy">
+                        <span class="absolute inset-0 bg-gradient-to-t from-walnut/70 via-walnut/0 to-walnut/0"></span>
+                        {% if cat.name %}
+                        <span class="absolute bottom-3 left-3 font-display text-sm font-semibold text-white">{{ cat.name }}</span>
+                        {% endif %}
+                    </button>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        <button type="button" class="swiper-button-prev !left-2 !h-11 !w-11 !rounded-full !bg-white !text-primary !shadow-lg after:!text-lg after:content-['prev']" aria-label="Vorherige Kategorie"></button>
+        <button type="button" class="swiper-button-next !right-2 !h-11 !w-11 !rounded-full !bg-white !text-primary !shadow-lg after:!text-lg after:content-['next']" aria-label="Nächste Kategorie"></button>
+    </div>
+
+    {% for cat in categories %}
+    <template data-gallery-slides="{{ loop.index0 }}">
+        {% for img in cat.images|filter(img => img.active is not defined or img.active) %}
+        <div class="swiper-slide flex items-center justify-center">
+            <img class="max-h-[75vh] w-auto object-contain" src="{{ img.image }}" alt="{{ img.alt|default('') }}" loading="lazy">
+        </div>
+        {% endfor %}
+    </template>
+    {% endfor %}
+
+    <div class="fixed inset-0 z-50 hidden flex-col bg-walnut/95 p-4 backdrop-blur-sm" data-gallery-lightbox>
+        <button type="button" class="absolute right-4 top-4 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/20" data-gallery-close aria-label="Schließen">✕</button>
+        <div class="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center overflow-hidden">
+            <div class="swiper w-full" data-gallery-swiper-main>
+                <div class="swiper-wrapper"></div>
+                <button type="button" class="swiper-button-prev !left-2 !h-11 !w-11 !rounded-full !bg-white/15 !text-white !shadow-lg after:!text-lg after:content-['prev']" aria-label="Vorheriges Bild"></button>
+                <button type="button" class="swiper-button-next !right-2 !h-11 !w-11 !rounded-full !bg-white/15 !text-white !shadow-lg after:!text-lg after:content-['next']" aria-label="Nächstes Bild"></button>
+            </div>
+            {% set activeCategories = categories|filter(c => c.active is not defined or c.active) %}
+            {% if activeCategories|length > 1 %}
+            <div class="mt-6 flex justify-center gap-3 overflow-x-auto pb-2">
+                {% for cat in categories %}
+                {% if cat.active is not defined or cat.active %}
+                <button type="button" class="h-14 w-14 shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 border-transparent opacity-60 transition hover:opacity-100" data-gallery-thumb data-gallery-category="{{ loop.index0 }}" title="{{ cat.name|default('') }}">
+                    <img class="h-full w-full object-cover" src="{{ cat.cover_image }}" alt="{{ cat.name|default('') }}" loading="lazy">
+                </button>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>

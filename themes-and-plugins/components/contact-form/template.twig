@@ -1,0 +1,249 @@
+<section id="{{ id }}" class="border-t border-walnut/10 bg-white/50">
+    <div class="mx-auto grid max-w-6xl gap-12 px-4 py-20 md:grid-cols-2 md:px-8">
+        <div>
+            {% if kicker %}
+            <p class="font-display text-xs font-medium uppercase tracking-[0.28em] text-primary">{{ kicker }}</p>
+            {% endif %}
+            <h2 class="mt-2 font-display text-3xl font-semibold md:text-4xl">{{ heading }}</h2>
+            {% if intro %}
+            <p class="mt-4 max-w-md text-lg leading-relaxed text-walnut/75">{{ intro|rich }}</p>
+            {% endif %}
+
+            <form class="mt-8 space-y-4" data-contact-form action="?action=contact-form" method="post" novalidate>
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <div class="hidden" aria-hidden="true">
+                    <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+                </div>
+                <div data-field="name">
+                    <label class="mb-1 block font-display text-sm font-medium" for="contact-name">Ihr Name</label>
+                    <input class="h-12 w-full rounded-[var(--brand-radius)] border border-walnut/15 bg-white px-3 transition" id="contact-name" name="name" required autocomplete="name">
+                    <p class="mt-1 hidden text-sm text-red-700" data-field-error></p>
+                </div>
+                <div data-field="email">
+                    <label class="mb-1 block font-display text-sm font-medium" for="contact-email">E-Mail</label>
+                    <input class="h-12 w-full rounded-[var(--brand-radius)] border border-walnut/15 bg-white px-3 transition" id="contact-email" name="email" type="email" required autocomplete="email">
+                    <p class="mt-1 hidden text-sm text-red-700" data-field-error></p>
+                </div>
+                <div data-field="phone">
+                    <label class="mb-1 block font-display text-sm font-medium" for="contact-phone">Telefon <span class="font-normal text-walnut/40">(optional)</span></label>
+                    <input class="h-12 w-full rounded-[var(--brand-radius)] border border-walnut/15 bg-white px-3 transition" id="contact-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel">
+                    <p class="mt-1 hidden text-sm text-red-700" data-field-error></p>
+                </div>
+                {% set subjectOptions = subject_options|default([])|filter(o => (o.active is not defined or o.active) and o.label|default('') != '') %}
+                {% if subjectOptions is not empty %}
+                <div data-field="subject">
+                    <label class="mb-1 block font-display text-sm font-medium" for="contact-subject">Anliegen</label>
+                    <select class="h-12 w-full rounded-[var(--brand-radius)] border border-walnut/15 bg-white px-3 transition" id="contact-subject" name="subject">
+                        {% for option in subjectOptions %}
+                        <option value="{{ option.label }}">{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div data-field="message">
+                    <label class="mb-1 block font-display text-sm font-medium" for="contact-message">Nachricht</label>
+                    <textarea class="min-h-[140px] w-full rounded-[var(--brand-radius)] border border-walnut/15 bg-white px-3 py-3 transition" id="contact-message" name="message" required></textarea>
+                    <p class="mt-1 hidden text-sm text-red-700" data-field-error></p>
+                </div>
+                {% if disclaimer %}
+                <p class="text-sm text-walnut/60">{{ disclaimer|rich }}</p>
+                {% endif %}
+                <button class="flex h-[54px] w-full cursor-pointer items-center justify-center rounded-[var(--brand-radius)] border-2 px-[30px] font-display text-lg font-semibold transition hover:brightness-110 {{ config.brand.hero_cta|default('primary') == 'primary' ? 'border-primary bg-primary text-white' : 'border-secondary bg-secondary text-white' }}" type="submit">{{ submit_label|default('Senden') }}</button>
+                <p class="text-sm text-walnut/60">Mit dem Absenden stimmen Sie der Verarbeitung Ihrer Angaben zur Bearbeitung der Anfrage zu.</p>
+                <p class="text-sm font-medium" data-contact-status role="status"></p>
+            </form>
+        </div>
+
+        {% set hasBusinessInfo = (business.street|default('') ~ business.city|default('') ~ business.phone|default('') ~ business.email|default(''))|trim is not empty %}
+        {% if hasBusinessInfo %}
+        <div class="h-fit rounded-[var(--brand-radius)] border border-walnut/10 bg-ash/40 p-6 md:p-8">
+            {% if business.street or business.city %}
+            <p class="font-display text-xs font-medium uppercase tracking-[0.2em] text-primary">Adresse</p>
+            <p class="mt-1 text-walnut/80">
+                {{ business.name|default('') }}{% if business.name %}<br>{% endif %}
+                {{ business.street|default('') }}{% if business.street %}<br>{% endif %}
+                {{ business.zip|default('') }} {{ business.city|default('') }}
+            </p>
+            {% endif %}
+            {% if business.phone %}
+            <p class="mt-5 font-display text-xs font-medium uppercase tracking-[0.2em] text-primary">Telefon</p>
+            <p class="mt-1"><a class="text-walnut/80 hover:text-primary" href="tel:{{ business.phone|replace({' ': ''}) }}">{{ business.phone }}</a></p>
+            {% endif %}
+            {% if business.email %}
+            <p class="mt-5 font-display text-xs font-medium uppercase tracking-[0.2em] text-primary">E-Mail</p>
+            <p class="mt-1"><a class="text-walnut/80 hover:text-primary" href="mailto:{{ business.email }}" data-mail-template data-mail-address="{{ business.email }}" data-mail-subject="{{ content.labels.mail_subject|default('') }}" data-mail-body="{{ content.labels.mail_body|default('') }}">{{ business.email }}</a></p>
+            {% endif %}
+            {% if business.hours %}
+            <p class="mt-5 font-display text-xs font-medium uppercase tracking-[0.2em] text-primary">Öffnungszeiten</p>
+            <p class="mt-1 text-walnut/80">{{ business.hours }}</p>
+            {% endif %}
+            {% if business.street or business.city %}
+            {% set mapQuery = business.maps_query|default('') is not empty ? business.maps_query : (business.name|default('') ~ ' ' ~ business.street|default('') ~ ' ' ~ business.zip|default('') ~ ' ' ~ business.city|default(''))|trim %}
+            <div class="relative mt-5 aspect-[4/3] overflow-hidden rounded-[var(--brand-radius)] bg-walnut/10">
+                <div class="absolute inset-0" data-map-frame data-map-query="{{ mapQuery }}">
+                    <button type="button" class="absolute inset-0 flex w-full cursor-pointer flex-col items-center justify-center gap-2 text-walnut/50 transition hover:text-primary" data-map-load>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+                        <span class="text-sm font-medium">Karte laden</span>
+                    </button>
+                </div>
+                {% if maps_url %}
+                <a class="absolute bottom-3.5 left-1/2 z-10 inline-flex h-10 -translate-x-1/2 cursor-pointer items-center gap-1.5 rounded-lg px-4 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 {{ config.brand.hero_cta|default('primary') == 'primary' ? 'bg-primary' : 'bg-secondary' }}" href="{{ maps_url }}" target="_blank" rel="noopener noreferrer">In Google Maps öffnen ↗</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+<script>
+  document.querySelectorAll('[data-contact-form]').forEach(function (form) {
+    var invalidClasses = ['border-red-400', 'bg-red-50'];
+    var defaultClasses = ['border-walnut/15', 'bg-white'];
+
+    function setFieldError(name, msg) {
+      var wrap = form.querySelector('[data-field="' + name + '"]');
+      if (!wrap) return;
+      var input = wrap.querySelector('input, textarea');
+      var errorEl = wrap.querySelector('[data-field-error]');
+      if (msg) {
+        input.classList.add.apply(input.classList, invalidClasses);
+        input.classList.remove.apply(input.classList, defaultClasses);
+        errorEl.textContent = msg;
+        errorEl.classList.remove('hidden');
+      } else {
+        input.classList.remove.apply(input.classList, invalidClasses);
+        input.classList.add.apply(input.classList, defaultClasses);
+        errorEl.textContent = '';
+        errorEl.classList.add('hidden');
+      }
+    }
+
+    function clearErrors() {
+      form.querySelectorAll('[data-field]').forEach(function (wrap) {
+        setFieldError(wrap.getAttribute('data-field'), '');
+      });
+    }
+
+    function validate() {
+      clearErrors();
+      var ok = true;
+      var name = form.querySelector('[name="name"]').value.trim();
+      var email = form.querySelector('[name="email"]').value.trim();
+      var phone = form.querySelector('[name="phone"]').value.trim();
+      var message = form.querySelector('[name="message"]').value.trim();
+
+      if (name === '') {
+        setFieldError('name', 'Bitte geben Sie Ihren Namen ein.');
+        ok = false;
+      } else if (/\d/.test(name)) {
+        setFieldError('name', 'Bitte geben Sie einen gültigen Namen ohne Zahlen ein.');
+        ok = false;
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setFieldError('email', 'Bitte geben Sie eine gültige E-Mail-Adresse ein.');
+        ok = false;
+      }
+
+      if (phone !== '' && !/^[0-9+\-/() .]+$/.test(phone)) {
+        setFieldError('phone', 'Bitte geben Sie eine gültige Telefonnummer ein (nur Ziffern und + - / ( ) erlaubt).');
+        ok = false;
+      }
+
+      if (message === '') {
+        setFieldError('message', 'Bitte beschreiben Sie Ihr Vorhaben kurz.');
+        ok = false;
+      }
+
+      return ok;
+    }
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var status = form.querySelector('[data-contact-status]');
+      status.textContent = '';
+      status.className = 'text-sm font-medium';
+
+      if (!validate()) {
+        return;
+      }
+
+      var body = new FormData(form);
+      fetch(form.getAttribute('action'), { method: 'POST', body: body, headers: { 'Accept': 'application/json' } })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          if (data.ok) {
+            status.textContent = data.message || '';
+            status.classList.add('text-primary');
+            form.reset();
+            clearErrors();
+          } else {
+            if (data.errors) {
+              Object.keys(data.errors).forEach(function (name) { setFieldError(name, data.errors[name]); });
+            }
+            status.textContent = data.message || 'Bitte prüfen Sie Ihre Angaben.';
+            status.classList.add('text-red-700');
+          }
+        })
+        .catch(function () {
+          status.textContent = 'Senden fehlgeschlagen. Bitte später erneut versuchen.';
+          status.classList.add('text-red-700');
+        });
+    });
+  });
+
+  (function () {
+    var modal = null;
+    var pendingFrame = null;
+
+    function loadMapInto(frame) {
+      var query = frame.getAttribute('data-map-query') || '';
+      var iframe = document.createElement('iframe');
+      iframe.src = 'https://www.google.com/maps?q=' + encodeURIComponent(query) + '&output=embed';
+      iframe.className = 'absolute inset-0 h-full w-full border-0';
+      iframe.loading = 'lazy';
+      iframe.referrerPolicy = 'no-referrer-when-downgrade';
+      iframe.setAttribute('allowfullscreen', '');
+      iframe.setAttribute('title', 'Google Maps: ' + query);
+      frame.innerHTML = '';
+      frame.appendChild(iframe);
+    }
+
+    function closeModal() {
+      if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+      pendingFrame = null;
+    }
+
+    function ensureModal() {
+      if (modal) return modal;
+      modal = document.createElement('div');
+      modal.className = 'fixed inset-0 z-50 hidden items-center justify-center bg-walnut/40 p-4 backdrop-blur-sm';
+      modal.innerHTML =
+        '<div class="w-full max-w-sm rounded-[var(--brand-radius)] border border-walnut/10 bg-white p-6 shadow-2xl">' +
+          '<h3 class="font-display text-lg font-semibold">Google Maps laden?</h3>' +
+          '<p class="mt-2 text-sm text-walnut/70">Beim Laden der Karte wird eine Verbindung zu Google-Servern hergestellt und Ihre IP-Adresse an Google übermittelt.</p>' +
+          '<div class="mt-5 flex justify-end gap-3">' +
+            '<button type="button" class="h-9 cursor-pointer rounded-[var(--brand-radius)] border border-walnut/15 px-4 text-sm font-medium transition hover:bg-walnut/5" data-map-consent-cancel>Abbrechen</button>' +
+            '<button type="button" class="h-9 cursor-pointer rounded-[var(--brand-radius)] bg-primary px-4 text-sm font-semibold text-white transition hover:brightness-110" data-map-consent-confirm>Karte laden</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(modal);
+      modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+      modal.querySelector('[data-map-consent-cancel]').addEventListener('click', closeModal);
+      modal.querySelector('[data-map-consent-confirm]').addEventListener('click', function () {
+        if (pendingFrame) loadMapInto(pendingFrame);
+        closeModal();
+      });
+      return modal;
+    }
+
+    document.querySelectorAll('[data-map-load]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        pendingFrame = btn.closest('[data-map-frame]');
+        var m = ensureModal();
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+      });
+    });
+  })();
+</script>

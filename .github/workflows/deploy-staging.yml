@@ -1,0 +1,125 @@
+name: Deploy staging per SFTP
+
+# Wird NUR getriggert, wenn eine Änderung auf den staging-Branch kommt.
+# Der Workflow prüft anschließend, ob dieser Push ein Merge von develop
+# in staging ist – nur dann wird per SFTP zum Host deployed.
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Keine Credentials irgendwo im Repo: alles kommt aus GitHub-Secrets
+    # (einstellbar unter Settings → Secrets and variables → Actions):
+    # FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, FTP_TARGET_DIR,
+    # BACKUP_URL, BACKUP_TOKEN.
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+      FTP_TARGET_DIR: ${{ secrets.FTP_TARGET_DIR }}
+      BACKUP_URL: ${{ secrets.BACKUP_URL }}
+      BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
+    steps:
+      - name: Checkout staging
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          # Komplette History, damit wir Merge-Eltern prüfen können
+          fetch-depth: 0
+
+      - name: Nur bei develop→staging-Merge deployen
+        id: check-merge
+        run: |
+          PARENTS="$(git log --format=%P -1 "$GITHUB_SHA")"
+          PARENT_COUNT="$(echo "$PARENTS" | wc -w | tr -d ' ')"
+
+          if [ "$PARENT_COUNT" -lt 2 ]; then
+            echo "Kein Merge-Commit (${PARENT_COUNT} Eltern) – Abbruch."
+            echo "deployed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Ist einer der beiden Eltern der develop-Branch?
+          DEVELOP="$(
+            git rev-parse origin/develop 2>/dev/null \
+              || git rev-parse refs/remotes/origin/develop 2>/dev/null \
+              || echo ""
+          )"
+
+          if [ -n "$DEVELOP" ] && echo "$PARENTS" | grep -q "$DEVELOP"; then
+            echo "Merge von develop in staging erkannt – deploye per SFTP."
+            echo "deployed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Merge, aber NICHT von develop (oder develop unbekannt) – Abbruch."
+            echo "deployed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: PHP einrichten
+        if: steps.check-merge.outputs.deployed == 'true'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: composer install --no-dev
+        if: steps.check-merge.outputs.deployed == 'true'
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+        # vendor/ ist gitignored (siehe .gitignore/docs/DEPLOY.md) - landet nur
+        # so im Deploy-Payload, nie über Git selbst.
+
+      - name: Sicherung auf dem Server anlegen (vor dem Deploy)
+        if: steps.check-merge.outputs.deployed == 'true'
+        run: |
+          set -e
+          : "${BACKUP_URL:?BACKUP_URL-Secret fehlt oder ist leer}"
+          : "${BACKUP_TOKEN:?BACKUP_TOKEN-Secret fehlt oder ist leer}"
+          BACKUP_URL="$(printf '%s' "$BACKUP_URL" | tr -d '[:space:]')"
+          BACKUP_TOKEN="$(printf '%s' "$BACKUP_TOKEN" | tr -d '[:space:]')"
+          if RESPONSE="$(curl -fsSL --connect-timeout 30 --max-time 120 -X POST \
+                "$BACKUP_URL" \
+                --data-urlencode "token=$BACKUP_TOKEN" \
+                -H "Authorization: Bearer $BACKUP_TOKEN" \
+                --write-out "\nHTTP %{http_code}\n" 2>&1)"; then
+            echo "Backup ok. Antwort: ${RESPONSE}"
+          else
+            RESPONSE="${RESPONSE:-<keine Antwort>}"
+            echo "::error::Backup-Aufruf fehlgeschlagen. Antwort: ${RESPONSE}"
+            exit 3
+          fi
+        shell: bash
+
+      - name: SFTP-Deploy (nur bei develop→staging-Merge)
+        if: steps.check-merge.outputs.deployed == 'true'
+        uses: wangyucode/sftp-upload-action@v3
+        with:
+          host: ${{ env.FTP_SERVER }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ env.FTP_PASSWORD }}
+          port: 22
+          # Web-Root der Subdomain (per DCP gemappter Zielordner), absoluter
+          # Pfad aus Secret FTP_TARGET_DIR.
+          localDir: '.'
+          remoteDir: ${{ env.FTP_TARGET_DIR }}
+          # Inkremental: nur geänderte Dateien übertragen (die Action
+          # verwaltet dazu .sftp_upload_action_hashes auf dem Server).
+          forceUpload: false
+          concurrency: 4
+          # Nur Code deployen. data/config.json, data/content.json, uploads/
+          # und cache/ sind auf dem Server live (über den Admin-Bereich
+          # dieser CMS-Instanz gepflegt) - ein Deploy darf sie nie
+          # überschreiben oder löschen, siehe docs/DEPLOY.md.
+          exclude: |
+            .git,
+            .git/**,
+            .github/**,
+            .gitignore,
+            *.md,
+            .DS_Store,
+            data/config.json,
+            data/content.json,
+            data/.history/**,
+            uploads/**,
+            cache/**

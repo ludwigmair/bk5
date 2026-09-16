@@ -1,0 +1,24 @@
+<div class="mx-auto max-w-3xl px-4 py-20 md:px-8">
+    <h1 class="font-display text-3xl font-semibold md:text-4xl">{{ title }}</h1>
+
+    {% if show_business and (business.name or business.street) %}
+    <div class="mt-6 text-walnut/80">
+        {{ business.name|default('') }}{% if business.name %}<br>{% endif %}
+        {% if business.owner %}{{ business.owner }}<br>{% endif %}
+        {{ business.street|default('') }}{% if business.street %}<br>{% endif %}
+        {{ business.zip|default('') }} {{ business.city|default('') }}
+    </div>
+    <div class="mt-4 text-walnut/80">
+        {% if business.phone %}Telefon: <a class="hover:text-primary" href="tel:{{ business.phone|replace({' ': ''}) }}">{{ business.phone }}</a><br>{% endif %}
+        {% if business.email %}E-Mail: <a class="hover:text-primary" href="mailto:{{ business.email }}">{{ business.email }}</a><br>{% endif %}
+        {% if business.vat_id %}USt-IdNr.: {{ business.vat_id }}<br>{% endif %}
+        {% if business.register %}Register: {{ business.register }}{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="prose-legal mt-8 max-w-none text-walnut/80 [&_p]:mt-4 [&_p:first-child]:mt-0">
+        {{ body|rich_block }}
+    </div>
+
+    <p class="mt-10"><a class="text-sm font-medium text-primary hover:text-secondary" href="/">← {{ content.labels.back_to_home|default('Zurück zur Startseite') }}</a></p>
+</div>

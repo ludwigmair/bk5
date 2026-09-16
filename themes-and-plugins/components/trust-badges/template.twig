@@ -1,0 +1,13 @@
+{% set activeItems = items|default([])|filter(item => item.active is not defined or item.active) %}
+{% if activeItems is not empty %}
+<section id="{{ id }}" class="mx-auto max-w-6xl border-b border-walnut/10 px-4 py-6 md:px-8">
+    <div class="grid grid-cols-2 gap-6 sm:grid-cols-4">
+        {% for item in activeItems %}
+        <div>
+            {% if item.title %}<p class="font-bold text-secondary">{{ item.title }}</p>{% endif %}
+            {% if item.subtitle %}<p class="mt-0.5 text-sm text-walnut/60">{{ item.subtitle }}</p>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}

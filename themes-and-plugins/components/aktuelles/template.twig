@@ -1,0 +1,23 @@
+{% set activeItems = items|default([])|filter(item => item.active is not defined or item.active) %}
+{% set item = activeItems|first %}
+
+{% if item %}
+{% set phone = item.phone_mode == 'business' ? content.business.phone|default('') : (item.phone_mode == 'custom' ? item.custom_phone|default('') : '') %}
+<section id="{{ id }}" class="border-y border-primary/15 bg-primary/5">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 md:px-8">
+        {% if item.date %}
+        <time class="shrink-0 font-display text-xs uppercase tracking-wider text-walnut/50" datetime="{{ item.date }}">{{ item.date }}</time>
+        {% endif %}
+        {% if item.text %}
+        <p class="min-w-0 flex-1 text-sm leading-relaxed text-walnut/80">{{ item.text|rich }}</p>
+        {% endif %}
+        {% if item.button_text and (phone or item.button_href) %}
+            {% if phone %}
+            <a class="inline-flex h-9 shrink-0 items-center rounded-[var(--brand-radius)] bg-primary px-4 text-sm font-semibold text-white transition hover:brightness-110" href="tel:{{ phone|replace({' ': ''}) }}">{{ item.button_text }}</a>
+            {% else %}
+            <a class="inline-flex h-9 shrink-0 items-center rounded-[var(--brand-radius)] bg-primary px-4 text-sm font-semibold text-white transition hover:brightness-110" href="{{ item.button_href }}" {% if item.button_href starts with 'http' %}target="_blank" rel="noopener noreferrer"{% endif %}>{{ item.button_text }}</a>
+            {% endif %}
+        {% endif %}
+    </div>
+</section>
+{% endif %}

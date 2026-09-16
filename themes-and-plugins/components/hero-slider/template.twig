@@ -1,0 +1,132 @@
+{% set activeSlides = slides|filter(slide => slide.active is not defined or slide.active) %}
+{% set layout = layout|default('overlay') %}
+
+{% if layout == 'stacked' %}
+<section id="{{ id }}" class="mx-auto max-w-6xl px-4 py-20 md:px-8">
+    <div class="relative swiper min-w-0 overflow-hidden rounded-[var(--brand-radius)]" data-hero-swiper-plain>
+        <div class="swiper-wrapper">
+            {% for slide in activeSlides %}
+            <div class="swiper-slide">
+                <img class="h-[30vh] w-full object-cover md:h-[38vh]" src="{{ slide.image }}" alt="{{ slide.alt|default('') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="swiper-pagination !bottom-4"></div>
+        {% if activeSlides|length > 1 %}
+        <button type="button" class="swiper-nav-btn hero-nav-arrow !absolute bottom-3 left-3 z-10" data-hero-prev aria-label="Vorheriges Bild">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="swiper-nav-btn hero-nav-arrow !absolute bottom-3 right-3 z-10" data-hero-next aria-label="Nächstes Bild">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        {% endif %}
+    </div>
+    <div class="mt-6 max-w-2xl">
+        {% if kicker %}
+        <p class="font-display text-xs font-medium uppercase tracking-[0.28em] text-primary">{{ kicker }}</p>
+        {% endif %}
+        <h1 class="mt-2 font-display text-3xl font-semibold leading-[1.1] md:text-4xl">{{ heading }}</h1>
+        {% if claim %}
+        <p class="mt-2 font-display text-lg italic text-secondary">{{ claim }}</p>
+        {% endif %}
+        {% if lead %}
+        <p class="mt-4 leading-relaxed text-walnut/75">{{ lead|rich }}</p>
+        {% endif %}
+        <div class="mt-6 flex flex-wrap gap-3 font-display">
+            {% if cta_primary_label %}
+            <a class="inline-flex h-[54px] cursor-pointer items-center rounded-[var(--brand-radius)] border-2 px-[30px] text-lg font-semibold hover:brightness-110 {{ config.brand.hero_cta|default('primary') == 'primary' ? 'border-primary bg-primary text-white' : 'border-secondary bg-secondary text-white' }}" href="{{ cta_primary_href|default('#kontakt') }}">{{ cta_primary_label }}</a>
+            {% endif %}
+            {% if cta_secondary_label %}
+            <a class="inline-flex h-[54px] cursor-pointer items-center rounded-[var(--brand-radius)] border-2 px-[30px] text-lg font-semibold {{ config.brand.hero_cta|default('primary') == 'primary' ? 'border-primary/30 text-primary hover:bg-primary/5' : 'border-secondary text-secondary hover:bg-secondary/5' }}" href="{{ cta_secondary_href|default('#galerie') }}">{{ cta_secondary_label }}</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+{% elseif layout == 'split' %}
+<section id="{{ id }}" class="bg-ash">
+    <div class="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 md:grid-cols-2 md:gap-16 md:px-8 md:py-24">
+        <div>
+            {% if kicker %}
+            <p class="font-display text-xs font-medium uppercase tracking-[0.28em] text-primary">{{ kicker }}</p>
+            {% endif %}
+            <h1 class="mt-3 font-display text-4xl font-semibold leading-[1.1] md:text-5xl">{{ heading }}</h1>
+            {% if claim %}
+            <p class="mt-3 font-display text-xl italic text-secondary">{{ claim }}</p>
+            {% endif %}
+            {% if lead %}
+            <p class="mt-5 max-w-md text-lg leading-relaxed text-walnut/75">{{ lead|rich }}</p>
+            {% endif %}
+            <div class="mt-8 flex flex-wrap gap-3 font-display">
+                {% if cta_primary_label %}
+                <a class="inline-flex h-[54px] cursor-pointer items-center rounded-[var(--brand-radius)] border-2 px-[30px] text-lg font-semibold hover:brightness-110 {{ config.brand.hero_cta|default('primary') == 'primary' ? 'border-primary bg-primary text-white' : 'border-secondary bg-secondary text-white' }}" href="{{ cta_primary_href|default('#kontakt') }}">{{ cta_primary_label }}</a>
+                {% endif %}
+                {% if cta_secondary_label %}
+                <a class="inline-flex h-[54px] cursor-pointer items-center rounded-[var(--brand-radius)] border-2 px-[30px] text-lg font-semibold {{ config.brand.hero_cta|default('primary') == 'primary' ? 'border-primary/30 text-primary hover:bg-primary/5' : 'border-secondary text-secondary hover:bg-secondary/5' }}" href="{{ cta_secondary_href|default('#galerie') }}">{{ cta_secondary_label }}</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="relative h-[320px] overflow-hidden rounded-[var(--brand-radius)] md:h-[460px]" data-crossfade>
+            {% for slide in activeSlides %}
+            <img class="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-in-out {% if loop.first %}opacity-100{% else %}opacity-0{% endif %}" data-crossfade-slide src="{{ slide.image }}" alt="{{ slide.alt|default('') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+            {% endfor %}
+            {% if activeSlides|length > 1 %}
+            <button type="button" class="swiper-nav-btn hero-nav-arrow !absolute bottom-3 left-3 z-10" data-crossfade-prev aria-label="Vorheriges Bild">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button type="button" class="swiper-nav-btn hero-nav-arrow !absolute bottom-3 right-3 z-10" data-crossfade-next aria-label="Nächstes Bild">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
+                {% for slide in activeSlides %}
+                <button type="button" class="h-1.5 w-4 cursor-pointer rounded-[3px] bg-white/55 transition {% if loop.first %}!bg-secondary{% endif %}" data-crossfade-dot title="Bild {{ loop.index }}"></button>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+{% else %}
+<section id="{{ id }}" class="relative min-h-[72vh] overflow-hidden bg-walnut text-ash">
+    <div class="swiper absolute inset-0" data-hero-swiper>
+        <div class="swiper-wrapper">
+            {% for slide in activeSlides %}
+            <div class="swiper-slide">
+                <img class="h-[72vh] w-full object-cover" src="{{ slide.image }}" alt="{{ slide.alt|default('') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="swiper-pagination !bottom-6"></div>
+        {% if activeSlides|length > 1 %}
+        <button type="button" class="swiper-nav-btn hero-nav-arrow !absolute top-4 left-4 z-10" data-hero-prev aria-label="Vorheriges Bild">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="swiper-nav-btn hero-nav-arrow !absolute top-4 right-4 z-10" data-hero-next aria-label="Nächstes Bild">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        {% endif %}
+    </div>
+    <div class="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-walnut/90 via-walnut/55 to-walnut/15"></div>
+    <div class="pointer-events-none relative z-10 mx-auto flex min-h-[72vh] max-w-6xl flex-col justify-end px-4 pb-12 pt-20 md:px-8">
+        {% if kicker %}
+        <p class="font-display text-xs font-medium uppercase tracking-[0.28em] text-ash">{{ kicker }}</p>
+        {% endif %}
+        <h1 class="mt-3 max-w-3xl font-display text-4xl font-semibold leading-[1.08] md:text-6xl">{{ heading }}</h1>
+        {% if claim %}
+        <p class="mt-3 max-w-xl font-display text-xl italic text-ash">{{ claim }}</p>
+        {% endif %}
+        {% if lead %}
+        <p class="mt-5 max-w-xl text-lg leading-relaxed text-ash/80">{{ lead|rich }}</p>
+        {% endif %}
+        <div class="mt-8 flex flex-wrap gap-3 font-display">
+            {% if cta_primary_label %}
+            <a class="pointer-events-auto inline-flex h-12 cursor-pointer items-center rounded-[var(--brand-radius)] px-6 text-lg font-semibold hover:brightness-110 {{ config.brand.hero_cta|default('secondary') == 'primary' ? 'bg-primary text-white' : 'bg-secondary text-walnut' }}" href="{{ cta_primary_href|default('#kontakt') }}">{{ cta_primary_label }}</a>
+            {% endif %}
+            {% if cta_secondary_label %}
+            <a class="pointer-events-auto inline-flex h-12 cursor-pointer items-center rounded-[var(--brand-radius)] border border-ash/40 px-6 text-lg font-semibold text-ash hover:bg-white/10" href="{{ cta_secondary_href|default('#galerie') }}">{{ cta_secondary_label }}</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endif %}

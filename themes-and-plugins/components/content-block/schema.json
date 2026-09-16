@@ -1,0 +1,79 @@
+{
+    "type": "content-block",
+    "label": "Content-Block",
+    "help": "Flexibler Baustein: 1–3 Spalten, Bild neben/unter dem Text, oder Bild als Hintergrund. Layout wählen, dann passend viele Einträge anlegen – bei allen Bild-Layouts (links/rechts/unten/Hintergrund) zählt nur der erste aktive Eintrag.",
+    "requires_core": "1.0.0",
+    "fields": [
+        {
+            "name": "kicker",
+            "type": "text",
+            "label": "Kicker"
+        },
+        {
+            "name": "heading",
+            "type": "text",
+            "label": "Überschrift"
+        },
+        {
+            "name": "layout",
+            "type": "select",
+            "label": "Layout",
+            "options": [
+                { "value": "columns-1", "label": "1 Spalte" },
+                { "value": "columns-2", "label": "2 Spalten" },
+                { "value": "columns-3", "label": "3 Spalten" },
+                { "value": "image-left", "label": "Bild links, Text rechts" },
+                { "value": "image-right", "label": "Bild rechts, Text links" },
+                { "value": "image-bottom", "label": "Text oben, Bild unten" },
+                { "value": "image-background", "label": "Bild als Hintergrund" }
+            ]
+        },
+        {
+            "name": "items",
+            "type": "repeater",
+            "label": "Inhalte",
+            "fields": [
+                {
+                    "name": "image",
+                    "type": "image",
+                    "label": "Bild"
+                },
+                {
+                    "name": "title",
+                    "type": "text",
+                    "label": "Titel"
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "label": "Subtitel"
+                },
+                {
+                    "name": "text",
+                    "type": "textarea",
+                    "label": "Text"
+                },
+                {
+                    "name": "person_name",
+                    "type": "text",
+                    "label": "Name (nur bei Bild links/rechts - macht aus dem Bild eine Profilkarte)"
+                },
+                {
+                    "name": "person_role",
+                    "type": "text",
+                    "label": "Rolle/Funktion"
+                },
+                {
+                    "name": "cta_label",
+                    "type": "text",
+                    "label": "Profilkarte: Button-Text"
+                },
+                {
+                    "name": "cta_href",
+                    "type": "url",
+                    "label": "Profilkarte: Button-Link"
+                }
+            ]
+        }
+    ]
+}

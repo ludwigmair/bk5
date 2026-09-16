@@ -1,0 +1,80 @@
+{
+    "type": "google-reviews",
+    "label": "Google-Reviews",
+    "requires_core": "1.0.0",
+    "needs_swiper": true,
+    "fields": [
+        {
+            "name": "kicker",
+            "type": "text",
+            "label": "Kicker"
+        },
+        {
+            "name": "heading",
+            "type": "text",
+            "label": "Überschrift",
+            "ai_supported": true
+        },
+        {
+            "name": "intro",
+            "type": "textarea",
+            "label": "Hinweistext (optional)",
+            "hint": "Z. B. Herkunft der Bewertungen und Veröffentlichungshinweis.",
+            "ai_supported": true
+        },
+        {
+            "name": "show_rating_summary",
+            "type": "checkbox",
+            "label": "Bewertungsschnitt anzeigen",
+            "hint": "Sterne + Durchschnitt + Anzahl oberhalb der Rezensionen – automatisch aus den Bewertungen unten berechnet (oder von Google, falls API konfiguriert)",
+            "default": true
+        },
+        {
+            "name": "reviews_url",
+            "type": "url",
+            "label": "Link zu allen Bewertungen (optional)",
+            "hint": "Wenn gesetzt, kann unten ein Button dorthin erscheinen (z. B. das Google-Rezensionsprofil)."
+        },
+        {
+            "name": "reviews_url_label",
+            "type": "text",
+            "label": "Button-Text (nur mit Link oben sichtbar)"
+        },
+        {
+            "name": "show_reviews_button",
+            "type": "checkbox",
+            "label": "Button „Alle Bewertungen lesen“ anzeigen",
+            "hint": "nur sichtbar, wenn oben auch ein Link gesetzt ist",
+            "default": true
+        },
+        {
+            "name": "fallback_reviews",
+            "type": "repeater",
+            "label": "Fallback-Stimmen (ohne API)",
+            "fields": [
+                {
+                    "name": "author",
+                    "type": "text",
+                    "label": "Name"
+                },
+                {
+                    "name": "time",
+                    "type": "text",
+                    "label": "Zeitangabe (optional, z. B. „vor 2 Wochen“)"
+                },
+                {
+                    "name": "rating",
+                    "type": "rating",
+                    "label": "Sterne",
+                    "max": 5
+                },
+                {
+                    "name": "text",
+                    "type": "textarea",
+                    "label": "Text",
+                    "ai_supported": true
+                }
+            ]
+        }
+    ]
+}

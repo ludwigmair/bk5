@@ -1,0 +1,28 @@
+<section id="{{ id }}" class="mx-auto max-w-6xl px-4 py-20 md:px-8">
+    {% if kicker %}
+    <p class="font-display text-xs font-medium uppercase tracking-[0.28em] text-primary">{{ kicker }}</p>
+    {% endif %}
+    <h2 class="mt-2 font-display text-3xl font-semibold md:text-4xl">{{ heading }}</h2>
+    <div class="mt-10 grid gap-6 md:grid-cols-3">
+        {% for item in items|filter(item => item.active is not defined or item.active) %}
+        {% set linkType = item.link_type|default('section') %}
+        <article class="flex flex-col border-t-4 border-primary bg-white/80 p-6" style="box-shadow: 0 1px 0 color-mix(in srgb, var(--brand-walnut) 6%, transparent);">
+            {% if item.date %}
+            <time class="font-display text-xs uppercase tracking-wider text-walnut/50" datetime="{{ item.date }}">{{ item.date }}</time>
+            {% endif %}
+            <h3 class="mt-3 font-display text-xl font-semibold">{{ item.title }}</h3>
+            <p class="mt-3 flex-1 leading-relaxed text-walnut/75">{{ item.excerpt|rich }}</p>
+            {% if linkType == 'modal' and item.modal_text %}
+            <button type="button" class="mt-5 cursor-pointer text-left font-display text-sm font-semibold text-primary hover:text-secondary" data-modal-open data-modal-target="{{ id }}-item-{{ loop.index0 }}">{{ content.labels.read_more|default('Weiterlesen') }}</button>
+            <template data-modal-content="{{ id }}-item-{{ loop.index0 }}">
+                <h3 class="font-display text-2xl font-semibold">{{ item.title }}</h3>
+                {% if item.date %}<time class="mt-1 block font-display text-xs uppercase tracking-wider text-walnut/50" datetime="{{ item.date }}">{{ item.date }}</time>{% endif %}
+                <div class="mt-4 leading-relaxed text-walnut/75">{{ item.modal_text|rich_block }}</div>
+            </template>
+            {% elseif item.href %}
+            <a class="mt-5 font-display text-sm font-semibold text-primary hover:text-secondary" href="{{ item.href }}">{{ content.labels.read_more|default('Weiterlesen') }}</a>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+</section>

@@ -1,0 +1,26 @@
+{
+    "name": "theme-bk01",
+    "label": "Theme BK01",
+    "description": "Oxblood-Rot auf warmem Creme, Fraunces/Open Sans – eigener Stil-Test, ohne Core-Änderung.",
+    "brand": {
+        "primary": "#2B2723",
+        "secondary": "#8F2B32",
+        "ash": "#F6F1E4",
+        "walnut": "#5C1C21",
+        "hero_cta": "secondary",
+        "radius": "0.375rem",
+        "font_display": "Fraunces",
+        "font_body": "Open Sans",
+        "zebra_accent": true
+    },
+    "languages": [
+        "de"
+    ],
+    "layout": {
+        "header": "header-bk01",
+        "footer": "footer-bk01",
+        "topbar": "topbar-bk01",
+        "stickybar": "stickybar-bk01",
+        "cookiebanner": "cookiebanner-bk01"
+    }
+}

@@ -1,0 +1,788 @@
+{
+    "site": {
+        "title": {
+            "de": "Raumausstattung Kurzeder"
+        },
+        "tagline": {
+            "de": "Polsterei & Vorhänge im Chiemgau"
+        },
+        "lang": "de",
+        "logo_text": {
+            "de": "Raumausstattung Kurzeder"
+        },
+        "logo_image": "uploads/logo-bk01.png"
+    },
+    "topbar": {
+        "text": {
+            "de": "Jetzt Beratung vor Ort o. telefonisch anfragen"
+        },
+        "cta_label": {
+            "de": "Kontakt"
+        }
+    },
+    "labels": {
+        "nav_menu": {
+            "de": "Menü"
+        },
+        "read_more": {
+            "de": "Weiterlesen"
+        },
+        "sticky_call": {
+            "de": "Anrufen"
+        },
+        "sticky_mail": {
+            "de": "Mail"
+        },
+        "sticky_inquiry": {
+            "de": "Anfrage"
+        },
+        "sticky_top": {
+            "de": "Nach oben"
+        },
+        "cookie_text": {
+            "de": "Diese Website verwendet nur technisch notwendige Cookies – zum Beispiel, um Ihre Einstellungen zu speichern. Weitere Cookies setzen wir nur mit Ihrer Zustimmung."
+        },
+        "cookie_accept": {
+            "de": "Verstanden"
+        },
+        "cookie_necessary": {
+            "de": "Nur notwendige"
+        },
+        "cookie_privacy_link": {
+            "de": "Datenschutzerklärung"
+        },
+        "back_to_home": {
+            "de": "Zurück zur Startseite"
+        },
+        "footer_impressum": {
+            "de": "Impressum"
+        },
+        "footer_datenschutz": {
+            "de": "Datenschutz"
+        },
+        "mail_subject": {
+            "de": "Anfrage vom {date}"
+        },
+        "mail_body": {
+            "de": "Guten Tag,\r\n\r\nich schreibe Ihnen am {date}.\r\n\r\nSehr gerne würde ich mich über {business.name} und Ihr Angebot informieren.\r\n\r\nMeine Anfrage:\r\n\r\n\r\nViele Grüße"
+        }
+    },
+    "business": {
+        "name": {
+            "de": "Raumausstattung Kurzeder"
+        },
+        "owner": {
+            "de": "Bettina Kurzeder"
+        },
+        "street": {
+            "de": "Anger 4"
+        },
+        "zip": {
+            "de": "83377"
+        },
+        "city": {
+            "de": "Vachendorf"
+        },
+        "phone": {
+            "de": "0171 / 40 87 578"
+        },
+        "email": {
+            "de": "info@raumausstattung-kurzeder.de"
+        },
+        "vat_id": {
+            "de": ""
+        },
+        "register": {
+            "de": ""
+        },
+        "hours": {
+            "de": "Termine nach Vereinbarung"
+        },
+        "maps_query": {
+            "de": ""
+        }
+    },
+    "seo": {
+        "title": {
+            "de": ""
+        },
+        "description": {
+            "de": ""
+        },
+        "og_title": {
+            "de": ""
+        },
+        "og_description": {
+            "de": ""
+        },
+        "og_image": "uploads/raffrollo-esszimmer.webp",
+        "favicon": "uploads/favicon-bk01.png",
+        "robots_noindex": true
+    },
+    "legal": {
+        "impressum": {
+            "body": {
+                "de": "Angaben gemäß § 5 TMG. Die Kontaktdaten oben werden automatisch aus den Stammdaten übernommen.\r\n\r\nVerantwortlich für den Inhalt nach § 55 Abs. 2 RStV: siehe Inhaberangabe oben."
+            }
+        },
+        "datenschutz": {
+            "body": {
+                "de": "Diese Seite verwendet keine Analyse- oder Tracking-Cookies. Kontaktanfragen über das Formular werden ausschließlich zur Bearbeitung Ihrer Anfrage genutzt und nicht an Dritte weitergegeben.\r\n\r\nVerantwortlich für die Datenverarbeitung: siehe Kontaktdaten oben."
+            }
+        }
+    },
+    "nav": [
+        {
+            "label": {
+                "de": "Atelier"
+            },
+            "href": "#atelier-1",
+            "active": true
+        },
+        {
+            "label": {
+                "de": "Werkstätten"
+            },
+            "href": "#werkstaetten-1",
+            "active": true
+        },
+        {
+            "label": {
+                "de": "Galerie"
+            },
+            "href": "#galerie-1",
+            "active": true
+        },
+        {
+            "label": {
+                "de": "Rezensionen"
+            },
+            "href": "#reviews-1",
+            "active": true
+        },
+        {
+            "label": {
+                "de": "Mobiliar"
+            },
+            "href": "#mobiliar-1",
+            "active": true
+        },
+        {
+            "label": {
+                "de": "Sonnenschutz"
+            },
+            "href": "#sonnenschutz-1",
+            "active": true
+        },
+        {
+            "label": {
+                "de": "FAQ"
+            },
+            "href": "#faq-1",
+            "active": true
+        },
+        {
+            "label": {
+                "de": "Kontakt"
+            },
+            "href": "#contact-1",
+            "active": true
+        }
+    ],
+    "sections": [
+        {
+            "id": "hero-1",
+            "type": "hero-slider",
+            "sort": 10,
+            "label": "Hero",
+            "group": "",
+            "background": "auto",
+            "data": {
+                "layout": "split",
+                "kicker": {
+                    "de": "Werkstätte für textiles Wohnen"
+                },
+                "heading": {
+                    "de": "Vorhänge mit Eleganz."
+                },
+                "claim": {
+                    "de": "Suchen Sie eine exklusive Polsterei oder maßgefertigte Vorhänge im Chiemgau?"
+                },
+                "lead": {
+                    "de": "Raumausstattung Kurzeder bringt das Handwerk direkt zu Ihnen. Als mobile Raumausstattermeisterin berate ich Sie mit hunderten Stoffmustern internationaler Top-Marken – wie JAB Anstoetz oder Christian Fischbacher – direkt in Ihren eigenen vier Wänden. In der Meisterwerkstatt in Vachendorf bei Traunstein fertigen wir individuelle Fensterdekorationen, Sonnenschutz und hochwertige Polsterarbeiten für drinnen und draußen."
+                },
+                "cta_primary_label": {
+                    "de": "Jetzt anrufen"
+                },
+                "cta_primary_href": "tel:+491714087578",
+                "cta_secondary_label": {
+                    "de": "Leistungen ansehen"
+                },
+                "cta_secondary_href": "#werkstaetten-1",
+                "slides": [
+                    {
+                        "image": "uploads/raffrollo-esszimmer.webp",
+                        "alt": {
+                            "de": "Raffrollos aus edlem Stoff in einem Esszimmer mit Seeblick"
+                        },
+                        "active": true
+                    },
+                    {
+                        "image": "uploads/hero-vorhaenge.webp",
+                        "alt": {
+                            "de": "Elegante Vorhangdekoration in champagnerfarbenem Seidenstoff"
+                        },
+                        "active": true
+                    },
+                    {
+                        "image": "uploads/sofa-loft.webp",
+                        "alt": {
+                            "de": "Individuell bezogenes Sofa in einem Loft mit freigelegter Ziegelwand"
+                        },
+                        "active": true
+                    },
+                    {
+                        "image": "uploads/sitzgelegenheiten.webp",
+                        "alt": {
+                            "de": "Maßgeschneiderte Sitzgelegenheiten in hellem Leinenstoff"
+                        },
+                        "active": true
+                    },
+                    {
+                        "image": "uploads/materialien-stoffwand.webp",
+                        "alt": {
+                            "de": "Wand mit hunderten farbigen Stoffmustern"
+                        },
+                        "active": true
+                    },
+                    {
+                        "image": "uploads/koerbe.webp",
+                        "alt": {
+                            "de": "Handgeflochtene Körbe in verschiedenen Größen und Mustern"
+                        },
+                        "active": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "aktuelles-1",
+            "type": "aktuelles",
+            "sort": 20,
+            "label": "",
+            "group": "",
+            "background": "auto",
+            "data": {
+                "items": [
+                    {
+                        "date": "",
+                        "text": {
+                            "de": "Ich berate, nähe, montiere und polstere nach wie vor – nur ohne eigene Ladenfläche."
+                        },
+                        "phone_mode": "custom",
+                        "custom_phone": "0171 / 40 87 578",
+                        "button_text": {
+                            "de": "Für einen Termin oder eine Beratung einfach anrufen: {business.phone}"
+                        },
+                        "button_href": "",
+                        "active": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "trust-1",
+            "type": "trust-badges",
+            "sort": 25,
+            "label": "Trust Points",
+            "group": "",
+            "background": "tint",
+            "data": {
+                "items": [
+                    {
+                        "title": {
+                            "de": "Raumausstattermeisterin"
+                        },
+                        "subtitle": {
+                            "de": "Meisterbetrieb mit Handschrift"
+                        },
+                        "active": true
+                    },
+                    {
+                        "title": {
+                            "de": "Persönliche Beratung"
+                        },
+                        "subtitle": {
+                            "de": "bei Ihnen zu Hause"
+                        },
+                        "active": true
+                    },
+                    {
+                        "title": {
+                            "de": "Eigenes Nähatelier"
+                        },
+                        "subtitle": {
+                            "de": "in Vachendorf bei Traunstein"
+                        },
+                        "active": true
+                    },
+                    {
+                        "title": {
+                            "de": "Termine nach Vereinbarung"
+                        },
+                        "subtitle": {
+                            "de": "flexibel und mobil"
+                        },
+                        "active": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "atelier-1",
+            "type": "content-block",
+            "sort": 30,
+            "label": "Atilier",
+            "group": "",
+            "background": "auto",
+            "data": {
+                "kicker": {
+                    "de": "Atelier"
+                },
+                "heading": {
+                    "de": "Bettina Kurzeder, Raumausstattermeisterin"
+                },
+                "layout": "image-right",
+                "items": [
+                    {
+                        "image": "uploads/atelier-werkzeug.webp",
+                        "title": {
+                            "de": ""
+                        },
+                        "subtitle": {
+                            "de": ""
+                        },
+                        "text": {
+                            "de": "So, wie ich das Besondere liebe, will ich es auch verarbeiten. Individuelle Lösungen in Design und Verarbeitung sind mein Anliegen. Ich komme zu Ihnen ins Haus, berate, messe aus, fertige – und montiere.\r\n\r\nPersönlich, unabhängig von Marken und mit Werkzeug, das seit Jahren in meiner Hand liegt – ganz ohne eigene Ladenfläche, dafür bei Ihnen zu Hause.\r\n\r\n%%Als mobile Raumausstattermeisterin besuche ich Sie für eine persönliche Beratung direkt bei Ihnen zu Hause im Einzugsgebiet Traunstein, Rosenheim, Prien am Chiemsee, Chiemgau, Bad Endorf, Grassau.%%\r\n\r\n- Mobile Raumausstattermeisterin – Beratung bei Ihnen zu Hause\r\n- Hunderte Stoffmuster internationaler Top-Marken\r\n- Eigenes Nähatelier und Polsterei in Vachendorf\r\n- Aufmaß, Fertigung und Montage aus einer Hand\r\n- Markenunabhängig – ich empfehle, was zu Ihrem Raum passt"
+                        },
+                        "person_name": {
+                            "de": "Bettina Kurzeder"
+                        },
+                        "person_role": {
+                            "de": "Raumausstattermeisterin"
+                        },
+                        "cta_label": {
+                            "de": "Termin vereinbaren"
+                        },
+                        "cta_href": "#contact-1",
+                        "active": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "werkstaetten-1",
+            "type": "cards",
+            "sort": 40,
+            "label": "Werkstätten",
+            "group": "",
+            "background": "auto",
+            "data": {
+                "kicker": {
+                    "de": "Werkstätten"
+                },
+                "heading": {
+                    "de": "Unser Service"
+                },
+                "lead": {
+                    "de": "Einrichtungsberatung, Anfertigung von Vorhangdekorationen, Sonnenschutz, Polsterungen aller Art für innen und außen. Nähatelier für Kissen, Tagesdecken, Bettwäsche. Montageservice."
+                },
+                "items": [
+                    {
+                        "media_type": "image",
+                        "image": "uploads/kleinl1.webp",
+                        "icon": "",
+                        "icon_position": "",
+                        "title": {
+                            "de": "Einrichtungsberatung"
+                        },
+                        "subtitle": {
+                            "de": ""
+                        },
+                        "text": {
+                            "de": "Persönliche Beratung bei Ihnen vor Ort – zu Farben, Stoffen und Materialien, die wirklich zu Ihrem Zuhause passen."
+                        },
+                        "active": true
+                    },
+                    {
+                        "media_type": "image",
+                        "image": "uploads/stoff4_01.webp",
+                        "icon": "",
+                        "icon_position": "",
+                        "title": {
+                            "de": "Vorhangdekorationen"
+                        },
+                        "subtitle": {
+                            "de": ""
+                        },
+                        "text": {
+                            "de": "Maßgefertigte Vorhänge, Gardinen und Raffungen – von der Stoffauswahl über die Fertigung bis zur fachgerechten Montage."
+                        },
+                        "active": true
+                    },
+                    {
+                        "media_type": "image",
+                        "image": "uploads/rollo_tuerkis.webp",
+                        "icon": "",
+                        "icon_position": "",
+                        "title": {
+                            "de": "Sonnen- & Mückenschutz"
+                        },
+                        "subtitle": {
+                            "de": ""
+                        },
+                        "text": {
+                            "de": "Markisen, Rollos und Plissees für innen und außen – Lichtspiel, Kühlung und Schutz vor UV-Strahlung."
+                        },
+                        "active": true
+                    },
+                    {
+                        "media_type": "image",
+                        "image": "uploads/polster_kl3.webp",
+                        "icon": "",
+                        "icon_position": "",
+                        "title": {
+                            "de": "Polsterei innen & außen"
+                        },
+                        "subtitle": {
+                            "de": ""
+                        },
+                        "text": {
+                            "de": "Neu gepolsterte Stühle, Sofas und Loungemöbel – für drinnen ebenso wie für Terrasse, Balkon und Garten."
+                        },
+                        "active": true
+                    },
+                    {
+                        "media_type": "image",
+                        "image": "uploads/kissen.webp",
+                        "icon": "",
+                        "icon_position": "",
+                        "title": {
+                            "de": "Nähatelier"
+                        },
+                        "subtitle": {
+                            "de": ""
+                        },
+                        "text": {
+                            "de": "Kissen, Tagesdecken und Bettwäsche nach Maß – entworfen und genäht in unserer eigenen Werkstatt."
+                        },
+                        "active": true
+                    },
+                    {
+                        "media_type": "image",
+                        "image": "uploads/werkzeugregal.webp",
+                        "icon": "",
+                        "icon_position": "",
+                        "title": {
+                            "de": "Montageservice"
+                        },
+                        "subtitle": {
+                            "de": ""
+                        },
+                        "text": {
+                            "de": "Fachgerechte Lieferung und Montage aller Vorhang-, Sonnenschutz- und Polsterarbeiten."
+                        },
+                        "active": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "galerie-1",
+            "type": "vorher-nachher-galerie",
+            "sort": 50,
+            "label": "Projekte Vor/Nach",
+            "group": "",
+            "background": "auto",
+            "data": {
+                "kicker": {
+                    "de": "Meine Projekt Galerie"
+                },
+                "heading": {
+                    "de": "Vorher / Nachher"
+                },
+                "lead": {
+                    "de": "Ausgewählte Arbeiten – vom Bestand zum fertigen Stück. Karte antippen zum Vergrößern und Umschalten zwischen Vorher und Nachher."
+                },
+                "items": [
+                    {
+                        "title": {
+                            "de": "Sessel neu bezogen"
+                        },
+                        "text": {
+                            "de": "Polster neu aufgebaut, Bezug in einem Stoff nach Wahl der Kundin."
+                        },
+                        "before_image": "uploads/galerie-1-main.webp",
+                        "after_image": "uploads/galerie-1-after.webp",
+                        "active": true
+                    },
+                    {
+                        "title": {
+                            "de": "Polstergarnitur aufgearbeitet"
+                        },
+                        "text": {
+                            "de": "Gestell nachgezogen, Sitzkomfort erneuert, neuer Bezugsstoff."
+                        },
+                        "before_image": "uploads/galerie-2-main.webp",
+                        "after_image": "uploads/galerie-2-after.webp",
+                        "active": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "reviews-1",
+            "type": "google-reviews",
+            "sort": 55,
+            "label": "",
+            "group": "",
+            "background": "auto",
+            "data": {
+                "kicker": {
+                    "de": "Kundenstimmen"
+                },
+                "heading": {
+                    "de": "Was unsere Kunden sagen"
+                },
+                "fallback_rating": {
+                    "de": "4.7"
+                },
+                "fallback_rating_count": 6,
+                "fallback_reviews": [
+                    {
+                        "author": {
+                            "de": "Edona Nitaj"
+                        },
+                        "rating": 5,
+                        "text": {
+                            "de": "Ich bin super zufrieden! Die Beratung war perfekt und die Arbeit wurde professionell umgesetzt, vor allem der Service ist super! Kann ich bedenkenlos weiterempfehlen."
+                        },
+                        "active": true
+                    },
+                    {
+                        "author": {
+                            "de": "Martina S."
+                        },
+                        "rating": 5,
+                        "text": {
+                            "de": "Wohnaccessoires. Beratung war perfekt, viele kreative Ideen und eine tolle Umsetzung. Ich bin super zufrieden mit meiner neuen Einrichtung, die individuell auf mich abgestimmt ist!"
+                        },
+                        "active": true
+                    },
+                    {
+                        "author": {
+                            "de": "Birgit Graf"
+                        },
+                        "rating": 5,
+                        "text": {
+                            "de": "Hervorragender Service, Beratung, Kundenbetreuung!! Tolle Produkte, qualitativ hochwertig … immer wieder gerne!!"
+                        },
+                        "active": true
+                    },
+                    {
+                        "author": {
+                            "de": "Patricia"
+                        },
+                        "rating": 5,
+                        "text": {
+                            "de": "Toller Service, gute Beratung und moderner, schicker Auftritt!"
+                        },
+                        "active": true
+                    },
+                    {
+                        "author": {
+                            "de": "Miri Au"
+                        },
+                        "rating": 5,
+                        "text": {
+                            "de": "Sehr gute Beratung! Bin zu 100 % zufrieden."
+                        },
+                        "active": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "mobiliar-1",
+            "type": "content-block",
+            "sort": 60,
+            "label": "Mobiliar",
+            "group": "",
+            "background": "auto",
+            "data": {
+                "kicker": {
+                    "de": "Mobiliar"
+                },
+                "heading": {
+                    "de": "Maßgefertigte Polstermöbel & exklusive Polstermanufaktur"
+                },
+                "layout": "image-left",
+                "items": [
+                    {
+                        "image": "uploads/sofa-loft.webp",
+                        "title": {
+                            "de": "Von der Stange passt selten perfekt"
+                        },
+                        "subtitle": {
+                            "de": ""
+                        },
+                        "text": {
+                            "de": "Ein Möbelstück von der Stange passt selten perfekt zum eigenen Lebensgefühl. Als erfahrener Meisterbetrieb erwecken wir Ihre Lieblingsstücke zu neuem Leben oder erschaffen individuelle Unikate von Grund auf neu.\r\n\r\nIn der hauseigenen Polsterei in Vachendorf bei Traunstein verarbeiten wir edelste Bezugsmaterialien mit traditioneller Handwerkskunst. Für die Neuanfertigung von maßgeschneiderten Sofas, Sesseln oder individuellen Polsterbetten arbeiten wir exklusiv mit einer renommierten Polstermanufaktur in Spanien zusammen.\r\n\r\n- JAB Anstoetz & Chivasso (Zeitlose Eleganz und moderne Texturen)\r\n- Christian Fischbacher (Schweizer Luxusstoffe und edle Seide)\r\n- Romo & Black Edition (Innovative Designs und exklusive Haptik)\r\n- Colefax and Fowler (Klassischer englischer Stil und feinste Webarten)\r\n- Zimmer + Rohde sowie Saum & Viebahn (Hochwertige Funktions- und Dekostoffe)"
+                        },
+                        "person_name": {
+                            "de": ""
+                        },
+                        "person_role": {
+                            "de": ""
+                        },
+                        "cta_label": {
+                            "de": ""
+                        },
+                        "cta_href": "",
+                        "active": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "sonnenschutz-1",
+            "type": "content-block",
+            "sort": 70,
+            "label": "Sonnenschutz",
+            "group": "",
+            "background": "auto",
+            "data": {
+                "kicker": {
+                    "de": "Sonnenschutz"
+                },
+                "heading": {
+                    "de": "Die Magie des Lichtspiels"
+                },
+                "layout": "image-right",
+                "items": [
+                    {
+                        "image": "uploads/raffrollo-esszimmer.webp",
+                        "title": {
+                            "de": "Funktion und Ästhetik verbunden"
+                        },
+                        "subtitle": {
+                            "de": ""
+                        },
+                        "text": {
+                            "de": "Ein guter Sonnenschutz hält nicht nur die Sonne ab, sondern regelt den Lichteinfall und spart dabei Energie. Jalousien, Plisseeanlagen, Wabenplissee, Vertikal-Jalousien, Rollos und Flächenvorhänge – wir finden die Lösung, die Funktion und Ästhetik verbindet, für innen wie außen."
+                        },
+                        "person_name": {
+                            "de": ""
+                        },
+                        "person_role": {
+                            "de": ""
+                        },
+                        "cta_label": {
+                            "de": ""
+                        },
+                        "cta_href": "",
+                        "active": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "faq-1",
+            "type": "faq",
+            "sort": 90,
+            "label": "FAQs",
+            "group": "",
+            "background": "auto",
+            "data": {
+                "kicker": {
+                    "de": "FAQ"
+                },
+                "heading": {
+                    "de": "Häufige Fragen zu unserem Service im Chiemgau"
+                },
+                "items": [
+                    {
+                        "question": {
+                            "de": "In welchem Umkreis bieten Sie Ihre Raumausstattung und Polsterarbeiten an?"
+                        },
+                        "answer": {
+                            "de": "Als mobile Raumausstattermeisterin betreue ich Kunden im gesamten Chiemgau und den angrenzenden Regionen. Mein regulärer Service-Radius umfasst die Räume Traunstein, Rosenheim, Prien am Chiemsee sowie Einsätze im Raum München und Salzburg. Die handwerkliche Umsetzung (Nähatelier und Polsterei) findet in meiner eigenen Werkstatt am Anger 4 in 83377 Vachendorf statt."
+                        },
+                        "active": true
+                    },
+                    {
+                        "question": {
+                            "de": "Warum hat die Raumausstattung Kurzeder kein klassisches Ladengeschäft mehr?"
+                        },
+                        "answer": {
+                            "de": "Wir haben uns bewusst dazu entschieden, die starre Ladenfläche in Prien aufzugeben, um uns voll und ganz auf das reine Handwerk in der Werkstatt und den direkten Service bei Ihnen vor Ort zu konzentrieren. Für Sie hat das den großen Vorteil: Bettina Kurzeder bringt die Stoffmuster-Kollektionen direkt zu Ihnen nach Hause."
+                        },
+                        "active": true
+                    },
+                    {
+                        "question": {
+                            "de": "Kann ich Stoffmuster bei Ihnen vor Ort ansehen?"
+                        },
+                        "answer": {
+                            "de": "Da wir keine feste Ladenfläche mehr betreiben, kommen wir mit einer großen Auswahl internationaler Stoffkollektionen direkt zu Ihnen nach Hause. So können Sie Stoffe und Farben direkt in der echten Umgebung Ihres Wohnraums abstimmen."
+                        },
+                        "active": true
+                    },
+                    {
+                        "question": {
+                            "de": "Welche Leistungen umfasst Ihr Service für Fensterdekoration und Sonnenschutz?"
+                        },
+                        "answer": {
+                            "de": "Wir bieten Ihnen das textile Komplettpaket aus einer Hand: kreative Einrichtungsberatung, präzises Maßnehmen vor Ort, individuelle Fertigung im eigenen Nähatelier und ein hauseigener Montageservice für Schienen, Stangen sowie modernen Sicht- und Sonnenschutz."
+                        },
+                        "active": true
+                    },
+                    {
+                        "question": {
+                            "de": "Wie läuft die Beratung für ein neues Polsterprojekt ab?"
+                        },
+                        "answer": {
+                            "de": "Ganz unkompliziert und flexibel: Wir vereinbaren einen persönlichen Beratungstermin bei Ihnen zu Hause, besprechen Ihre Wünsche, begutachten das Möbelstück und wählen gemeinsam aus hunderten Mustern den passenden Polsterstoff oder das perfekte Leder aus. Danach erhalten Sie ein maßgeschneidertes Angebot."
+                        },
+                        "active": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "contact-1",
+            "type": "contact-form",
+            "sort": 100,
+            "label": "",
+            "group": "",
+            "background": "auto",
+            "data": {
+                "kicker": {
+                    "de": "Kontakt"
+                },
+                "heading": {
+                    "de": "Lassen Sie uns Ihren Raum besprechen."
+                },
+                "intro": {
+                    "de": ""
+                },
+                "submit_label": {
+                    "de": "Unverbindlich anfragen"
+                }
+            }
+        }
+    ],
+    "footer": {
+        "owner_label": ""
+    }
+}

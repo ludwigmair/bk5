@@ -1,0 +1,27 @@
+{
+    "type": "trust-badges",
+    "label": "Kurzfakten",
+    "help": "Kurze Fakten nebeneinander (z. B. \"Persönliche Beratung – bei Ihnen zu Hause\") – ohne Icons oder Karten-Rahmen, nur Kurztitel + Unterzeile.",
+    "requires_core": "1.0.0",
+    "fields": [
+        {
+            "name": "items",
+            "type": "repeater",
+            "label": "Fakten",
+            "fields": [
+                {
+                    "name": "title",
+                    "type": "text",
+                    "label": "Kurztitel",
+                    "ai_supported": true
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "label": "Unterzeile",
+                    "ai_supported": true
+                }
+            ]
+        }
+    ]
+}

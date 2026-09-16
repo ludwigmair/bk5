@@ -1,0 +1,66 @@
+<header class="sticky top-0 z-40 border-b border-[#DBD0BA] bg-ash/95 backdrop-blur">
+    <div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3 md:px-8">
+        <a href="/#top" class="flex items-center text-xl font-semibold tracking-tight text-walnut">
+            {% if site.logo_image|default('') %}
+            <img class="h-13 w-auto" src="{{ site.logo_image starts with 'http' ? site.logo_image : '/' ~ site.logo_image }}" alt="{{ site.logo_text|default(site.title) }}" loading="eager">
+            {% else %}
+            {{ site.logo_text|default(site.title) }}
+            {% endif %}
+        </a>
+        <button type="button" class="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-[6px] border border-walnut/20 md:hidden" data-nav-toggle aria-expanded="false" aria-controls="site-nav">
+            <span class="sr-only">{{ content.labels.nav_menu|default('Menü') }}</span>
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/>
+            </svg>
+        </button>
+        <nav id="site-nav" class="absolute left-0 right-0 top-full hidden border-b border-walnut/10 bg-ash px-4 py-4 md:static md:block md:border-0 md:bg-transparent md:p-0">
+            <ul class="flex flex-col gap-3 md:flex-row md:items-center md:gap-8">
+                {% for item in nav %}
+                {% if item.active is not defined or item.active %}
+                <li>
+                    <a class="text-sm font-medium tracking-wide text-walnut/80 hover:text-secondary" href="{{ item.href starts with '#' ? '/' ~ item.href : item.href }}">{{ item.label }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </nav>
+        {% if contact_id|default('') %}
+        <a class="hidden shrink-0 items-center rounded-[6px] bg-secondary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 md:inline-flex" href="/#{{ contact_id }}">{{ content.labels.sticky_inquiry|default('Kontakt') }}</a>
+        {% endif %}
+        {% if languages|default(['de'])|length > 1 %}
+        <div class="relative hidden shrink-0 md:block">
+            <select class="cursor-pointer appearance-none rounded-[6px] border border-walnut/20 bg-transparent py-1.5 pl-2.5 pr-6 text-[11px] font-semibold uppercase tracking-wide text-walnut" data-lang-select>
+                {% for lang in languages %}
+                <option value="{{ lang == languages[0] ? '/' : '/' ~ lang ~ '/' }}" {% if lang == current_lang|default(languages[0]) %}selected{% endif %}>{{ lang }}</option>
+                {% endfor %}
+            </select>
+            <svg class="pointer-events-none absolute right-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-walnut/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        {% endif %}
+    </div>
+</header>
+<script>
+  (function () {
+    var btn = document.querySelector('[data-nav-toggle]');
+    var nav = document.getElementById('site-nav');
+    if (!btn || !nav) return;
+    btn.addEventListener('click', function () {
+      var open = nav.classList.toggle('hidden') === false;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    nav.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        if (!nav.classList.contains('hidden')) {
+          nav.classList.add('hidden');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+    var langSelect = document.querySelector('[data-lang-select]');
+    if (langSelect) {
+      langSelect.addEventListener('change', function () {
+        location.href = langSelect.value;
+      });
+    }
+  })();
+</script>

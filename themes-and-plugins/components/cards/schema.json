@@ -1,0 +1,75 @@
+{
+    "type": "cards",
+    "label": "Cards",
+    "help": "Karten-Raster, beliebig viele Karten. Pro Karte wahlweise Bild (oben, volle Breite) oder Icon (oben, links/mittig/rechts ausrichtbar), darunter Titel, Untertitel und Text.",
+    "requires_core": "1.0.0",
+    "fields": [
+        {
+            "name": "kicker",
+            "type": "text",
+            "label": "Kicker"
+        },
+        {
+            "name": "heading",
+            "type": "text",
+            "label": "Überschrift"
+        },
+        {
+            "name": "lead",
+            "type": "textarea",
+            "label": "Einleitungstext",
+            "hint": "Optional, erscheint unter der Überschrift."
+        },
+        {
+            "name": "items",
+            "type": "repeater",
+            "label": "Karten",
+            "fields": [
+                {
+                    "name": "media_type",
+                    "type": "select",
+                    "label": "Bild, Icon oder Nummer",
+                    "options": [
+                        { "value": "image", "label": "Bild (oben, volle Breite)" },
+                        { "value": "icon", "label": "Icon (oben, ausrichtbar)" },
+                        { "value": "number", "label": "Nummer 01, 02, ... (oben, ausrichtbar)" }
+                    ],
+                    "hint": "Bild, Icon und Nummer können unabhängig voneinander hinterlegt werden – hier wird nur gewählt, welches auf dieser Karte angezeigt wird. Nummer zählt automatisch nach Position (1. Karte = 01, usw.)."
+                },
+                {
+                    "name": "image",
+                    "type": "image",
+                    "label": "Bild",
+                    "show_when": { "field": "media_type", "equals": "image" }
+                },
+                {
+                    "name": "icon",
+                    "type": "icon",
+                    "label": "Icon",
+                    "show_when": { "field": "media_type", "equals": "icon" }
+                },
+                {
+                    "name": "icon_position",
+                    "type": "align",
+                    "label": "Ausrichtung",
+                    "show_when": { "field": "media_type", "equals": ["icon", "number"] }
+                },
+                {
+                    "name": "title",
+                    "type": "text",
+                    "label": "Titel"
+                },
+                {
+                    "name": "subtitle",
+                    "type": "text",
+                    "label": "Untertitel"
+                },
+                {
+                    "name": "text",
+                    "type": "textarea",
+                    "label": "Text"
+                }
+            ]
+        }
+    ]
+}

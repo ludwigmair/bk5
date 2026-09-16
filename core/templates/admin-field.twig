@@ -1,0 +1,294 @@
+{% set name = prefix ~ '[' ~ field.name ~ ']' %}
+{% set fid = name|replace({'[': '_', ']': ''}) %}
+{% set labelBase = 'block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40' %}
+{% set inputBase = 'rounded-lg border border-transparent bg-[#241E18]/[0.035] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10' %}
+{% set businessFields = [] %}
+{% for bk, bv in content.business|default({}) %}
+  {% set businessFields = businessFields|merge([{k: bk, l: bk|replace({'_': ' '})|capitalize}]) %}
+{% endfor %}
+{% set placeholderHint = 'Platzhalter wie {business.phone} einfügen – wird auf der Seite automatisch durch den aktuellen Wert ersetzt.' %}
+{% set showWhen = field.show_when|default(null) %}
+{% set showWrapHidden = false %}
+{% set showWhenEquals = showWhen ? (showWhen.equals is iterable ? showWhen.equals : [showWhen.equals]) : [] %}
+{% if showWhen %}
+  {% set controllingValue = row is defined ? attribute(row, showWhen.field)|default('') : '' %}
+  {% set showWrapHidden = controllingValue not in showWhenEquals %}
+{% endif %}
+{% if showWhen %}<div data-show-when-field="{{ showWhen.field }}" data-show-when-equals="{{ showWhenEquals|join(',') }}" {% if showWrapHidden %}hidden{% endif %}>{% endif %}
+
+{% if field.type == 'textarea' %}
+  {% set valueMap = value is iterable ? value : {(languages|default(['de'])|first): value} %}
+  {% set multiLang = languages is defined and languages|length > 1 %}
+  {% for lang in (multiLang ? languages : [languages|default(['de'])|first]) %}
+  <div {% if multiLang %}class="{{ loop.first ? 'block' : 'hidden' }}{{ not loop.first ? ' mt-1.5' : '' }}" data-lang-panel="{{ lang }}"{% endif %} data-field-wrap>
+    <div class="flex items-center justify-between gap-2">
+      <label class="{{ labelBase }}" for="{{ fid }}">{{ field.label }}</label>
+      <div class="flex items-center gap-0.5">
+        <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-xs text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-undo title="Rückgängig">↶</button>
+        <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-xs text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-redo title="Wiederholen">↷</button>
+        <span class="mx-1 h-4 w-px bg-[#241E18]/15"></span>
+        <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-xs font-bold text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-format="bold" title="Fett (**Text**)">B</button>
+        <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-xs italic text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-format="italic" title="Kursiv (*Text*)">I</button>
+        <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-xs text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-format="note" title="Hinweiszeile (%%Text%%)">¶</button>
+        <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-xs font-bold text-[#B87333] shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5" type="button" data-format="highlight" title="Hervorhebung in Akzentfarbe (::Text::)">H</button>
+        <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-xs text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-format="list" title="Häkchen-Liste (je Zeile ein Punkt, beginnend mit -)">☰</button>
+        <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-xs text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-format="link" title="Link ([Text](url))">🔗</button>
+        <span class="mx-1 h-4 w-px bg-[#241E18]/15"></span>
+        <span class="relative inline-flex h-5 w-5 shrink-0">
+          <button type="button" class="flex h-5 w-5 cursor-help items-center justify-center rounded-full border border-[#241E18]/20 bg-[#241E18]/[0.06] text-[10px] font-bold text-[#241E18]/70" data-info-icon>i</button>
+          <span class="pointer-events-none absolute left-1/2 top-full z-20 mt-1.5 hidden w-56 -translate-x-1/2 rounded-lg bg-[#241E18] p-2.5 text-[11px] font-normal normal-case leading-snug tracking-normal text-white shadow-lg" data-info-tooltip>{{ placeholderHint }}</span>
+        </span>
+        <select class="h-6 shrink-0 cursor-pointer rounded-md border border-[#241E18]/25 bg-[#E7E1D3] px-1 text-[10px] text-[#241E18]/70" data-insert-placeholder title="{{ placeholderHint }}">
+          <option value="">{ }</option>
+          {% for bf in businessFields %}
+          <option value="business.{{ bf.k }}">{{ bf.l }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <textarea class="mt-1 min-h-[96px] w-full {{ inputBase }} px-3.5 py-2.5 text-[15px]" id="{{ fid }}_{{ lang }}" name="{{ name }}[{{ lang }}]">{{ attribute(valueMap, lang)|default(attribute(valueMap, languages|default(['de'])|first)|default('')) }}</textarea>
+  </div>
+  {% endfor %}
+
+{% elseif field.type == 'repeater' %}
+  {% set thumbField = null %}
+  {% set labelField = null %}
+  {% for sub in field.fields %}
+    {% if thumbField is null and sub.type == 'image' %}{% set thumbField = sub %}{% endif %}
+    {% if sub.name == 'title' %}{% set labelField = sub %}{% endif %}
+  {% endfor %}
+  {% if labelField is null %}
+    {% for sub in field.fields %}
+      {% if labelField is null and sub.type not in ['image', 'icon', 'repeater'] %}{% set labelField = sub %}{% endif %}
+    {% endfor %}
+  {% endif %}
+  <fieldset class="min-w-0 space-y-2 rounded-xl border border-[#241E18]/[0.06] bg-[#241E18]/[0.012] p-3.5">
+    <legend class="px-1 {{ labelBase }}">{{ field.label }}</legend>
+    <div data-repeater-list data-repeater-prefix="{{ prefix }}[{{ field.name }}]" class="space-y-2">
+      {% set rows = value is iterable ? value : [] %}
+      {% if rows is empty %}{% set rows = [{}] %}{% endif %}
+      {% for row in rows %}
+        {% set thumb = thumbField ? attribute(row, thumbField.name)|default('') : '' %}
+        {% set labelRaw = labelField ? attribute(row, labelField.name)|default('') : '' %}
+        {% set label = labelRaw is iterable ? (attribute(labelRaw, 'de')|default(labelRaw|first)|default('')) : labelRaw %}
+        {% set rowActive = row.active is not defined or row.active %}
+      <details class="group overflow-hidden rounded-lg border border-[#241E18]/[0.06] bg-[#FBF8F2] open:border-[#355E4B]/30 open:bg-white open:shadow-md" data-repeater-item {% if loop.first %}open{% endif %}>
+        <summary class="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm text-[#241E18]/70 select-none [&::-webkit-details-marker]:hidden group-open:bg-[#355E4B]/[0.06]">
+          <span class="flex h-7 w-6 shrink-0 cursor-grab select-none items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B] active:cursor-grabbing" draggable="true" data-drag-handle title="Ziehen zum Sortieren">
+            <svg width="9" height="14" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
+              <circle cx="2" cy="2" r="1.5"></circle>
+              <circle cx="8" cy="2" r="1.5"></circle>
+              <circle cx="2" cy="8" r="1.5"></circle>
+              <circle cx="8" cy="8" r="1.5"></circle>
+              <circle cx="2" cy="14" r="1.5"></circle>
+              <circle cx="8" cy="14" r="1.5"></circle>
+            </svg>
+          </span>
+          <div class="flex shrink-0 flex-col gap-0.5">
+            <button class="flex h-[13px] w-6 cursor-pointer items-center justify-center rounded-t-md border border-[#241E18]/25 bg-[#E7E1D3] text-[8px] leading-none text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B]" type="button" data-move="up" title="Nach oben">▲</button>
+            <button class="flex h-[13px] w-6 cursor-pointer items-center justify-center rounded-b-md border border-[#241E18]/25 bg-[#E7E1D3] text-[8px] leading-none text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B]" type="button" data-move="down" title="Nach unten">▼</button>
+          </div>
+          <span class="mx-0.5 h-7 w-px shrink-0 bg-[#241E18]/15"></span>
+          <span class="shrink-0 text-[10px] text-[#241E18]/40 transition group-open:rotate-90">▶</span>
+          {% if thumbField %}
+          <img class="h-8 w-8 shrink-0 rounded-md border border-[#241E18]/10 object-cover {% if not thumb %}hidden{% endif %}" data-repeater-thumb src="{{ thumb starts with 'http' ? thumb : '/' ~ thumb }}" alt="" loading="lazy">
+          {% endif %}
+          <span class="min-w-0 flex-1 truncate" data-repeater-summary>{{ label|default('Eintrag ' ~ loop.index) }}</span>
+          <button type="button" class="h-7 shrink-0 cursor-pointer rounded-full border px-3 text-xs font-semibold shadow-sm transition {% if rowActive %}border-[#355E4B] bg-[#355E4B] text-white{% else %}border-[#241E18]/20 bg-[#241E18]/[0.08] text-[#241E18]/60{% endif %}" data-toggle-active aria-pressed="{{ rowActive ? 'true' : 'false' }}" title="Aktiv / Inaktiv">{{ rowActive ? 'Aktiv' : 'Inaktiv' }}</button>
+          <input type="hidden" name="{{ prefix }}[{{ field.name }}][{{ loop.index0 }}][active]" value="{{ rowActive ? '1' : '0' }}" data-active-input>
+          <button type="button" class="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-red-800/10 bg-red-800/5 text-base font-semibold text-red-700/80 shadow-sm transition hover:border-red-800/30 hover:bg-red-50 hover:text-red-700" data-remove-item title="Eintrag entfernen">✕</button>
+        </summary>
+        <div class="space-y-3.5 border-t border-[#241E18]/[0.06] p-3.5">
+          {% for sub in field.fields %}
+            {% include 'admin-field.twig' with {
+              field: sub,
+              value: attribute(row, sub.name)|default(''),
+              prefix: prefix ~ '[' ~ field.name ~ '][' ~ loop.parent.loop.index0 ~ ']'
+            } %}
+          {% endfor %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+    <button class="cursor-pointer text-xs font-semibold text-[#355E4B] transition hover:text-[#2c4f40]" type="button" data-repeater-add="{{ prefix }}[{{ field.name }}]">+ Eintrag hinzufügen</button>
+  </fieldset>
+
+{% elseif field.type == 'image' %}
+  <div data-image-field>
+    <label class="{{ labelBase }}">{{ field.label }}</label>
+    <div class="mt-1 flex items-center gap-2.5">
+      <img class="h-10 w-10 shrink-0 rounded-lg border border-[#241E18]/10 object-cover {% if not value %}hidden{% endif %}" data-value-preview src="{{ value ? (value starts with 'http' ? value : '/' ~ value) : '' }}" alt="" loading="lazy">
+      <span class="min-w-0 flex-1 truncate text-sm text-[#241E18]/70" data-value-name>{{ value ? value|split('/')|last : 'Kein Bild ausgewählt' }}</span>
+      <input type="hidden" name="{{ name }}" value="{{ value }}" data-url-input>
+      <input type="file" class="hidden" accept=".jpg,.jpeg,.png,.webp,.gif,.svg" data-image-file>
+      <button class="h-8 shrink-0 cursor-pointer rounded-lg border border-[#241E18]/25 bg-[#E7E1D3] px-2.5 text-xs font-medium text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-image-upload>Hochladen</button>
+      <button class="h-8 shrink-0 cursor-pointer rounded-lg border border-[#241E18]/25 bg-[#E7E1D3] px-2.5 text-xs font-medium text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-image-pick>Auswählen…</button>
+      <button class="h-8 shrink-0 cursor-pointer rounded-lg border border-[#241E18]/25 bg-[#E7E1D3] px-2.5 text-xs font-medium text-[#241E18]/70 shadow-sm transition hover:border-red-800/40 hover:bg-red-50 hover:text-red-700" type="button" data-image-clear>✕ Entfernen</button>
+    </div>
+  </div>
+
+{% elseif field.type == 'icon' %}
+  {% set isCustomIcon = value starts with 'custom:' %}
+  {% set customIconPath = isCustomIcon ? value|slice(7) : '' %}
+  {% set selectedCategory = null %}
+  {% for catSlug, cat in icon_categories %}
+    {% if selectedCategory is null and value in cat.icons|keys %}{% set selectedCategory = catSlug %}{% endif %}
+  {% endfor %}
+  {% set selectedCategory = isCustomIcon ? 'custom' : selectedCategory|default(icon_categories|keys|first) %}
+  <div data-btn-group-field>
+    <label class="{{ labelBase }}">{{ field.label }}</label>
+    <input type="hidden" name="{{ name }}" value="{{ value }}" data-btn-group-input>
+    <div class="mt-1.5" data-tabs>
+      <div class="flex flex-wrap gap-1 border-b border-[#241E18]/10 pb-1.5">
+        {% for catSlug, cat in icon_categories %}
+        <button type="button" class="cursor-pointer rounded-md px-2 py-1 text-[11px] font-medium transition {% if catSlug == selectedCategory %}bg-[#355E4B]/10 text-[#355E4B]{% else %}text-[#241E18]/50 hover:bg-[#241E18]/5{% endif %}" data-tab-btn="{{ catSlug }}">{{ cat.label }}</button>
+        {% endfor %}
+        <button type="button" class="cursor-pointer rounded-md px-2 py-1 text-[11px] font-medium transition {% if selectedCategory == 'custom' %}bg-[#355E4B]/10 text-[#355E4B]{% else %}text-[#241E18]/50 hover:bg-[#241E18]/5{% endif %}" data-tab-btn="custom">Eigener Pfad</button>
+      </div>
+      {% for catSlug, cat in icon_categories %}
+      <div class="{{ catSlug == selectedCategory ? 'grid' : 'hidden' }} grid-cols-6 gap-1.5 pt-2 sm:grid-cols-8" data-tab-panel="{{ catSlug }}">
+        {% for slug, def in cat.icons %}
+        <button type="button" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-[#241E18]/70 transition {% if value == slug %}border-[#355E4B]/40 bg-[#355E4B]/10 text-[#355E4B]{% else %}border-[#241E18]/15 bg-white hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5{% endif %}" data-btn-group-option="{{ slug }}" title="{{ def.label }}">
+          <span class="h-4.5 w-4.5 [&>svg]:h-full [&>svg]:w-full">{{ icon(slug)|raw }}</span>
+        </button>
+        {% endfor %}
+      </div>
+      {% endfor %}
+      <div class="{{ selectedCategory == 'custom' ? 'grid' : 'hidden' }} grid-cols-1 gap-2 pt-2" data-tab-panel="custom">
+        <div class="flex items-start gap-3">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#241E18]/15 bg-white text-[#241E18]/70">
+            <span class="h-4.5 w-4.5 [&>svg]:h-full [&>svg]:w-full" data-custom-icon-preview>{{ isCustomIcon ? icon(value)|raw : '' }}</span>
+          </div>
+          <div class="flex-1">
+            <textarea class="w-full rounded-lg border border-[#241E18]/20 bg-white px-2.5 py-2 font-mono text-[11px] leading-snug text-[#241E18]" rows="2" placeholder="z. B. M4 4h16v16H4zM4 10h16M9 4v6M15 14h3" data-custom-icon-input>{{ customIconPath }}</textarea>
+            <p class="mt-1 text-[11px] text-[#241E18]/50">Nur das SVG-"d"-Attribut (Pfadbefehle wie M, L, C, Z), 24×24-Raster. Für erfahrene Nutzer – ungültige Eingaben werden beim Speichern verworfen.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% elseif field.type == 'align' %}
+  {% set alignOptions = [
+    {value: 'left', label: 'Links', path: '<rect x="3" y="5" width="18" height="2" rx="1"/><rect x="3" y="11" width="12" height="2" rx="1"/><rect x="3" y="17" width="15" height="2" rx="1"/>'},
+    {value: 'center', label: 'Mittig', path: '<rect x="3" y="5" width="18" height="2" rx="1"/><rect x="6" y="11" width="12" height="2" rx="1"/><rect x="4.5" y="17" width="15" height="2" rx="1"/>'},
+    {value: 'right', label: 'Rechts', path: '<rect x="3" y="5" width="18" height="2" rx="1"/><rect x="9" y="11" width="12" height="2" rx="1"/><rect x="6" y="17" width="15" height="2" rx="1"/>'}
+  ] %}
+  <div data-btn-group-field>
+    <label class="{{ labelBase }}">{{ field.label }}</label>
+    <input type="hidden" name="{{ name }}" value="{{ value }}" data-btn-group-input>
+    <div class="mt-1.5 flex gap-1.5">
+      {% for opt in alignOptions %}
+      <button type="button" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-[#241E18]/70 transition {% if value == opt.value %}border-[#355E4B]/40 bg-[#355E4B]/10 text-[#355E4B]{% else %}border-[#241E18]/15 bg-white hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5{% endif %}" data-btn-group-option="{{ opt.value }}" title="{{ opt.label }}">
+        <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="currentColor">{{ opt.path|raw }}</svg>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+{% elseif field.type == 'number' %}
+  <div>
+    <label class="{{ labelBase }}" for="{{ fid }}">{{ field.label }}</label>
+    <input class="mt-1 h-11 w-full {{ inputBase }} px-3.5 text-[15px]" type="number" id="{{ fid }}" name="{{ name }}" value="{{ value }}">
+  </div>
+
+{% elseif field.type == 'rating' %}
+  {% set maxStars = field.max|default(5) %}
+  {% set current = value|default(0) %}
+  <div data-rating-field>
+    <label class="{{ labelBase }}">{{ field.label }}</label>
+    <div class="mt-1 flex items-center gap-0.5">
+      {% for i in 1..maxStars %}
+      <button class="cursor-pointer text-2xl leading-none transition {% if i <= current %}text-[#B87333]{% else %}text-[#241E18]/15{% endif %}" type="button" data-rating-star="{{ i }}" title="{{ i }} von {{ maxStars }}">★</button>
+      {% endfor %}
+    </div>
+    <input type="hidden" name="{{ name }}" value="{{ current }}" data-rating-input>
+  </div>
+
+{% elseif field.type == 'select' %}
+  <div>
+    <label class="{{ labelBase }}" for="{{ fid }}">{{ field.label }}</label>
+    <select class="mt-1 h-11 w-full {{ inputBase }} px-3.5 text-[15px]" id="{{ fid }}" name="{{ name }}">
+      {% for opt in field.options|default([]) %}
+      <option value="{{ opt.value }}" {% if value == opt.value %}selected{% endif %}>{{ opt.label|default(opt.value) }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+{% elseif field.type == 'date' %}
+  <div>
+    <label class="{{ labelBase }}" for="{{ fid }}">{{ field.label }}</label>
+    <input class="mt-1 h-11 w-full {{ inputBase }} px-3.5 text-[15px]" type="date" id="{{ fid }}" name="{{ name }}" value="{{ value }}">
+  </div>
+
+{% elseif field.type == 'tel' %}
+  <div>
+    <label class="{{ labelBase }}" for="{{ fid }}">{{ field.label }}</label>
+    <input class="mt-1 h-11 w-full {{ inputBase }} px-3.5 text-[15px]" type="tel" inputmode="tel" autocomplete="tel" pattern="[0-9+\-\/\(\)\s.]+" title="Nur Ziffern und + - / ( ) . erlaubt" id="{{ fid }}" name="{{ name }}" value="{{ value }}">
+  </div>
+
+{% elseif field.type == 'url' %}
+  <div>
+    <label class="{{ labelBase }}" for="{{ fid }}">{{ field.label }}</label>
+    <div class="mt-1 flex gap-2">
+      <input class="h-11 min-w-0 flex-1 {{ inputBase }} px-3.5 text-[15px]" id="{{ fid }}" name="{{ name }}" value="{{ value }}" inputmode="url" data-url-input>
+      <select class="h-11 w-36 shrink-0 {{ inputBase }} px-2 text-xs text-[#241E18]/50" data-fill-url>
+        <option value="">– oder Section –</option>
+        {% for linkSection in content.sections %}
+          {% set linkSchema = null %}
+          {% for sc in schemas %}
+            {% if sc.type == linkSection.type %}{% set linkSchema = sc %}{% endif %}
+          {% endfor %}
+          {% if linkSchema %}
+          <option value="#{{ linkSection.id }}">{{ linkSection.label|default(linkSchema.label|default(linkSection.type)) }}</option>
+          {% endif %}
+        {% endfor %}
+        {% set groupsSeen = [] %}
+        {% for gs in content.sections %}
+          {% set g = gs.group|default('') %}
+          {% if g != '' and g not in groupsSeen %}
+            {% set groupsSeen = groupsSeen|merge([g]) %}
+          {% endif %}
+        {% endfor %}
+        {% if groupsSeen is not empty %}
+        <optgroup label="Gruppen">
+          {% for g in groupsSeen %}
+          <option value="#group-{{ g|slug }}">Gruppe: {{ g }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endif %}
+      </select>
+    </div>
+  </div>
+
+{% elseif field.type == 'checkbox' %}
+  <label class="flex items-center gap-2 text-sm">
+    <input type="hidden" name="{{ name }}" value="0">
+    <input type="checkbox" name="{{ name }}" value="1" {% if value %}checked{% endif %} class="h-4 w-4 rounded border-[#241E18]/30 text-[#355E4B] focus:ring-[#355E4B]/30">
+    {{ field.label }}
+  </label>
+
+{% else %}
+  {% set valueMap = value is iterable ? value : {(languages|default(['de'])|first): value} %}
+  {% set multiLang = languages is defined and languages|length > 1 %}
+  {% for lang in (multiLang ? languages : [languages|default(['de'])|first]) %}
+  <div {% if multiLang %}class="{{ loop.first ? 'block' : 'hidden' }}{{ not loop.first ? ' mt-1.5' : '' }}" data-lang-panel="{{ lang }}"{% else %}data-field-wrap{% endif %}>
+    <label class="{{ labelBase }}" for="{{ fid }}">{{ field.label }}</label>
+    <div class="mt-1 flex gap-2">
+      <input class="h-11 min-w-0 flex-1 {{ inputBase }} px-3.5 text-[15px]" id="{{ fid }}_{{ lang }}" name="{{ name }}[{{ lang }}]" value="{{ attribute(valueMap, lang)|default(attribute(valueMap, languages|default(['de'])|first)|default('')) }}">
+      <span class="relative inline-flex h-11 w-5 shrink-0 items-center">
+        <button type="button" class="flex h-5 w-5 cursor-help items-center justify-center rounded-full border border-[#241E18]/20 bg-[#241E18]/[0.06] text-[10px] font-bold text-[#241E18]/70" data-info-icon>i</button>
+        <span class="pointer-events-none absolute left-1/2 top-full z-20 mt-1.5 hidden w-56 -translate-x-1/2 rounded-lg bg-[#241E18] p-2.5 text-[11px] font-normal normal-case leading-snug tracking-normal text-white shadow-lg" data-info-tooltip>{{ placeholderHint }}</span>
+      </span>
+      <select class="h-11 shrink-0 rounded-lg border border-[#241E18]/25 bg-[#E7E1D3] px-2 text-xs text-[#241E18]/70" data-insert-placeholder title="{{ placeholderHint }}">
+        <option value="">{ }</option>
+        {% for bf in businessFields %}
+        <option value="business.{{ bf.k }}">{{ bf.l }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+{% if field.hint and field.type != 'repeater' %}<p class="mt-1 text-xs text-[#241E18]/40">{{ field.hint }}</p>{% endif %}
+{% if showWhen %}</div>{% endif %}

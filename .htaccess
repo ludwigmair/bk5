@@ -1,0 +1,16 @@
+DirectoryIndex index.php
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+RedirectMatch 404 /vendor(/|$)
+RedirectMatch 404 /core/src(/|$)
+RedirectMatch 404 /cache(/|$)
+RedirectMatch 404 /data(/|$)
+
+RewriteEngine On
+RewriteRule ^admin/?$ index.php?admin=1 [L,QSA]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L,QSA]
