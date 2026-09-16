@@ -1205,7 +1205,9 @@ final class Admin
         }
 
         copy($gitignoreSrc, $dest . '/.gitignore');
-        mkdir($dest . '/.github/workflows', 0775, true);
+        if (!is_dir($dest . '/.github/workflows')) {
+            mkdir($dest . '/.github/workflows', 0775, true);
+        }
         copy($workflowSrc, $dest . '/.github/workflows/deploy-staging.yml');
         touch($dest . '/cache/.gitkeep');
         touch($dest . '/uploads/.gitkeep');
@@ -1361,13 +1363,34 @@ final class Admin
      */
     private function scanRegionVariants(string $region): array
     {
-        $dir = $this->cms->root() . "/themes-and-plugins/{$region}s";
+        $root = $this->cms->root();
         $out = [];
-        foreach (glob($dir . '/*/schema.json') ?: [] as $file) {
+        $seen = [];
+        foreach (glob($root . "/themes-and-plugins/{$region}s/*/schema.json") ?: [] as $file) {
             $schema = CMS::readJson($file);
             $slug = basename(dirname($file));
             $out[] = ['slug' => $slug, 'label' => (string) ($schema['label'] ?? $slug)];
+            $seen[$slug] = true;
         }
+
+        // Ein Export nimmt bei einem Theme mit eigener Region-Kopie
+        // (themes-and-plugins/themes/<theme>/<region>/) bewusst NICHT den
+        // kompletten gemeinsamen Pool mit (siehe exportProjectInstance()) -
+        // auf so einer schlanken Instanz wäre der Picker oben sonst leer,
+        // und die aktuell verwendete Variante würde fälschlich als
+        // "— Keine —" erscheinen, obwohl CMS::renderRegion() sie (die
+        // Theme-eigene Kopie hat ohnehin Vorrang) tatsächlich rendert.
+        $config = $this->cms->config();
+        $theme = (string) ($config['theme'] ?? '');
+        $currentSlug = $this->resolveRegionVariant($config, $region);
+        if ($theme !== '' && $currentSlug !== null && !isset($seen[$currentSlug])) {
+            $themeRegionFile = $root . "/themes-and-plugins/themes/{$theme}/{$region}/schema.json";
+            if (is_file($themeRegionFile)) {
+                $schema = CMS::readJson($themeRegionFile);
+                $out[] = ['slug' => $currentSlug, 'label' => (string) ($schema['label'] ?? $currentSlug)];
+            }
+        }
+
         return $out;
     }
 
