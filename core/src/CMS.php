@@ -102,12 +102,23 @@ final class CMS
      */
     private static function ensureSeeded(string $root): void
     {
-        $configPath = $root . '/data/config.json';
+        $dataDir = $root . '/data';
+        // Beim allerersten Deploy per Git+FTP existiert data/ oft noch gar
+        // nicht: config.json ist gitignored, content.json + .history/ sind
+        // vom Deploy-Workflow bewusst ausgeschlossen (siehe
+        // dev/templates/deploy-staging.yml - schützt spätere, live bearbeitete
+        // Inhalte vor Überschreiben) - ohne diesen Ordner gäbe es unten
+        // nirgends hin zu schreiben, writeJson() würde lautlos fehlschlagen.
+        if (!is_dir($dataDir)) {
+            @mkdir($dataDir, 0775, true);
+        }
+
+        $configPath = $dataDir . '/config.json';
         $config = is_file($configPath) ? self::readJson($configPath) : [];
         $changed = false;
 
         if ($config === []) {
-            $examplePath = $root . '/data/config.example.json';
+            $examplePath = $dataDir . '/config.example.json';
             if (is_file($examplePath)) {
                 $config = self::readJson($examplePath);
                 // Platzhalter-Hash ("GENERATE_MIT: ...") nie übernehmen - sonst
@@ -134,6 +145,71 @@ final class CMS
 
         if ($changed) {
             self::writeJson($configPath, $config);
+        }
+
+        // content.json ist vom Deploy-Workflow absichtlich ausgeschlossen
+        // (schützt spätere Live-Bearbeitungen vor dem Überschreiben durch
+        // einen älteren Git-Stand) - beim allerersten Deploy gibt es dadurch
+        // aber gar keins. content.seed.json (von exportProjectInstance() beim
+        // Export einmalig geschrieben, NICHT ausgeschlossen) ist genau dafür
+        // da; content.example.json als generischer Fallback, falls die
+        // Instanz nicht über den Export entstanden ist.
+        $contentPath = $dataDir . '/content.json';
+        if (!is_file($contentPath)) {
+            $seedPath = $dataDir . '/content.seed.json';
+            $examplePath = $dataDir . '/content.example.json';
+            $source = is_file($seedPath) ? $seedPath : (is_file($examplePath) ? $examplePath : null);
+            if ($source !== null) {
+                copy($source, $contentPath);
+            }
+        }
+
+        // Gleicher Fall wie content.json: uploads/ ist vom Deploy-Workflow
+        // ausgeschlossen (schützt später live hochgeladene Bilder), beim
+        // allerersten Deploy kommen dadurch aber auch die ursprünglich beim
+        // Export vorhandenen Projektbilder nie an. uploads.seed/ (von
+        // exportProjectInstance() einmalig angelegt, bewusst NICHT
+        // ausgeschlossen - anderer Ordnername als "uploads/**") liefert sie
+        // nach, aber nur bei einem wirklich leeren uploads/ - keine
+        // Datei-für-Datei-Merge-Logik, die später live Hochgeladenes anfassen
+        // könnte.
+        $uploadsDir = $root . '/uploads';
+        $uploadsSeedDir = $root . '/uploads.seed';
+        if (is_dir($uploadsSeedDir) && self::isEmptyDir($uploadsDir)) {
+            self::copyDirRecursive($uploadsSeedDir, $uploadsDir);
+        }
+    }
+
+    private static function isEmptyDir(string $dir): bool
+    {
+        if (!is_dir($dir)) {
+            return true;
+        }
+        foreach (scandir($dir) ?: [] as $item) {
+            if ($item !== '.' && $item !== '..' && $item !== '.gitkeep' && $item !== '.DS_Store') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static function copyDirRecursive(string $src, string $dest): void
+    {
+        if (!is_dir($dest)) {
+            mkdir($dest, 0775, true);
+        }
+        foreach (scandir($src) ?: [] as $item) {
+            if ($item === '.' || $item === '..' || $item === '.DS_Store') {
+                continue;
+            }
+            $from = "$src/$item";
+            $to = "$dest/$item";
+            if (is_dir($from)) {
+                self::copyDirRecursive($from, $to);
+            } else {
+                copy($from, $to);
+            }
         }
     }
 
