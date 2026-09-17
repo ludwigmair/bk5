@@ -295,10 +295,19 @@ final class CMS
             return null;
         }
 
+        // Rückwärtskompatibel zum alten Einzelfeld "body" (vor der Umstellung
+        // auf beliebig viele Textblöcke): existiert noch kein "blocks", aber
+        // ein alter body-Wert, wird der als einzelner Block behandelt - kein
+        // Migrationsskript nötig, heilt sich mit dem nächsten Speichern selbst.
+        $blocks = $legal['blocks'] ?? [];
+        if ($blocks === [] && trim((string) ($legal['body'] ?? '')) !== '') {
+            $blocks = [['text' => $legal['body'], 'active' => true]];
+        }
+
         $titles = ['impressum' => 'Impressum', 'datenschutz' => 'Datenschutzerklärung'];
         $body = $this->twig->render('legal.twig', [
             'title' => $titles[$key] ?? ucfirst($key),
-            'body' => self::substituteBusinessPlaceholders((string) ($legal['body'] ?? ''), $this->content['business'] ?? []),
+            'blocks' => self::substituteBusinessPlaceholders($blocks, $this->content['business'] ?? []),
             'business' => $this->content['business'] ?? [],
             'show_business' => $key === 'impressum',
         ]);

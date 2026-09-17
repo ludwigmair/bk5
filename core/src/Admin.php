@@ -50,6 +50,7 @@ final class Admin
                 'apply-theme' => $this->applyTheme(),
                 'build-theme' => $this->buildTheme(),
                 'delete-theme' => $this->deleteTheme(),
+                'toggle-topbar' => $this->toggleTopbar(),
                 'image-upload' => $this->uploadImage(),
                 'image-delete' => $this->deleteImage(),
                 'image-import' => $this->importImages(),
@@ -137,12 +138,23 @@ final class Admin
     private const ADMIN_ONLY_ACTIONS = [
         'check-update', 'update', 'check-components-update', 'components-update',
         'user-add', 'user-remove', 'user-setpw',
-        'apply-theme', 'build-theme', 'delete-theme',
+        'apply-theme', 'build-theme', 'delete-theme', 'toggle-topbar',
         'add', 'delete', 'reorder-sections',
         'switch-project', 'restore-import', 'restore-history',
         'build-update-package', 'download-update-package', 'delete-update-package',
         'build-components-update-package', 'download-components-update-package', 'delete-components-update-package',
         'export-instance',
+    ];
+
+    /**
+     * Impressum/Datenschutz: beliebig viele Rich-Text-Blöcke statt eines
+     * einzelnen Textfelds, weil gerade diese zwei Seiten oft viele Absätze/
+     * Abschnitte brauchen (siehe saveContent(), renderDashboard()).
+     */
+    private const LEGAL_FIELDS = [
+        ['name' => 'blocks', 'type' => 'repeater', 'label' => 'Textblöcke', 'fields' => [
+            ['name' => 'text', 'type' => 'textarea', 'label' => 'Text'],
+        ]],
     ];
 
     /** Sprachen, die zur Auswahl stehen – "de" ist immer Pflicht/Default, siehe normalizeLanguages(). */
@@ -393,11 +405,16 @@ final class Admin
         }
 
         if (isset($_POST['legal']) && is_array($_POST['legal'])) {
+            // Impressum/Datenschutz bestehen seit der Umstellung auf beliebig
+            // viele Textblöcke aus einem repeater "blocks" statt einem
+            // einzelnen "body" - normalizeData() liefert dafür dieselbe
+            // Add/Entfernen/Sortieren-Mechanik wie bei jedem anderen
+            // Repeater-Feld (z. B. FAQ, Galerie), ohne eigene Logik dafür.
             foreach (['impressum', 'datenschutz'] as $key) {
-                if (!isset($_POST['legal'][$key]['body'])) {
+                if (!isset($_POST['legal'][$key])) {
                     continue;
                 }
-                $content['legal'][$key]['body'] = $this->translatableValue($_POST['legal'][$key]['body'], $content['legal'][$key]['body'] ?? '');
+                $content['legal'][$key] = $this->normalizeData(self::LEGAL_FIELDS, $_POST['legal'][$key], "legal[{$key}]");
             }
         }
 
@@ -1415,14 +1432,34 @@ final class Admin
      */
     private function layoutSchemaFor(string $region): array
     {
-        $layout = $this->cms->config()['layout'] ?? [];
+        $config = $this->cms->config();
+        $layout = $config['layout'] ?? [];
         $defaults = ['header' => 'standard-nav', 'footer' => 'simple-footer', 'topbar' => 'standard', 'stickybar' => 'icon-rail', 'cookiebanner' => 'corner'];
         $variant = $region === 'topbar'
             ? (string) ($layout['topbar']['theme'] ?? $defaults['topbar'])
             : (string) ($layout[$region] ?? $defaults[$region] ?? '');
 
         $path = $this->cms->root() . "/themes-and-plugins/{$region}s/{$variant}/schema.json";
-        return is_file($path) ? CMS::readJson($path) : [];
+        if (is_file($path)) {
+            return CMS::readJson($path);
+        }
+
+        // Gleicher Fall wie in scanRegionVariants(): ein schlanker Export
+        // (aktives Theme mit eigener Region-Kopie, siehe
+        // exportProjectInstance()) hat den gemeinsamen Pool oben gar nicht
+        // - ohne diesen Fallback wäre auf so einer Instanz das komplette
+        // Content-Formular dieser Region (Texte, Buttons, ggf. der
+        // An/Aus-Schalter) unsichtbar, obwohl CMS::renderRegion() sie
+        // anzeigt und Inhalte dafür in content.json längst existieren.
+        $theme = (string) ($config['theme'] ?? '');
+        if ($theme !== '') {
+            $themeRegionFile = $this->cms->root() . "/themes-and-plugins/themes/{$theme}/{$region}/schema.json";
+            if (is_file($themeRegionFile)) {
+                return CMS::readJson($themeRegionFile);
+            }
+        }
+
+        return [];
     }
 
     /**
@@ -1768,6 +1805,27 @@ final class Admin
 
         CMS::writeJson($path, $config);
         $this->redirectToPanel('Theme „' . ($theme['label'] ?? $name) . '“ angewendet.', 'panel-theme');
+    }
+
+    /**
+     * Topbar ist die einzige Region mit einem echten An/Aus-Zustand
+     * (layout.topbar.enabled) statt nur einer Varianten-Auswahl - andere
+     * Regionen sind implizit immer "an", sobald eine Variante gewählt ist
+     * (siehe resolveRegionVariant()). "theme" bleibt beim erstmaligen
+     * Aktivieren nicht leer, damit layoutSchemaFor('topbar') sofort ein
+     * Schema findet, auch wenn noch nie eine Variante gewählt wurde.
+     */
+    private function toggleTopbar(): void
+    {
+        $path = $this->cms->root() . '/data/config.json';
+        $config = CMS::readJson($path);
+        $enabled = !(bool) ($config['layout']['topbar']['enabled'] ?? false);
+        $config['layout']['topbar']['enabled'] = $enabled;
+        if (trim((string) ($config['layout']['topbar']['theme'] ?? '')) === '') {
+            $config['layout']['topbar']['theme'] = 'standard';
+        }
+        CMS::writeJson($path, $config);
+        $this->redirectToPanel($enabled ? 'Topbar aktiviert.' : 'Topbar deaktiviert.', 'panel-site');
     }
 
     /**
@@ -2340,7 +2398,11 @@ final class Admin
             }
         }
         foreach (['impressum', 'datenschutz'] as $key) {
-            if (isset($source['legal'][$key]['body'])) {
+            if (isset($source['legal'][$key]['blocks'])) {
+                $content['legal'][$key]['blocks'] = $source['legal'][$key]['blocks'];
+            } elseif (isset($source['legal'][$key]['body'])) {
+                // Altes Sicherungs-/Import-Snapshot von vor der Umstellung auf
+                // "blocks" - renderLegal() fängt das per Fallback ab.
                 $content['legal'][$key]['body'] = $source['legal'][$key]['body'];
             }
         }

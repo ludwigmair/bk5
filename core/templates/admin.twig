@@ -141,7 +141,8 @@
                     <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-site">Seite</a>
                     <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-business">Betrieb / Kontaktdaten</a>
                     <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-seo">SEO / Meta-Daten</a>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-legal">Rechtliches</a>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-impressum">Impressum</a>
+                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-datenschutz">Datenschutz</a>
                     <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-images">Bildverwaltung</a>
                 </div>
 
@@ -238,11 +239,12 @@
                                 <div class="flex items-center gap-2">
                                     <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">{{ layoutSchema.label|default(region) }}</p>
                                     {% if layoutSchema.has_toggle|default(false) %}
-                                        {% if attribute(config.layout|default({}), region).enabled|default(false) %}
-                                        <span class="rounded-full border border-[#355E4B] bg-[#355E4B] px-2 py-0.5 text-[10px] font-semibold text-white">Aktiv</span>
-                                        {% else %}
-                                        <span class="rounded-full border border-[#241E18]/20 bg-[#241E18]/[0.08] px-2 py-0.5 text-[10px] font-semibold text-[#241E18]/60">Inaktiv</span>
-                                        {% endif %}
+                                        {% set regionEnabled = attribute(config.layout|default({}), region).enabled|default(false) %}
+                                        <form method="post">
+                                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                                            <input type="hidden" name="do" value="toggle-{{ region }}">
+                                            <button type="submit" class="cursor-pointer rounded-full border px-2 py-0.5 text-[10px] font-semibold transition {% if regionEnabled %}border-[#355E4B] bg-[#355E4B] text-white hover:brightness-110{% else %}border-[#241E18]/20 bg-[#241E18]/[0.08] text-[#241E18]/60 hover:bg-[#241E18]/15{% endif %}" title="Klicken zum {{ regionEnabled ? 'Deaktivieren' : 'Aktivieren' }}">{{ regionEnabled ? 'Aktiv' : 'Inaktiv' }}</button>
+                                        </form>
                                     {% endif %}
                                 </div>
                                 {% for field in layoutSchema.fields %}
@@ -418,20 +420,31 @@
                         <button class="cursor-pointer text-sm text-[#355E4B]" type="button" data-repeater-add="nav">Eintrag hinzufügen</button>
                     </section>
 
-                    <section id="panel-legal" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-legal" hidden>
-                        <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Rechtliches</h2>
-                        <p class="text-xs text-[#241E18]/40">Text für Impressum und Datenschutzerklärung. Kontaktdaten (Adresse, Telefon, E-Mail, USt-IdNr.) werden im Impressum automatisch aus Betrieb / Kontaktdaten ergänzt – hier nur der Fließtext darum herum.</p>
+                    {% for legalKey, legalTitle in {impressum: 'Impressum', datenschutz: 'Datenschutzerklärung'} %}
+                    {% set legalData = attribute(content.legal|default({}), legalKey)|default({}) %}
+                    {% set legalBlocks = legalData.blocks|default([]) %}
+                    {% if legalBlocks is empty and legalData.body|default('') is not empty %}
+                        {# Alter Einzelfeld-Inhalt von vor der Umstellung auf beliebig viele
+                           Textblöcke - als ersten Block vorbelegen, statt ihn im Editor
+                           verschwinden zu lassen. Wird beim nächsten Speichern zu "blocks". #}
+                        {% set legalBlocks = [{text: legalData.body}] %}
+                    {% endif %}
+                    <section id="panel-{{ legalKey }}" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-{{ legalKey }}" hidden>
+                        <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">{{ legalTitle }}</h2>
+                        {% if legalKey == 'impressum' %}
+                        <p class="text-xs text-[#241E18]/40">Kontaktdaten (Adresse, Telefon, E-Mail, USt-IdNr.) werden automatisch aus Betrieb / Kontaktdaten ergänzt – hier nur der Fließtext darum herum, beliebig viele Textblöcke.</p>
+                        {% else %}
+                        <p class="text-xs text-[#241E18]/40">Beliebig viele Textblöcke, jeder mit eigener Formatierung (Überschriften, Absätze, Listen) – so lassen sich einzelne Abschnitte unabhängig voneinander bearbeiten und umsortieren.</p>
+                        {% endif %}
                         {% include 'admin-field.twig' with {
-                            field: {name: 'body', type: 'textarea', label: 'Impressum'},
-                            value: content.legal.impressum.body|default(''),
-                            prefix: 'legal[impressum]'
-                        } %}
-                        {% include 'admin-field.twig' with {
-                            field: {name: 'body', type: 'textarea', label: 'Datenschutzerklärung'},
-                            value: content.legal.datenschutz.body|default(''),
-                            prefix: 'legal[datenschutz]'
+                            field: {name: 'blocks', type: 'repeater', label: 'Textblöcke', fields: [
+                                {name: 'text', type: 'textarea', label: 'Text'}
+                            ]},
+                            value: legalBlocks,
+                            prefix: 'legal[' ~ legalKey ~ ']'
                         } %}
                     </section>
+                    {% endfor %}
 
                     {% for section in content.sections %}
                         {% set schema = null %}

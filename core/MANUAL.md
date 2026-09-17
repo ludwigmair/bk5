@@ -21,7 +21,7 @@ Die Seitenleiste ist in Gruppen sortiert:
   Inhalts-Abschnitte der Startseite (siehe unten). Hinzufügen/Sortieren/Löschen
   ist Admin-only, das Bearbeiten der Inhalte offen für jeden Account.
 - **Stammdaten** – für jeden Account sichtbar: Seite, Betrieb/Kontaktdaten,
-  SEO/Meta-Daten, Bildverwaltung, Rechtliches.
+  SEO/Meta-Daten, Impressum, Datenschutz, Bildverwaltung.
 - **Admin** – nur für Accounts mit Admin-Rolle: Navigation, Beschriftungen, Themes,
   Sicherung, Benutzer verwalten. Wer diese Rolle hat, verwaltet
   [`ADMIN-USERS.md`](ADMIN-USERS.md).
@@ -172,8 +172,8 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
 ## Stammdaten im Detail
 
 - **Seite**: Titel/Unterzeile/Logo-Text, Kontakt-Leiste oben (Ankündigungstext +
-  Link-Beschriftung – *ob* die Leiste überhaupt aktiv ist, ist eine technische
-  Einstellung in `config.json`, nicht hier editierbar).
+  Link-Beschriftung). Der „Aktiv"/„Inaktiv"-Schalter daneben schaltet die
+  Leiste komplett ein oder aus, unabhängig vom Text.
 - **Betrieb / Kontaktdaten**: Name, Inhaber, Adresse, Telefon, E-Mail, USt-IdNr.,
   Handelsregister, Öffnungszeiten, abweichender Kartensuchbegriff. Wird für
   Kontaktformular-Infokarte, Footer, JSON-LD (Suchmaschinen), Telefon-/Mail-Buttons
@@ -182,8 +182,12 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   Vorschaubilder bei WhatsApp/Facebook/Linkedin usw.), OG-Bild, Favicon,
   "Von Suchmaschinen ausschließen". Basis-URL steht nur informativ (kommt aus
   `config.json`). Zeichen-Zähler zeigen empfohlene Längen.
-- **Rechtliches**: Fließtext für Impressum und Datenschutzerklärung, mit derselben
-  Formatierungs-Werkzeugleiste wie andere Textfelder.
+- **Impressum** / **Datenschutz**: zwei eigene Menüpunkte, je mit beliebig vielen
+  Textblöcken (wie bei Galerie-Einträgen: „+ Eintrag hinzufügen“, per Ziehen
+  sortierbar, einzeln aktivierbar/deaktivierbar/löschbar) – jeder Block mit
+  derselben Formatierungs-Werkzeugleiste wie andere Textfelder. So lassen sich
+  einzelne Abschnitte (z. B. „Haftungsausschluss“, „Cookies“) unabhängig
+  voneinander bearbeiten, statt alles in einem einzigen Textfeld zu pflegen.
 
 ## Admin-Bereich (nur mit Admin-Rolle)
 
@@ -235,8 +239,10 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
 ## Rechtliches: Impressum, Datenschutz, Cookie-Banner
 
 Der Cookie-Banner (Text, Buttons, Link zur Datenschutzerklärung) ist über
-**Beschriftungen** editierbar. Die Fließtexte von Impressum und
-Datenschutzerklärung stehen unter **Stammdaten → Rechtliches**, mit derselben
+**Beschriftungen** editierbar. Impressum und Datenschutzerklärung stehen unter
+**Stammdaten → Impressum** bzw. **Stammdaten → Datenschutz**, je als beliebig
+viele einzeln bearbeitbare Textblöcke (wie Galerie-Einträge: hinzufügen,
+sortieren, aktivieren/deaktivieren, löschen), jeder mit derselben
 Formatierungs-Werkzeugleiste wie andere Textfelder. Die Kontaktdaten
 (Adresse, Telefon, E-Mail, USt-IdNr.) werden im Impressum automatisch aus
 Betrieb/Kontaktdaten ergänzt – dort also nur den Text drumherum pflegen.
