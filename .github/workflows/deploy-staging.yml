@@ -140,6 +140,7 @@ jobs:
             .gitignore,
             .env,
             .env.*,
+            .my-credentials,
             *.md,
             .DS_Store,
             composer.json,
