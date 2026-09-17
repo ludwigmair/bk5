@@ -70,6 +70,21 @@ jobs:
         # vendor/ ist gitignored (siehe .gitignore/docs/DEPLOY.md) - landet nur
         # so im Deploy-Payload, nie über Git selbst.
 
+      - name: Server-Cache per SFTP leeren (vor Backup + Deploy)
+        if: steps.check-merge.outputs.deployed == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+          TARGET="$(printf '%s' "$FTP_TARGET_DIR" | tr -d '[:space:]')"
+          # Bewusst SFTP statt "ssh <befehl>": funktioniert auch auf Shared
+          # Hosting ohne Shell-Zugang - dieselbe SFTP-Subsystem-Verbindung, die
+          # auch die Upload-Action nutzt. cache/** ist vom Upload ausgeschlossen
+          # und wird hier vor dem Deploy remote entfernt, damit kein alter
+          # Twig-Compile-Cache stehen bleibt. Beim allerersten Deploy gibt es
+          # den Ordner noch nicht -> rm -rf ist dann ein No-op.
+          lftp -u "$FTP_USERNAME,$FTP_PASSWORD" -e "set sftp:auto-confirm yes; set net:max-retries 3; rm -rf \"$TARGET/cache\"; bye" "sftp://$FTP_SERVER" || true
+        shell: bash
+
       - name: Sicherung auf dem Server anlegen (vor dem Deploy)
         if: steps.check-merge.outputs.deployed == 'true'
         run: |
@@ -125,6 +140,7 @@ jobs:
             .gitignore,
             .env,
             .env.*,
+            .my-credentials,
             *.md,
             .DS_Store,
             composer.json,

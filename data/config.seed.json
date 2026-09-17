@@ -1,0 +1,47 @@
+{
+    "theme": "theme-bk01",
+    "languages": [
+        "de"
+    ],
+    "layout": {
+        "header": "header-bk01",
+        "footer": "footer-bk01",
+        "stickybar": "stickybar-bk01",
+        "cookiebanner": "cookiebanner-bk01",
+        "topbar": {
+            "enabled": true,
+            "theme": "topbar-bk01"
+        }
+    },
+    "brand": {
+        "primary": "#2B2723",
+        "secondary": "#8F2B32",
+        "ash": "#F6F1E4",
+        "walnut": "#5C1C21",
+        "hero_cta": "secondary",
+        "radius": "0.375rem",
+        "font_display": "Fraunces",
+        "font_body": "Open Sans",
+        "zebra_accent": true
+    },
+    "admin": {
+        "users": []
+    },
+    "seo": {
+        "domain": "https://www.raumausstattung-kurzeder.de"
+    },
+    "apis": {
+        "google": {
+            "places_api_key": "",
+            "place_id": "",
+            "gemini_api_key": ""
+        },
+        "openai": {
+            "api_key": ""
+        }
+    },
+    "update": {
+        "manifest_url": "https://github.com/ludwigmair/onepage-cms-releases/releases/latest/download/manifest.json",
+        "components_manifest_url": "https://github.com/ludwigmair/onepage-cms-components-releases/releases/latest/download/manifest.json"
+    }
+}
