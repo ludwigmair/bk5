@@ -186,6 +186,18 @@ final class CMS
         $uploadsSeedDir = $root . '/uploads.seed';
         if (is_dir($uploadsSeedDir) && self::isEmptyDir($uploadsDir)) {
             self::copyDirRecursive($uploadsSeedDir, $uploadsDir);
+            // Nach erfolgreichem Seed ist uploads.seed/ auf der Instanz
+            // redundant: gelesen wird es ausschließlich hier, und nach dem
+            // Kopieren nicht mehr. Es liegt bewusst NICHT unter uploads/**
+            // (sonst würde der Deploy-Workflow es nie übertragen), ist damit
+            // aber - anders als /data - vom .htaccess-/App-Schutz nicht
+            // erfasst und öffentlich abrufbar, solange es liegen bleibt.
+            // Deshalb nach dem Kopieren aufräumen. Verlust nur bei einem
+            // leeren uploads/ ohne Full-Host-Wipe (dann greift cache/backups
+            // oder ein Full-Redeploy); bei einem komplett leeren Host wandert
+            // uploads.seed/ beim nächsten Deploy einfach wieder mit hoch und
+            // seedet erneut (der CI-Hash ist mit dem Host ebenfalls weg).
+            self::removeDirRecursive($uploadsSeedDir);
         }
     }
 
@@ -270,6 +282,22 @@ final class CMS
                 copy($from, $to);
             }
         }
+    }
+
+    private static function removeDirRecursive(string $dir): void
+    {
+        foreach (scandir($dir) ?: [] as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+            $path = "$dir/$item";
+            if (is_dir($path)) {
+                self::removeDirRecursive($path);
+            } else {
+                @unlink($path);
+            }
+        }
+        @rmdir($dir);
     }
 
     /** @return list<string> Immer mindestens ["de"], erste Sprache ist die Default-/Fallback-Sprache. */
