@@ -6,6 +6,10 @@
 # Server-eigene Zugänge/Konfiguration – pro Deploy individuell, nie in Git.
 /data/config.json
 
+# Bootstrap-Login + Backup-Token (siehe core/src/Env.php, web/.env.example) –
+# echte Zugangsdaten, gehören nie in die Versionsgeschichte.
+/.env
+
 # Composer-Abhängigkeiten – auf dem Server per "composer install --no-dev"
 # oder im Deploy-Workflow selbst gebaut, nicht versioniert.
 /vendor/

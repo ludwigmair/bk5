@@ -14,6 +14,14 @@ final class Admin
     {
         $action = (string) ($_GET['do'] ?? $_POST['do'] ?? '');
 
+        // Läuft VOR jeder Session-/Login-Prüfung: ein CI-Job (siehe
+        // dev/templates/deploy-staging.yml) hat keine Session, authentifiziert
+        // sich stattdessen per Bearer-Token gegen BACKUP_TOKEN aus .env.
+        if ($action === 'backup') {
+            $this->runBackup();
+            return;
+        }
+
         if ($action === 'logout') {
             unset($_SESSION['admin']);
             header('Location: ?admin=1');
@@ -772,6 +780,94 @@ final class Admin
             } else {
                 $zip->addFile($path, $local);
             }
+        }
+    }
+
+    /**
+     * Backup-Endpunkt für CI-Deploys (siehe dev/templates/deploy-staging.yml,
+     * Schritt "Sicherung auf dem Server anlegen" - der Workflow ruft das VOR
+     * dem eigentlichen Deploy auf, kein Login möglich, deshalb Bearer-Token
+     * statt Session). Ohne BACKUP_TOKEN in .env ist der Endpunkt komplett
+     * deaktiviert (404) statt "offen ohne Prüfung" - ein leerer erwarteter
+     * Wert darf nie automatisch "passt" bedeuten.
+     *
+     * Sichert nur data/ (Content, Config, Bearbeitungsverlauf) und uploads/
+     * (Bilder) - der Code selbst kommt aus Git und braucht kein Backup.
+     */
+    private function runBackup(): void
+    {
+        header('Content-Type: application/json');
+
+        $expected = trim(Env::get('BACKUP_TOKEN'));
+        if ($expected === '') {
+            http_response_code(404);
+            echo json_encode(['ok' => false, 'error' => 'backup endpoint not configured']);
+            exit;
+        }
+
+        $provided = $this->bearerToken();
+        if ($provided === '' || !hash_equals($expected, $provided)) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'error' => 'invalid or missing token']);
+            exit;
+        }
+
+        $root = $this->cms->root();
+        $backupDir = $root . '/cache/backups';
+        if (!is_dir($backupDir) && !mkdir($backupDir, 0775, true) && !is_dir($backupDir)) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'backup directory could not be created']);
+            exit;
+        }
+
+        $file = $backupDir . '/backup-' . date('Ymd-His') . '.zip';
+        $zip = new \ZipArchive();
+        if ($zip->open($file, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'zip could not be created']);
+            exit;
+        }
+        if (is_dir($root . '/data')) {
+            $this->addDirToZip($zip, $root . '/data', 'data');
+        }
+        if (is_dir($root . '/uploads')) {
+            $this->addDirToZip($zip, $root . '/uploads', 'uploads');
+        }
+        $zip->close();
+
+        $this->pruneBackups($backupDir, 10);
+
+        echo json_encode(['ok' => true, 'file' => basename($file), 'size' => filesize($file) ?: 0]);
+        exit;
+    }
+
+    /** Bearer-Token aus dem Authorization-Header, mit Fallback auf ein "token"-Feld (POST/GET) für den Fall, dass der Header vom Server gefiltert wird. */
+    private function bearerToken(): string
+    {
+        $header = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+        if ($header === '' && function_exists('getallheaders')) {
+            foreach (getallheaders() as $name => $value) {
+                if (strcasecmp($name, 'Authorization') === 0) {
+                    $header = $value;
+                    break;
+                }
+            }
+        }
+        if (preg_match('/^Bearer\s+(.+)$/i', trim($header), $m)) {
+            return trim($m[1]);
+        }
+
+        return trim((string) ($_POST['token'] ?? $_GET['token'] ?? ''));
+    }
+
+    /** Behält nur die $keep neuesten Backups (Dateiname enthält den Zeitstempel, alphabetisch = chronologisch sortierbar). */
+    private function pruneBackups(string $backupDir, int $keep): void
+    {
+        $files = glob($backupDir . '/backup-*.zip') ?: [];
+        sort($files);
+        $excess = count($files) - $keep;
+        for ($i = 0; $i < $excess; $i++) {
+            @unlink($files[$i]);
         }
     }
 
