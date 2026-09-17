@@ -1235,6 +1235,18 @@ final class Admin
         $config = $this->cms->config();
         unset($config['dev_import']);
         CMS::writeJson($dest . '/data/config.json', $config);
+        // Einmalige Kopie für CMS::ensureSeeded(): config.json selbst ist im
+        // Git-Repo-Export (siehe setUpGitWorkflow()) vom Deploy-Workflow
+        // ausgeschlossen, damit spätere Live-Anpassungen (Theme, Layout,
+        // Update-URLs) nicht überschrieben werden - beim allerersten Deploy
+        // käme dadurch aber nie eine Projekt-Konfiguration an, die Seite wäre
+        // sofort kaputt. config.seed.json trägt denselben Ursprungsstand (ohne
+        // dev_import-Marker und bewusst OHNE Admin-Logins - die erzeugt
+        // CMS::ensureSeeded() beim ersten Boot aus .env, siehe Env/ADMIN_USERS,
+        // damit in einem öffentlichen Git-Repo keine Passwort-Hashes liegen).
+        $seedConfig = $config;
+        $seedConfig['admin']['users'] = [];
+        CMS::writeJson($dest . '/data/config.seed.json', $seedConfig);
 
         if (is_dir($root . '/uploads')) {
             $this->copyDir($root . '/uploads', $dest . '/uploads');

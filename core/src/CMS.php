@@ -118,12 +118,26 @@ final class CMS
         $changed = false;
 
         if ($config === []) {
+            // config.json ist vom Deploy-Workflow absichtlich ausgeschlossen
+            // (schützt spätere Live-Bearbeitungen an Theme/Layout vor dem
+            // Überschreiben durch einen älteren Git-Stand) - beim allerersten
+            // Deploy gibt es dadurch aber gar keine Projekt-Konfiguration.
+            // config.seed.json (von exportProjectInstance() einmalig geschrieben,
+            // bewusst NICHT ausgeschlossen) ist genau dafür da; config.example.json
+            // als generischer Fallback, falls die Instanz nicht über den Export
+            // entstanden ist.
+            $seedPath = $dataDir . '/config.seed.json';
             $examplePath = $dataDir . '/config.example.json';
-            if (is_file($examplePath)) {
-                $config = self::readJson($examplePath);
-                // Platzhalter-Hash ("GENERATE_MIT: ...") nie übernehmen - sonst
-                // hielte ihn die Prüfung unten fälschlich für einen echten
-                // Benutzer und würde nie aus ADMIN_USERNAME/ADMIN_PASSWORD seeden.
+            $source = null;
+            if (is_file($seedPath)) {
+                $source = $seedPath;
+            } elseif (is_file($examplePath)) {
+                $source = $examplePath;
+            }
+            if ($source !== null) {
+                $config = self::readJson($source);
+                // Platzhalter-/Seed-Logins nie übernehmen - User kommen
+                // ausschließlich aus ADMIN_USERS/ADMIN_USERNAME unten.
                 $config['admin']['users'] = [];
                 $changed = true;
             }
@@ -131,14 +145,9 @@ final class CMS
 
         $users = $config['admin']['users'] ?? [];
         if (!is_array($users) || $users === []) {
-            $username = trim(Env::get('ADMIN_USERNAME'));
-            $password = Env::get('ADMIN_PASSWORD');
-            if ($username !== '' && $password !== '') {
-                $config['admin']['users'] = [[
-                    'username' => $username,
-                    'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-                    'is_admin' => true,
-                ]];
+            $seeded = self::bootstrapUsers();
+            if ($seeded !== []) {
+                $config['admin']['users'] = $seeded;
                 $changed = true;
             }
         }
@@ -178,6 +187,56 @@ final class CMS
         if (is_dir($uploadsSeedDir) && self::isEmptyDir($uploadsDir)) {
             self::copyDirRecursive($uploadsSeedDir, $uploadsDir);
         }
+    }
+
+    /**
+     * Erste Admin-Benutzer aus .env für den Bootstrap (siehe ensureSeeded()):
+     * ADMIN_USERS als JSON-Liste ([{"username": ..., "password": ...,
+     * "is_admin": true}, ...]) für mehrere Benutzer, sonst das bisherige
+     * ADMIN_USERNAME/ADMIN_PASSWORD-Paar. Nur wirksam, solange config.json
+     * noch KEINEN Admin-Benutzer hat - danach normal über den Admin-Bereich.
+     *
+     * @return list<array{username: string, password_hash: string, is_admin: bool}>
+     */
+    private static function bootstrapUsers(): array
+    {
+        $raw = trim(Env::get('ADMIN_USERS'));
+        if ($raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $users = [];
+                foreach ($decoded as $entry) {
+                    if (!is_array($entry)) {
+                        continue;
+                    }
+                    $username = trim((string) ($entry['username'] ?? ''));
+                    $password = (string) ($entry['password'] ?? '');
+                    if ($username === '' || $password === '') {
+                        continue;
+                    }
+                    $users[] = [
+                        'username' => $username,
+                        'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                        'is_admin' => (bool) ($entry['is_admin'] ?? false),
+                    ];
+                }
+                if ($users !== []) {
+                    return $users;
+                }
+            }
+        }
+
+        $username = trim(Env::get('ADMIN_USERNAME'));
+        $password = Env::get('ADMIN_PASSWORD');
+        if ($username === '' || $password === '') {
+            return [];
+        }
+
+        return [[
+            'username' => $username,
+            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+            'is_admin' => true,
+        ]];
     }
 
     private static function isEmptyDir(string $dir): bool
