@@ -14,6 +14,14 @@ final class Admin
     {
         $action = (string) ($_GET['do'] ?? $_POST['do'] ?? '');
 
+        // Läuft VOR jeder Session-/Login-Prüfung: ein CI-Job (siehe
+        // dev/templates/deploy-staging.yml) hat keine Session, authentifiziert
+        // sich stattdessen per Bearer-Token gegen BACKUP_TOKEN aus .env.
+        if ($action === 'backup') {
+            $this->runBackup();
+            return;
+        }
+
         if ($action === 'logout') {
             unset($_SESSION['admin']);
             header('Location: ?admin=1');
@@ -50,6 +58,7 @@ final class Admin
                 'apply-theme' => $this->applyTheme(),
                 'build-theme' => $this->buildTheme(),
                 'delete-theme' => $this->deleteTheme(),
+                'toggle-topbar' => $this->toggleTopbar(),
                 'image-upload' => $this->uploadImage(),
                 'image-delete' => $this->deleteImage(),
                 'image-import' => $this->importImages(),
@@ -137,12 +146,23 @@ final class Admin
     private const ADMIN_ONLY_ACTIONS = [
         'check-update', 'update', 'check-components-update', 'components-update',
         'user-add', 'user-remove', 'user-setpw',
-        'apply-theme', 'build-theme', 'delete-theme',
+        'apply-theme', 'build-theme', 'delete-theme', 'toggle-topbar',
         'add', 'delete', 'reorder-sections',
         'switch-project', 'restore-import', 'restore-history',
         'build-update-package', 'download-update-package', 'delete-update-package',
         'build-components-update-package', 'download-components-update-package', 'delete-components-update-package',
         'export-instance',
+    ];
+
+    /**
+     * Impressum/Datenschutz: beliebig viele Rich-Text-Blöcke statt eines
+     * einzelnen Textfelds, weil gerade diese zwei Seiten oft viele Absätze/
+     * Abschnitte brauchen (siehe saveContent(), renderDashboard()).
+     */
+    private const LEGAL_FIELDS = [
+        ['name' => 'blocks', 'type' => 'repeater', 'label' => 'Textblöcke', 'fields' => [
+            ['name' => 'text', 'type' => 'textarea', 'label' => 'Text'],
+        ]],
     ];
 
     /** Sprachen, die zur Auswahl stehen – "de" ist immer Pflicht/Default, siehe normalizeLanguages(). */
@@ -393,11 +413,16 @@ final class Admin
         }
 
         if (isset($_POST['legal']) && is_array($_POST['legal'])) {
+            // Impressum/Datenschutz bestehen seit der Umstellung auf beliebig
+            // viele Textblöcke aus einem repeater "blocks" statt einem
+            // einzelnen "body" - normalizeData() liefert dafür dieselbe
+            // Add/Entfernen/Sortieren-Mechanik wie bei jedem anderen
+            // Repeater-Feld (z. B. FAQ, Galerie), ohne eigene Logik dafür.
             foreach (['impressum', 'datenschutz'] as $key) {
-                if (!isset($_POST['legal'][$key]['body'])) {
+                if (!isset($_POST['legal'][$key])) {
                     continue;
                 }
-                $content['legal'][$key]['body'] = $this->translatableValue($_POST['legal'][$key]['body'], $content['legal'][$key]['body'] ?? '');
+                $content['legal'][$key] = $this->normalizeData(self::LEGAL_FIELDS, $_POST['legal'][$key], "legal[{$key}]");
             }
         }
 
@@ -736,7 +761,8 @@ final class Admin
         $this->addDirToZip($zip, $core, 'core');
         $zip->close();
 
-        $this->redirectToPanel('Update-Paket ' . $version . ' erstellt (core/version.json wurde mit hochgezählt).', 'panel-update-package');
+        $this->redirectToPanel('Update-Paket ' . $version . ' erstellt (core/version.json wurde mit hochgezählt). '
+            . 'Noch nicht live für andere Instanzen – dafür zusätzlich "php dev/build-release.php ' . $version . ' --repo <releases-repo>" ausführen (siehe docs/UPDATE-CORE.md).', 'panel-update-package');
     }
 
     private function addDirToZip(\ZipArchive $zip, string $dir, string $localBase): void
@@ -754,6 +780,94 @@ final class Admin
             } else {
                 $zip->addFile($path, $local);
             }
+        }
+    }
+
+    /**
+     * Backup-Endpunkt für CI-Deploys (siehe dev/templates/deploy-staging.yml,
+     * Schritt "Sicherung auf dem Server anlegen" - der Workflow ruft das VOR
+     * dem eigentlichen Deploy auf, kein Login möglich, deshalb Bearer-Token
+     * statt Session). Ohne BACKUP_TOKEN in .env ist der Endpunkt komplett
+     * deaktiviert (404) statt "offen ohne Prüfung" - ein leerer erwarteter
+     * Wert darf nie automatisch "passt" bedeuten.
+     *
+     * Sichert nur data/ (Content, Config, Bearbeitungsverlauf) und uploads/
+     * (Bilder) - der Code selbst kommt aus Git und braucht kein Backup.
+     */
+    private function runBackup(): void
+    {
+        header('Content-Type: application/json');
+
+        $expected = trim(Env::get('BACKUP_TOKEN'));
+        if ($expected === '') {
+            http_response_code(404);
+            echo json_encode(['ok' => false, 'error' => 'backup endpoint not configured']);
+            exit;
+        }
+
+        $provided = $this->bearerToken();
+        if ($provided === '' || !hash_equals($expected, $provided)) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'error' => 'invalid or missing token']);
+            exit;
+        }
+
+        $root = $this->cms->root();
+        $backupDir = $root . '/cache/backups';
+        if (!is_dir($backupDir) && !mkdir($backupDir, 0775, true) && !is_dir($backupDir)) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'backup directory could not be created']);
+            exit;
+        }
+
+        $file = $backupDir . '/backup-' . date('Ymd-His') . '.zip';
+        $zip = new \ZipArchive();
+        if ($zip->open($file, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'zip could not be created']);
+            exit;
+        }
+        if (is_dir($root . '/data')) {
+            $this->addDirToZip($zip, $root . '/data', 'data');
+        }
+        if (is_dir($root . '/uploads')) {
+            $this->addDirToZip($zip, $root . '/uploads', 'uploads');
+        }
+        $zip->close();
+
+        $this->pruneBackups($backupDir, 10);
+
+        echo json_encode(['ok' => true, 'file' => basename($file), 'size' => filesize($file) ?: 0]);
+        exit;
+    }
+
+    /** Bearer-Token aus dem Authorization-Header, mit Fallback auf ein "token"-Feld (POST/GET) für den Fall, dass der Header vom Server gefiltert wird. */
+    private function bearerToken(): string
+    {
+        $header = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+        if ($header === '' && function_exists('getallheaders')) {
+            foreach (getallheaders() as $name => $value) {
+                if (strcasecmp($name, 'Authorization') === 0) {
+                    $header = $value;
+                    break;
+                }
+            }
+        }
+        if (preg_match('/^Bearer\s+(.+)$/i', trim($header), $m)) {
+            return trim($m[1]);
+        }
+
+        return trim((string) ($_POST['token'] ?? $_GET['token'] ?? ''));
+    }
+
+    /** Behält nur die $keep neuesten Backups (Dateiname enthält den Zeitstempel, alphabetisch = chronologisch sortierbar). */
+    private function pruneBackups(string $backupDir, int $keep): void
+    {
+        $files = glob($backupDir . '/backup-*.zip') ?: [];
+        sort($files);
+        $excess = count($files) - $keep;
+        for ($i = 0; $i < $excess; $i++) {
+            @unlink($files[$i]);
         }
     }
 
@@ -999,7 +1113,8 @@ final class Admin
         $this->addDirToZip($zip, $components, 'components');
         $zip->close();
 
-        $this->redirectToPanel('Components-Update-Paket ' . $version . ' erstellt (components/version.json wurde mit hochgezählt).', 'panel-components-update');
+        $this->redirectToPanel('Components-Update-Paket ' . $version . ' erstellt (components/version.json wurde mit hochgezählt). '
+            . 'Noch nicht live für andere Instanzen – dafür zusätzlich "php dev/build-release.php ' . $version . ' --repo <releases-repo> --target components" ausführen (siehe docs/UPDATE-COMPONENTS.md).', 'panel-components-update');
     }
 
     /**
@@ -1090,7 +1205,7 @@ final class Admin
         $root = $this->cms->root();
         $dest = dirname($root) . '/project-instances/' . $slug;
         if (is_dir($dest)) {
-            $this->redirectToPanel("„$slug“ existiert bereits unter project-instances/ - anderen Namen wählen oder Ordner vorher entfernen.", 'panel-export-instance');
+            $this->redirectToPanel("„{$slug}“ existiert bereits unter project-instances/ - anderen Namen wählen oder Ordner vorher entfernen.", 'panel-export-instance');
         }
         mkdir($dest, 0775, true);
 
@@ -1165,7 +1280,68 @@ final class Admin
             copy($componentsVersionFile, $dest . '/themes-and-plugins/components/version.json');
         }
 
-        $this->redirectToPanel("Projekt-Instanz „$slug“ erstellt unter project-instances/$slug/ (composer install dort noch nötig, falls vendor/ nicht mitkam).", 'panel-export-instance');
+        $message = "Projekt-Instanz „{$slug}“ erstellt unter project-instances/{$slug}/ (composer install dort noch nötig, falls vendor/ nicht mitkam).";
+        if ($this->hasDevTools() && ($_POST['git_workflow'] ?? '') === '1') {
+            $gitError = $this->setUpGitWorkflow($dest);
+            $message .= $gitError !== ''
+                ? ' Git-Setup fehlgeschlagen: ' . $gitError
+                : ' Git-Repo mit main/develop/staging angelegt (auf develop), FTP-Deploy-Workflow liegt unter .github/workflows/deploy-staging.yml bereit - im Ziel-Repo noch die GitHub-Secrets FTP_SERVER/FTP_USERNAME/FTP_PASSWORD/FTP_TARGET_DIR/BACKUP_URL/BACKUP_TOKEN setzen.';
+        }
+        $this->redirectToPanel($message, 'panel-export-instance');
+    }
+
+    /**
+     * Optional beim Export: eigenes Git-Repo mit main/develop/staging-Branches
+     * + einem auf dieses Projekt zugeschnittenen FTP-Deploy-Workflow (siehe
+     * dev/templates/) - fürs spätere Verbinden mit einem eigenen GitHub-Repo
+     * und CI-gestütztem Staging-Deploy. Legt bewusst KEIN Remote an und
+     * pusht nichts - das verknüpft man selbst, wenn man so weit ist. Wird
+     * nur aufgerufen, wenn hasDevTools() true ist: "git init" + Shell-
+     * Aufrufe aus dem Admin heraus wollen wir nicht auf einer live
+     * deployten Kunden-Instanz anbieten.
+     *
+     * data/config.json, data/content.json, uploads/ und cache/ bleiben
+     * bewusst außerhalb des Deploy-Payloads (siehe .gitignore-Vorlage und
+     * den exclude-Block im Workflow) - die werden auf dem Zielserver live
+     * über den Admin-Bereich der jeweiligen Instanz gepflegt, ein
+     * automatischer Deploy darf sie nie überschreiben.
+     *
+     * @return string leere Zeichenkette bei Erfolg, sonst eine Fehlermeldung
+     */
+    private function setUpGitWorkflow(string $dest): string
+    {
+        $templatesDir = dirname($this->cms->root()) . '/dev/templates';
+        $gitignoreSrc = $templatesDir . '/instance.gitignore';
+        $workflowSrc = $templatesDir . '/deploy-staging.yml';
+        if (!is_file($gitignoreSrc) || !is_file($workflowSrc)) {
+            return 'Vorlagen unter dev/templates/ fehlen.';
+        }
+
+        copy($gitignoreSrc, $dest . '/.gitignore');
+        if (!is_dir($dest . '/.github/workflows')) {
+            mkdir($dest . '/.github/workflows', 0775, true);
+        }
+        copy($workflowSrc, $dest . '/.github/workflows/deploy-staging.yml');
+        touch($dest . '/cache/.gitkeep');
+        touch($dest . '/uploads/.gitkeep');
+
+        foreach ([
+            'git init -q',
+            'git symbolic-ref HEAD refs/heads/main',
+            'git add -A',
+            'git commit -q -m ' . escapeshellarg('Initial import'),
+            'git branch develop',
+            'git branch staging',
+            'git checkout -q develop',
+        ] as $cmd) {
+            exec('cd ' . escapeshellarg($dest) . ' && ' . $cmd . ' 2>&1', $output, $code);
+            if ($code !== 0) {
+                return 'Abbruch bei "' . $cmd . '": ' . implode(' / ', $output);
+            }
+            $output = [];
+        }
+
+        return '';
     }
 
     /** Region-Varianten-Name aus config.json → layout, wie CMS::renderShell() es liest (Topbar verschachtelt, Rest flach). */
@@ -1300,13 +1476,34 @@ final class Admin
      */
     private function scanRegionVariants(string $region): array
     {
-        $dir = $this->cms->root() . "/themes-and-plugins/{$region}s";
+        $root = $this->cms->root();
         $out = [];
-        foreach (glob($dir . '/*/schema.json') ?: [] as $file) {
+        $seen = [];
+        foreach (glob($root . "/themes-and-plugins/{$region}s/*/schema.json") ?: [] as $file) {
             $schema = CMS::readJson($file);
             $slug = basename(dirname($file));
             $out[] = ['slug' => $slug, 'label' => (string) ($schema['label'] ?? $slug)];
+            $seen[$slug] = true;
         }
+
+        // Ein Export nimmt bei einem Theme mit eigener Region-Kopie
+        // (themes-and-plugins/themes/<theme>/<region>/) bewusst NICHT den
+        // kompletten gemeinsamen Pool mit (siehe exportProjectInstance()) -
+        // auf so einer schlanken Instanz wäre der Picker oben sonst leer,
+        // und die aktuell verwendete Variante würde fälschlich als
+        // "— Keine —" erscheinen, obwohl CMS::renderRegion() sie (die
+        // Theme-eigene Kopie hat ohnehin Vorrang) tatsächlich rendert.
+        $config = $this->cms->config();
+        $theme = (string) ($config['theme'] ?? '');
+        $currentSlug = $this->resolveRegionVariant($config, $region);
+        if ($theme !== '' && $currentSlug !== null && !isset($seen[$currentSlug])) {
+            $themeRegionFile = $root . "/themes-and-plugins/themes/{$theme}/{$region}/schema.json";
+            if (is_file($themeRegionFile)) {
+                $schema = CMS::readJson($themeRegionFile);
+                $out[] = ['slug' => $currentSlug, 'label' => (string) ($schema['label'] ?? $currentSlug)];
+            }
+        }
+
         return $out;
     }
 
@@ -1331,14 +1528,34 @@ final class Admin
      */
     private function layoutSchemaFor(string $region): array
     {
-        $layout = $this->cms->config()['layout'] ?? [];
+        $config = $this->cms->config();
+        $layout = $config['layout'] ?? [];
         $defaults = ['header' => 'standard-nav', 'footer' => 'simple-footer', 'topbar' => 'standard', 'stickybar' => 'icon-rail', 'cookiebanner' => 'corner'];
         $variant = $region === 'topbar'
             ? (string) ($layout['topbar']['theme'] ?? $defaults['topbar'])
             : (string) ($layout[$region] ?? $defaults[$region] ?? '');
 
         $path = $this->cms->root() . "/themes-and-plugins/{$region}s/{$variant}/schema.json";
-        return is_file($path) ? CMS::readJson($path) : [];
+        if (is_file($path)) {
+            return CMS::readJson($path);
+        }
+
+        // Gleicher Fall wie in scanRegionVariants(): ein schlanker Export
+        // (aktives Theme mit eigener Region-Kopie, siehe
+        // exportProjectInstance()) hat den gemeinsamen Pool oben gar nicht
+        // - ohne diesen Fallback wäre auf so einer Instanz das komplette
+        // Content-Formular dieser Region (Texte, Buttons, ggf. der
+        // An/Aus-Schalter) unsichtbar, obwohl CMS::renderRegion() sie
+        // anzeigt und Inhalte dafür in content.json längst existieren.
+        $theme = (string) ($config['theme'] ?? '');
+        if ($theme !== '') {
+            $themeRegionFile = $this->cms->root() . "/themes-and-plugins/themes/{$theme}/{$region}/schema.json";
+            if (is_file($themeRegionFile)) {
+                return CMS::readJson($themeRegionFile);
+            }
+        }
+
+        return [];
     }
 
     /**
@@ -1684,6 +1901,27 @@ final class Admin
 
         CMS::writeJson($path, $config);
         $this->redirectToPanel('Theme „' . ($theme['label'] ?? $name) . '“ angewendet.', 'panel-theme');
+    }
+
+    /**
+     * Topbar ist die einzige Region mit einem echten An/Aus-Zustand
+     * (layout.topbar.enabled) statt nur einer Varianten-Auswahl - andere
+     * Regionen sind implizit immer "an", sobald eine Variante gewählt ist
+     * (siehe resolveRegionVariant()). "theme" bleibt beim erstmaligen
+     * Aktivieren nicht leer, damit layoutSchemaFor('topbar') sofort ein
+     * Schema findet, auch wenn noch nie eine Variante gewählt wurde.
+     */
+    private function toggleTopbar(): void
+    {
+        $path = $this->cms->root() . '/data/config.json';
+        $config = CMS::readJson($path);
+        $enabled = !(bool) ($config['layout']['topbar']['enabled'] ?? false);
+        $config['layout']['topbar']['enabled'] = $enabled;
+        if (trim((string) ($config['layout']['topbar']['theme'] ?? '')) === '') {
+            $config['layout']['topbar']['theme'] = 'standard';
+        }
+        CMS::writeJson($path, $config);
+        $this->redirectToPanel($enabled ? 'Topbar aktiviert.' : 'Topbar deaktiviert.', 'panel-site');
     }
 
     /**
@@ -2256,7 +2494,11 @@ final class Admin
             }
         }
         foreach (['impressum', 'datenschutz'] as $key) {
-            if (isset($source['legal'][$key]['body'])) {
+            if (isset($source['legal'][$key]['blocks'])) {
+                $content['legal'][$key]['blocks'] = $source['legal'][$key]['blocks'];
+            } elseif (isset($source['legal'][$key]['body'])) {
+                // Altes Sicherungs-/Import-Snapshot von vor der Umstellung auf
+                // "blocks" - renderLegal() fängt das per Fallback ab.
                 $content['legal'][$key]['body'] = $source['legal'][$key]['body'];
             }
         }

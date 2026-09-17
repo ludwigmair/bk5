@@ -116,6 +116,8 @@ jobs:
             .git/**,
             .github/**,
             .gitignore,
+            .env,
+            .env.*,
             *.md,
             .DS_Store,
             data/config.json,

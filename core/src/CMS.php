@@ -35,6 +35,9 @@ final class CMS
      */
     public static function boot(string $root, ?string $locale = null): self
     {
+        Env::load($root);
+        self::ensureSeeded($root);
+
         $config = self::readJson($root . '/data/config.json');
         $content = self::readJson($root . '/data/content.json');
         $languages = self::activeLanguages($config);
@@ -83,6 +86,55 @@ final class CMS
         $twig->addGlobal('locale_prefix', ($locale !== null && $locale !== $languages[0]) ? '/' . $locale : '');
 
         return new self($root, $config, $content, $twig);
+    }
+
+    /**
+     * Läuft bei jedem boot() (billig im eingeschwungenen Zustand - ein bis
+     * zwei is_file()/count()-Prüfungen, kein Schreiben), holt aber einen
+     * frischen Deploy ohne manuellen Setup-Schritt in einen lauffähigen
+     * Zustand: fehlt data/config.json komplett, wird sie aus
+     * config.example.json angelegt; fehlt darin (oder in einer bestehenden
+     * config.json) noch jeder Admin-Benutzer, wird einer aus
+     * ADMIN_USERNAME/ADMIN_PASSWORD in .env erzeugt (siehe Env, .env.example).
+     * Ohne beide .env-Werte passiert nichts - der bisherige manuelle Weg
+     * (docs/DEPLOY.md: config.example.json kopieren, dev/users.php add)
+     * bleibt unverändert möglich.
+     */
+    private static function ensureSeeded(string $root): void
+    {
+        $configPath = $root . '/data/config.json';
+        $config = is_file($configPath) ? self::readJson($configPath) : [];
+        $changed = false;
+
+        if ($config === []) {
+            $examplePath = $root . '/data/config.example.json';
+            if (is_file($examplePath)) {
+                $config = self::readJson($examplePath);
+                // Platzhalter-Hash ("GENERATE_MIT: ...") nie übernehmen - sonst
+                // hielte ihn die Prüfung unten fälschlich für einen echten
+                // Benutzer und würde nie aus ADMIN_USERNAME/ADMIN_PASSWORD seeden.
+                $config['admin']['users'] = [];
+                $changed = true;
+            }
+        }
+
+        $users = $config['admin']['users'] ?? [];
+        if (!is_array($users) || $users === []) {
+            $username = trim(Env::get('ADMIN_USERNAME'));
+            $password = Env::get('ADMIN_PASSWORD');
+            if ($username !== '' && $password !== '') {
+                $config['admin']['users'] = [[
+                    'username' => $username,
+                    'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                    'is_admin' => true,
+                ]];
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            self::writeJson($configPath, $config);
+        }
     }
 
     /** @return list<string> Immer mindestens ["de"], erste Sprache ist die Default-/Fallback-Sprache. */
@@ -295,10 +347,19 @@ final class CMS
             return null;
         }
 
+        // Rückwärtskompatibel zum alten Einzelfeld "body" (vor der Umstellung
+        // auf beliebig viele Textblöcke): existiert noch kein "blocks", aber
+        // ein alter body-Wert, wird der als einzelner Block behandelt - kein
+        // Migrationsskript nötig, heilt sich mit dem nächsten Speichern selbst.
+        $blocks = $legal['blocks'] ?? [];
+        if ($blocks === [] && trim((string) ($legal['body'] ?? '')) !== '') {
+            $blocks = [['text' => $legal['body'], 'active' => true]];
+        }
+
         $titles = ['impressum' => 'Impressum', 'datenschutz' => 'Datenschutzerklärung'];
         $body = $this->twig->render('legal.twig', [
             'title' => $titles[$key] ?? ucfirst($key),
-            'body' => self::substituteBusinessPlaceholders((string) ($legal['body'] ?? ''), $this->content['business'] ?? []),
+            'blocks' => self::substituteBusinessPlaceholders($blocks, $this->content['business'] ?? []),
             'business' => $this->content['business'] ?? [],
             'show_business' => $key === 'impressum',
         ]);
