@@ -1225,12 +1225,23 @@ final class Admin
         // deployt) - siehe Admin::switchProject().
         mkdir($dest . '/data', 0775, true);
         copy($root . '/data/content.json', $dest . '/data/content.json');
+        // Einmalige Kopie für CMS::ensureSeeded(): content.json selbst ist im
+        // Git-Repo-Export (siehe setUpGitWorkflow()) vom Deploy-Workflow
+        // ausgeschlossen, damit spätere Live-Bearbeitungen nicht überschrieben
+        // werden - beim allerersten Deploy käme dadurch aber nie ein Inhalt
+        // an. content.seed.json trägt denselben Ursprungsstand, wird vom
+        // Workflow NICHT ausgeschlossen (anderer Dateiname).
+        copy($root . '/data/content.json', $dest . '/data/content.seed.json');
         $config = $this->cms->config();
         unset($config['dev_import']);
         CMS::writeJson($dest . '/data/config.json', $config);
 
         if (is_dir($root . '/uploads')) {
             $this->copyDir($root . '/uploads', $dest . '/uploads');
+            // Gleicher Grund wie content.seed.json oben, für die
+            // ursprünglichen Projektbilder: uploads/ ist ebenfalls vom Deploy
+            // ausgeschlossen (schützt später live hochgeladene Bilder).
+            $this->copyDir($root . '/uploads', $dest . '/uploads.seed');
         } else {
             mkdir($dest . '/uploads', 0775, true);
         }
