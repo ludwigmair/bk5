@@ -78,15 +78,22 @@ jobs:
           : "${BACKUP_TOKEN:?BACKUP_TOKEN-Secret fehlt oder ist leer}"
           BACKUP_URL="$(printf '%s' "$BACKUP_URL" | tr -d '[:space:]')"
           BACKUP_TOKEN="$(printf '%s' "$BACKUP_TOKEN" | tr -d '[:space:]')"
-          if RESPONSE="$(curl -fsSL --connect-timeout 30 --max-time 120 -X POST \
+          HTTP_CODE="$(curl -sS --connect-timeout 30 --max-time 120 -o /tmp/backup-response.txt -w '%{http_code}' -X POST \
                 "$BACKUP_URL" \
                 --data-urlencode "token=$BACKUP_TOKEN" \
-                -H "Authorization: Bearer $BACKUP_TOKEN" \
-                --write-out "\nHTTP %{http_code}\n" 2>&1)"; then
+                -H "Authorization: Bearer $BACKUP_TOKEN")" || HTTP_CODE=000
+          RESPONSE="$(cat /tmp/backup-response.txt 2>/dev/null || true)"
+          if [ "$HTTP_CODE" = "200" ]; then
             echo "Backup ok. Antwort: ${RESPONSE}"
+          elif [ "$HTTP_CODE" = "404" ]; then
+            # Allererster Deploy: auf dem Server liegt noch kein Code, der
+            # Backup-Endpunkt existiert dort schlicht noch nicht - nichts zum
+            # Sichern da, kein Grund zum Abbrechen. Ein falscher/fehlender
+            # Token liefert 403, kein 404 (siehe Admin::runBackup()) - bleibt
+            # also weiterhin ein harter Fehler unten.
+            echo "::warning::Backup-Endpunkt antwortet mit 404 (vermutlich erster Deploy, noch kein Code auf dem Server) - fahre trotzdem fort. Antwort: ${RESPONSE}"
           else
-            RESPONSE="${RESPONSE:-<keine Antwort>}"
-            echo "::error::Backup-Aufruf fehlgeschlagen. Antwort: ${RESPONSE}"
+            echo "::error::Backup-Aufruf fehlgeschlagen (HTTP ${HTTP_CODE}). Antwort: ${RESPONSE:-<keine Antwort>}"
             exit 3
           fi
         shell: bash
