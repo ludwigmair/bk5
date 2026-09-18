@@ -143,6 +143,20 @@ final class CMS
             }
         }
 
+        // Halb-Bootstrap nachtragen: Ein erster Boot auf einem frischen Host hat
+        // config.json bereits mit den Admin-Usern aus .env angelegt (bootstrapUsers()
+        // weiter unten), BEVOR die Seed-Dateien ins Repo kamen - config.json ist dann
+        // zwar nicht mehr leer, aber ohne Theme/Layout nicht lauffähig und würde nie
+        // mehr nachgeseedet. In dem Fall config.seed.json als Basis nachziehen;
+        // bestehende Werte (v.a. die Admin-User) behalten Vorrang.
+        if ($config !== [] && empty($config['theme'])) {
+            $seedPath = $dataDir . '/config.seed.json';
+            if (is_file($seedPath)) {
+                $config = array_replace_recursive(self::readJson($seedPath), $config);
+                $changed = true;
+            }
+        }
+
         $users = $config['admin']['users'] ?? [];
         if (!is_array($users) || $users === []) {
             $seeded = self::bootstrapUsers();
