@@ -38,5 +38,46 @@ return static function (array $data, array $content, array $config, string $root
             : null;
     }
 
+    // Strukturierte Daten (AggregateRating + Review-JSON-LD) für den generischen
+    // Sammler in CMS::render() – nur aus den tatsächlich angezeigten Bewertungen
+    // (aktiv, Text nicht leer). Leer lässt diese Section kein Schema beisteuern.
+    $sdReviews = [];
+    foreach (($data['reviews'] ?? []) as $review) {
+        $text = trim((string) ($review['text'] ?? ''));
+        if (($review['active'] ?? true) === false || $text === '') {
+            continue;
+        }
+        $sd = [
+            '@type' => 'Review',
+            'reviewBody' => $text,
+            'author' => ['@type' => 'Person', 'name' => trim((string) ($review['author'] ?? '')) !== '' ? trim((string) $review['author']) : 'Kunde'],
+        ];
+        $rating = (float) ($review['rating'] ?? 0);
+        if ($rating > 0) {
+            $sd['reviewRating'] = ['@type' => 'Rating', 'ratingValue' => $rating, 'bestRating' => 5];
+        }
+        $sdReviews[] = $sd;
+    }
+
+    if ($sdReviews !== []) {
+        $entity = [
+            '@context' => 'https://schema.org',
+            '@type' => 'LocalBusiness',
+            'name' => trim((string) ($content['business']['name'] ?? $content['site']['title'] ?? '')) !== ''
+                ? trim((string) ($content['business']['name'] ?? $content['site']['title']))
+                : 'Bewertungen',
+            'review' => $sdReviews,
+        ];
+        $summary = $data['rating_summary'] ?? null;
+        if (is_array($summary) && (float) ($summary['rating'] ?? 0) > 0 && (int) ($summary['count'] ?? 0) > 0) {
+            $entity['aggregateRating'] = [
+                '@type' => 'AggregateRating',
+                'ratingValue' => (string) round((float) $summary['rating'], 1),
+                'ratingCount' => (int) $summary['count'],
+            ];
+        }
+        $data['structured_data'] = $entity;
+    }
+
     return $data;
 };

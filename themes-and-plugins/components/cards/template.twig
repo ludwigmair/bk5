@@ -27,7 +27,8 @@
                     <span class="font-display text-2xl font-semibold text-primary/40">{{ '%02d'|format(loop.index) }}</span>
                 </div>
             {% elseif item.image %}
-            <img class="h-44 w-full object-cover" src="{{ item.image starts with 'http' ? item.image : '/' ~ item.image }}" alt="{{ item.title|default('') }}" loading="lazy">
+            {% set img = img_src(item.image, 640) %}
+            <img class="h-44 w-full object-cover" src="{{ img.src }}" srcset="{{ img.srcset }}" {% if img.width %}width="{{ img.width }}"{% endif %} {% if img.height %}height="{{ img.height }}"{% endif %} alt="{{ item.title|default('') }}" loading="lazy">
             {% endif %}
             <div class="px-5 py-5">
                 {% if item.title %}<h3 class="font-display text-lg font-semibold">{{ item.title }}</h3>{% endif %}

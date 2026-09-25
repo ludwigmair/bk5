@@ -51,8 +51,27 @@ Ein paar Dinge, die dabei hilfreich sind zu wissen:
 - Wird eine Sprache zum ersten Mal bearbeitet, ist ihr Eingabefeld schon
   mit dem deutschen Text vorausgefüllt – als Startpunkt zum Anpassen statt
   bei null anzufangen.
+- Werden Übersetzungen an externe Übersetzer delegiert, gibt es dafür den
+  Bereich **Admin → Übersetzungen**: Text-Bestand einer Sprache als flache
+  JSON-Datei exportieren, extern übersetzen und die zurückgekommene Datei
+  wieder importieren. Übernommen wird nur die gewählte Sprache, vorher wird
+  automatisch ein Sicherungs-Stand angelegt.
 - Welche Sprachen überhaupt zur Auswahl stehen, wird nicht hier, sondern
-  unter Admin → Themes festgelegt (admin-only) – siehe dort.
+  unter Admin → Themes festgelegt (admin-only) – siehe dort. Welche
+  Sprachkürzel ein Projekt darüber hinaus **anbieten kann** (neben den
+  generischen DE / EN / FR / IT / ES / NL / LB), bestimmt die Projektheitung
+  per Konfiguration: ein Code in `data/config.json` →
+  `languages_allowed` (z. B. `{"pl": "Polnisch"}`) ergänzt die Liste sofort,
+  die Sprache erscheint dann auch in der Theme-Auswahl und deren Felder
+  werden wie alle anderen übersetzbar. Dafür ist **kein** Update von Core
+  oder Components nötig – nur bei den eingebauten Codes ist ein Core-Update
+  der Weg.
+- Damit lassen sich auch eingebaute Basis-Sprachen für dieses Projekt
+  **ausblenden** (Admin → Themes → „Sprachen verwalten", z. B. EN/FR, die
+  ein Theme anbietet, hier aber nicht gebraucht werden). Das versteckt nur
+  Auswahl und Sprachumschalter – vorhandene Texte bleiben erhalten und
+  werden nie gelöscht. Beim Anwenden/Speichern eines Themes wird die
+  Auswahl automatisch auf dessen Sprachsatz gebracht (siehe „Themes").
 
 ## Seiteninhalte: Abschnitte (Sections)
 
@@ -81,10 +100,13 @@ mit der Überschrift "SECTIONS".
   `die-praxis`), wird beim Anlegen automatisch vergeben. Lässt sich hier
   umbenennen (nur Kleinbuchstaben, Ziffern, Bindestriche) – Navigationspunkte, die
   auf den alten Anker zeigten, werden dabei automatisch mit umgestellt.
-- **Hintergrund** (oben rechts im Abschnitt): Weiß, Getönt oder Akzent erzwingt
-  eine bestimmte Hintergrundfarbe für diesen Abschnitt; "Automatisch" wechselt
-  stattdessen selbstständig zwischen Weiß/Getönt ab, je nachdem an welcher
-  Position der Abschnitt auf der Seite steht.
+- **Hintergrund** (oben rechts im Abschnitt): Weiß, Getönt, Akzent oder Dunkel
+  erzwingt eine bestimmte Hintergrundfarbe für diesen Abschnitt; "Automatisch"
+  wechselt stattdessen selbstständig zwischen Weiß/Getönt ab, je nachdem an
+  welcher Position der Abschnitt auf der Seite steht. "Dunkel" zeigt den
+  Abschnitt durchgehend auf Primärfarbe mit heller Schrift – passende Bausteine
+  (z. B. Content-Block) blenden ihre Textfarben dann automatisch auf helle
+  Varianten um.
 - **Anker-Gruppe** (oben rechts im Abschnitt): mehrere **direkt aufeinander
   folgende** Abschnitte mit demselben Gruppennamen werden auf der Seite in einem
   gemeinsamen Block zusammengefasst, den man in der Navigation als ein
@@ -104,7 +126,7 @@ Feldliste steht in [`COMPONENTS.md`](COMPONENTS.md):
 | **Content-Block** | Vielseitigster Baustein: 1–3 Spalten Text, Bild neben/unter Text, oder Bild als Hintergrund mit Text darüber. |
 | **News-Raster** | Kacheln mit Datum/Titel/Teaser, Link pro Kachel entweder zu einem anderen Abschnitt oder als Popup mit eigenem, längerem Text. |
 | **Google-Reviews** | Bewertungs-Karussell. Ohne Google-API-Zugang werden die hier eingetragenen "Fallback-Bewertungen" gezeigt. |
-| **Bildgalerie** | Kategorie-Kacheln, die beim Klick einen Bilder-Slider öffnen. |
+| **Bildgalerie** | Bilder direkt nebeneinander im Raster, keine Galerie/Karussell. |
 | **FAQ** | Aufklappbare Frage/Antwort-Liste. |
 | **Kontaktformular** | Formular + automatisch aus Betrieb/Kontaktdaten befüllte Infokarte (Adresse, Telefon, E-Mail, Öffnungszeiten, Karte). |
 | **Cards** | Karten-Raster, pro Karte wahlweise Bild (oben, volle Breite) oder Icon (oben, links/mittig/rechts ausrichtbar), darunter Titel/Untertitel/Text. |
@@ -132,6 +154,13 @@ Platzhaltertext ein) oder die Schreibweise direkt eintippen – beides funktioni
 Eine Leerzeile trennt Absätze. Die `i`-Sprechblase daneben öffnet eine Auswahl, um
 Betriebsdaten als Platzhalter einzufügen (siehe unten).
 
+Das lila **✦**-Symbol (nur bei Textfeldern mit KI-Unterstützung und nur wenn ein
+KI-Zugang eingerichtet ist) schlägt Umformulierungen des Feldtexts vor:
+Anklicken öffnet unter dem Feld mehrere Vorschläge, ein Klick auf einen Vorschlag
+übernimmt ihn in das Feld. Hinterlegt ist ein Sprachmodell, das den Wortlaut
+dieser Website (Marken-/Stil-Vorgaben aus den Stammdaten) mit einbezieht – die
+Vorschläge sind Anregungen, jeder kann einzeln übernommen oder verworfen werden.
+
 ## Bilder einfügen
 
 Bild-Felder zeigen ein kleines Vorschaubild plus drei Buttons:
@@ -140,10 +169,26 @@ Bild-Felder zeigen ein kleines Vorschaubild plus drei Buttons:
 - **Auswählen…** – aus bereits hochgeladenen Bildern wählen (öffnet eine Übersicht).
 - **✕ Entfernen** – Auswahl im Feld leeren (löscht die Datei nicht).
 
+Wo das Schema es vorsieht (z. B. beim Content-Block), zeigt das Bild-Feld
+zusätzlich einen Select **Größe**: **Automatisch** (Standard, Baustein bestimmt
+die Größe), **Klein**, **Mittel** oder **Voll breit**. Klein/Mittel zeigen das
+Bild ohne Zuschnitt in natürlichem Seitenverhältnis (max. 330/520 px hoch).
+
 Unter **Bildverwaltung** liegt der gemeinsame Bild-Pool: alle hochgeladenen Bilder,
 mit Hinweis, wo ein Bild gerade verwendet wird. Ein Bild lässt sich erst löschen,
-wenn es in keinem Abschnitt mehr eingebunden ist. Dort auch: externe Bild-URLs
-(z. B. Unsplash-Links) auf lokale Dateien umbiegen.
+wenn es in keinem Abschnitt mehr eingebunden ist (auch das Logo/Favicon unter
+Stammdaten ist geschützt). Mehrere Bilder auf einmal löschen: per Kästchen oben
+links an jedem lösbaren Bild auswählen („Alle auswählen" markiert alle) und dann
+**Auswahl löschen** klicken – Bilder, die noch verwendet werden, bleiben dabei
+automatisch erhalten und werden in der Meldung aufgezählt. Dort auch: externe
+Bild-URLs (z. B. Unsplash-Links) auf lokale Dateien umbiegen.
+
+Beim Hochladen erzeugt die Seite automatisch kleinere Varianten jedes Bildes
+(480/960/1600/1920 px) und liefert die Live-Seite responsiv darüber aus
+(`srcset` + passende Größe je Gerät statt immer das Original). Bilder, die vor
+dieser Funktion hochgeladen wurden, holt der Button **Thumbnails nachziehen**
+in der Bildverwaltung nach – nur dann wird der Cache der Live-Seite neu
+aufgebaut. Das Original im Pool bleibt in jedem Fall unangetastet.
 
 ## Platzhalter: Betriebsdaten automatisch einfügen
 
@@ -174,7 +219,8 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
 - **Seite**: Titel/Unterzeile/Logo-Text, Kontakt-Leiste oben (Ankündigungstext +
   Link-Beschriftung). Der „Aktiv"/„Inaktiv"-Schalter daneben schaltet die
   Leiste komplett ein oder aus, unabhängig vom Text.
-- **Betrieb / Kontaktdaten**: Name, Inhaber, Adresse, Telefon, E-Mail, USt-IdNr.,
+- **Betrieb / Kontaktdaten**: Name, Inhaber, Adresse, Telefon, Mobiltelefon (optional,
+  zweite Nummer, erscheint zusätzlich in Topbar/Footer), E-Mail, USt-IdNr.,
   Handelsregister, Öffnungszeiten, abweichender Kartensuchbegriff. Wird für
   Kontaktformular-Infokarte, Footer, JSON-LD (Suchmaschinen), Telefon-/Mail-Buttons
   und `{business.*}`-Platzhalter verwendet.
@@ -182,6 +228,19 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   Vorschaubilder bei WhatsApp/Facebook/Linkedin usw.), OG-Bild, Favicon,
   "Von Suchmaschinen ausschließen". Basis-URL steht nur informativ (kommt aus
   `config.json`). Zeichen-Zähler zeigen empfohlene Längen.
+  Darunter stehen zwei Zusatzblöcke:
+  - **Sichtbarkeit & strukturierte Daten**: zeigt, welche Seiten dieser Website
+    aktuell als `sitemap.xml`/`robots.txt` liefert (Links öffnen die Dateien in
+    einem neuen Tab – auf eine "Baustellen"-Website, die von Suchmaschinen
+    ausgeschlossen ist, liefert `robots.txt` nur eine Sperr-Zeile) und welche
+    strukturierten Daten (JSON-LD) sie für Google ausgibt, z. B.
+    „LocalBusiness (Firmendaten)“, „FAQPage (FAQ-Sektion)“, „AggregateRating +
+    Review (Google-Bewertungen)“. Diese Daten werden automatisch aus den
+    vorhandenen Inhalten erzeugt, nicht von Hand gepflegt.
+  - **KI: SEO-Texte generieren**: ein Sprachmodell erstellt auf Grundlage der
+    Abschnitte dieser Website Vorschläge für Seitentitel/-beschreibung, die man
+    mit einem Klick in die SEO-Felder oben übernehmen oder zuerst bearbeiten
+    kann. Nur sichtbar, wenn ein KI-Zugang eingerichtet ist.
 - **Impressum** / **Datenschutz**: zwei eigene Menüpunkte, je mit beliebig vielen
   Textblöcken (wie bei Galerie-Einträgen: „+ Eintrag hinzufügen“, per Ziehen
   sortierbar, einzeln aktivierbar/deaktivierbar/löschbar) – jeder Block mit
@@ -198,9 +257,12 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   deutsche Standardbeschriftung.
 - **Themes**: fertige Theme-Vorlagen (Marken-Farben, Fonts, Header-/Footer-/
   Topbar-/Sticky-Leiste-/Cookie-Banner-Auswahl) als Karten zum Anklicken.
-  „Anwenden" wechselt das komplette Design sofort – keine Vorschau vorher, aber
-  jederzeit auf ein anderes Theme zurückwechselbar. „✕ Löschen" entfernt ein
-  Theme dauerhaft (geht nicht für das gerade aktive).
+  „Anwenden" wechselt das komplette Design (Farben/Fonts/Layout/Sprachen)
+  sofort – keine Vorschau vorher, aber jederzeit auf ein anderes Theme
+  zurückwechselbar. Inhalte und Bilder (Texte, Sektionen) gehören zum
+  **Projekt** und bleiben beim Theme-Wechsel unverändert; ein kompletter
+  Wechsel inkl. Inhalten läuft über „Projekt-Import" (siehe unten). „✕
+  Löschen" entfernt ein Theme dauerhaft (geht nicht für das gerade aktive).
   Jede Karte hat einen „Bearbeiten"-Button, der das Formular „Theme bearbeiten
   oder neu erstellen" darunter mit den Werten dieses Themes befüllt – unter
   demselben Namen speichern ändert das bestehende Theme, ein neuer Name legt ein
@@ -208,11 +270,21 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   um ganz neu zu beginnen: Name vergeben, Header/Footer/Topbar/Sticky-Leiste/
   Cookie-Banner einzeln aus dem vorhandenen Pool wählen, speichern. Im selben
   Formular werden auch die Sprachen für dieses Theme angehakt (Deutsch ist
-  immer aktiv) – siehe „Mehrsprachige Inhalte" oben.
+  immer aktiv) – siehe „Mehrsprachige Inhalte" oben. Beim Anwenden oder
+  Speichern eines Themes gilt sein Sprachsatz vollständig: Basis-Sprachen,
+  die das Theme nicht mitbringt, verschwinden automatisch aus der
+  Admin-Auswahl. Ihr Inhalt wird dabei **nicht** gelöscht, er ist nur
+  verborgen, bis wieder ein Theme mit dieser Sprache aktiv wird.
 - **Sicherung**: frühere Bearbeitungsstände der Textfelder wiederherstellen (Bilder
   bleiben unangetastet) – jeder Speichervorgang legt automatisch einen Eintrag an.
 - **Benutzer verwalten**: Accounts anlegen/Passwort ändern/entfernen, Admin-Rolle
   vergeben. Details: [`ADMIN-USERS.md`](ADMIN-USERS.md).
+- **Übersetzungen**: Text-Bestand einer Sprache als flache JSON-Datei
+  exportieren (eine Zeile je Feld, leere Werte = noch nicht übersetzt), extern
+  übersetzen und wieder importieren – es werden nur die Felder der gewählten
+  Sprache übernommen, vorher legt die Seite automatisch einen Sicherungs-Stand
+  an (siehe „Sicherung"). Details zur Datei-Struktur im Abschnitt
+  „Mehrsprachige Inhalte" oben.
 
 ## Projekte (nur mit Admin-Rolle)
 
@@ -224,6 +296,18 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   zwischenzeitlich geänderte Inhalte/Bilder überschreiben.
 - **Projekt-Import (lokal)**: nur sichtbar, wenn lokale Test-/Kundenprojekte
   vorbereitet sind – Entwickler-Werkzeug, nicht für den täglichen Redaktionsbetrieb.
+- **Theme & Daten als Paket exportieren**: legt `cache/projekt-<zeitstempel>.zip`
+  an (Liste mit Download/Löschen), das Inhalte, Bilder, aktives Theme und die
+  verwendeten Bausteine enthält – bewusst **ohne** `core/` und ohne `.optim`-Bildvarianten.
+- **Projekt-Paket importieren**: nimmt ein solches ZIP entgegen und übernimmt
+  Inhalte/Bilder/Theme in diese Instanz. Die **Admin-Logins dieser Instanz werden
+  dabei geschützt** und bleiben unverändert; der Rest (z. B. Texte der
+  Ziel-Instanz) wird durch den Paketstand ersetzt. Ablehnungen bei manipulierten
+  Pfaden, fehlendem Manifest oder Prüfsummen-Differenz.
+  Export und Import funktionieren in beide Richtungen: eine Instanz kann ihr Paket
+  bauen, das der Generator (oder eine andere Instanz) importiert – und umgekehrt.
+  Voraussetzung auf jeder Instanz ist ein aktuelles Core (siehe System-Updates);
+  ist der Button nicht da, erst das Core-Update einspielen.
 
 ## System-Updates (nur mit Admin-Rolle)
 

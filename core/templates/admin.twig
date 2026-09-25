@@ -15,6 +15,10 @@
     </style>
 </head>
 <body class="bg-[#E7E4DC] font-['IBM_Plex_Sans',sans-serif] text-[#241E18]">
+    {% macro nav_info(tooltip) %}
+    <button type="button" class="flex h-4 w-4 shrink-0 cursor-help items-center justify-center rounded-full border border-[#241E18]/20 bg-[#241E18]/[0.06] text-[9px] font-bold text-[#241E18]/70" data-info-icon>i</button>
+    <span class="pointer-events-none absolute left-0 top-full z-20 mt-1.5 hidden w-64 rounded-lg bg-[#241E18] p-2.5 text-[11px] font-normal normal-case leading-snug tracking-normal text-white shadow-lg" data-info-tooltip>{{ tooltip }}</span>
+    {% endmacro %}
     <header class="sticky top-0 z-20 border-b border-[#241E18]/10 bg-[#FBF8F2]">
         <div class="border-b border-[#241E18]/10 bg-[#241E18]/[0.05]">
             <div class="mx-auto max-w-6xl px-4 py-1.5">
@@ -73,10 +77,13 @@
     </header>
 
     <main class="mx-auto max-w-6xl space-y-8 px-4 py-8 pb-24">
-        {% if flash %}<p class="border border-[#355E4B]/30 bg-[#FBF8F2] px-4 py-3 text-sm">{{ flash }}</p>{% endif %}
+        {% if flash or flash_command %}<p class="border border-[#355E4B]/30 bg-[#FBF8F2] px-4 py-3 text-sm">{{ flash }}{% if flash_command %}<span class="ml-1 inline-flex items-center gap-1 rounded border border-[#355E4B]/30 bg-white px-1.5 py-0.5 align-middle" data-copy-host><code class="font-mono text-xs text-[#355E4B]" data-copy-source>{{ flash_command }}</code><button type="button" data-copy-command title="Befehl in Zwischenablage kopieren" class="inline-flex cursor-pointer items-center text-[#355E4B] transition hover:text-[#2c4f40]"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></button></span>{% endif %}{{ flash_after }}</p>{% endif %}
         {% if update_info %}
         <div class="rounded-xl border border-[#241E18]/5 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] px-4 py-3 text-sm">
             <p>{{ update_info.message }}</p>
+            {% if update_info.notes %}
+            <p class="mt-2 whitespace-pre-line text-[#241E18]/80"><strong>Was ist neu in {{ update_info.latest }}:</strong><br>{{ update_info.notes }}</p>
+            {% endif %}
             {% if update_info.incompatible|default([]) is not empty %}
             <p class="mt-2 text-red-700">⚠ Für Core {{ update_info.latest }} nicht als kompatibel deklariert, vor dem Update prüfen: {{ update_info.incompatible|join(', ') }}.</p>
             {% endif %}
@@ -85,6 +92,9 @@
         {% if components_update_info %}
         <div class="rounded-xl border border-[#241E18]/5 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] px-4 py-3 text-sm">
             <p>{{ components_update_info.message }}</p>
+            {% if components_update_info.notes %}
+            <p class="mt-2 whitespace-pre-line text-[#241E18]/80"><strong>Was ist neu in {{ components_update_info.latest }}:</strong><br>{{ components_update_info.notes }}</p>
+            {% endif %}
         </div>
         {% endif %}
 
@@ -99,6 +109,14 @@
                                 {% if s.type == section.type %}{% set schema = s %}{% endif %}
                             {% endfor %}
                             {% if schema %}
+                            {% set sectionTip = ({
+                                'hero-slider': 'Startbereich mit großem Bild(ern) und Willkommens-Text auf der Startseite.',
+                                'content-block': 'Frei gestaltbarer Text-Baustein mit optionalen Bildern, Buttons und Icons.',
+                                'image-gallery': 'Bildergalerie (Portfolio/Vergleiche) mit Kategorien, Bildtexten und Lightbox.',
+                                'price-list': 'Preisliste für Behandlungen – Kategorien mit Einträgen, Preisen und Dauern.',
+                                'contact-form': 'Kontaktformular – Anfragen werden verschickt; Empfänger/Einstellungen liegen in der Sektion.',
+                                'produkte': 'Produkte/Artikel als Liste mit Bildern, Preisen und optionalen Buttons.'
+                            })[section.type] ?? 'Inhalt dieser Sektion bearbeiten (Texte, Bilder, Einstellungen).' %}
                             <div class="flex items-center gap-1" data-section-item data-section-id="{{ section.id }}">
                                 {% if current_is_admin %}
                                 <span class="flex h-6 w-5 shrink-0 cursor-grab select-none items-center justify-center rounded border border-[#241E18]/25 bg-[#E7E1D3] text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B] active:cursor-grabbing" draggable="true" data-drag-handle-section title="Ziehen zum Sortieren">
@@ -116,7 +134,8 @@
                                     <button class="flex h-3 w-4 cursor-pointer items-center justify-center rounded-b border border-[#241E18]/25 bg-[#E7E1D3] text-[8px] leading-none text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B]" type="button" data-move-section="down" title="Nach unten">▼</button>
                                 </div>
                                 {% endif %}
-                                <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-{{ section.id }}">{{ section.label|default(schema.label|default(section.type)) }}</a>
+                                {{ _self.nav_info(sectionTip) }}
+                                <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-{{ section.id }}">{{ section.label|localized(current_lang, languages)|default(schema.label|default(section.type)) }}</a>
                             </div>
                             {% endif %}
                         {% endfor %}
@@ -138,28 +157,75 @@
 
                 <div class="border-t border-[#241E18]/10 p-3">
                     <h2 class="mb-1 text-xs font-semibold uppercase tracking-wide text-[#B87333]">Stammdaten</h2>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-site">Seite</a>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-business">Betrieb / Kontaktdaten</a>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-seo">SEO / Meta-Daten</a>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-impressum">Impressum</a>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-datenschutz">Datenschutz</a>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-images">Bildverwaltung</a>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-site">Seite</a>
+                        {{ _self.nav_info('Titel, Logo, Sprache und Grunddaten der Seite – erscheinen im Browser-Tab und in der Suche.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-business">Betrieb / Kontaktdaten</a>
+                        {{ _self.nav_info('Anschrift, Öffnungszeiten, Telefon, E-Mail, USt-/Registerdaten – Grundlage für Footer und Kontakt-Karten.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-seo">SEO / Meta-Daten</a>
+                        {{ _self.nav_info('Meta-Titel, Meta-Beschreibung und Social-Media-Texte für Suchmaschinen und Link-Vorschauen.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-impressum">Impressum</a>
+                        {{ _self.nav_info('Pflichtangaben zur Anbieterkennzeichnung – rechtlich verantwortlich für den Seiteninhalt.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-datenschutz">Datenschutz</a>
+                        {{ _self.nav_info('Datenschutzerklärung – Inhalt frei gestaltbar, wird über den gleichnamigen Menüpunkt angezeigt.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-images">Bildverwaltung</a>
+                        {{ _self.nav_info('Bilder hochladen, löschen und Varianten nachziehen – Sektionen greifen über den Bild-Picker hierauf zu.') }}
+                    </div>
                 </div>
 
                 {% if current_is_admin %}
                 <div class="border-t border-[#241E18]/10 p-3">
                     <h2 class="mb-1 text-xs font-semibold uppercase tracking-wide text-[#B87333]">Admin</h2>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-nav">Navigation</a>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-labels">Beschriftungen</a>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-theme">Themes</a>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-history">Sicherung</a>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-users">Benutzer verwalten</a>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-nav">Navigation</a>
+                        {{ _self.nav_info('Menüpunkte der Seiten-Navigation: Anker auf Sektionen oder externe Links, Reihenfolge und Sichtbarkeit.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-labels">Beschriftungen</a>
+                        {{ _self.nav_info('Template-Beschriftungen (Buttons, Menü- und Rechts-Labels) anpassen, wenn die Standardtexte nicht passen.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-theme">Themes</a>
+                        {{ _self.nav_info('Design/Look festlegen: aktives Theme wählen, Farben &amp; Layout anpassen, Theme erstellen oder duplizieren.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-history">Sicherung</a>
+                        {{ _self.nav_info('Verlauf der letzten Änderungen (bis 3 Stände), Bearbeitungsstand wiederherstellen, auf Import-Stand zurücksetzen.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-users">Benutzer verwalten</a>
+                        {{ _self.nav_info('Redakteur-/Admin-Accounts anlegen, Passwörter ändern und Benutzer entfernen.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-translations">Übersetzungen</a>
+                        {{ _self.nav_info('Text-Bestand einer Sprache als flache Datei exportieren, extern übersetzen und wieder importieren – es werden nur die Felder der gewählten Sprache übernommen.') }}
+                    </div>
                 </div>
                 <div class="border-t border-[#241E18]/10 p-3">
                     <h2 class="mb-1 text-xs font-semibold uppercase tracking-wide text-[#B87333]">Projekte</h2>
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-export-instance">{{ has_dev_tools ? 'Projekt-Instanz erstellen' : 'Projekt-Instanz-Snapshot erstellen' }}</a>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-export-instance">{{ has_dev_tools ? 'Projekt-Instanz erstellen' : 'Projekt-Instanz-Snapshot erstellen' }}</a>
+                        {{ _self.nav_info('Aktuellen Stand als eigenständige, deploybare Instanz nach project-instances/ exportieren – optional mit Git-Workflow (main/develop/staging).') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-import-project">Projekt-Paket importieren</a>
+                        {{ _self.nav_info('Komplettes Projekt (Theme, Components, Inhalte, Bilder) aus einem ZIP-Paket einspielen.') }}
+                    </div>
                     {% if dev_imports is not empty %}
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-dev-import">Projekt-Import (lokal)</a>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-dev-import">Projekt-Import (lokal)</a>
+                        {{ _self.nav_info('dev-imports/-Snapshots übernehmen (auch das aktive Projekt neu einspielen) oder den aktuellen Stand lokal exportieren – nur auf dieser Maschine.') }}
+                    </div>
                     {% endif %}
                 </div>
                 <div class="border-t border-[#241E18]/10 p-3">
@@ -172,34 +238,66 @@
                     </div>
                     <p class="mt-1 px-3 text-[10px] font-semibold uppercase tracking-wide text-[#241E18]/35">Core</p>
                     {% if has_dev_tools %}
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-update-package">Update-Paket erstellen</a>
+                    <div class="flex items-center gap-1">
+                        {% if core_update_pending %}
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-update-package">Update-Paket erstellen</a>
+                        {{ _self.nav_info('Entwickler-Werkzeug: zählt core/version.json hoch und packt core/ als Update-Paket nach cache/ – nur aktiv, wenn ein Update wirklich offen ist (core/ weicht vom Stand des letzten Pakets ab bzw. wurde noch nie verpackt).') }}
+                        {% else %}
+                        <span class="flex flex-1 cursor-not-allowed items-center truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/30" title="Kein Update offen: core/ entspricht dem Stand des letzten Update-Pakets. Änderungen an core/ schalten diese Option wieder frei.">Update-Paket erstellen</span>
+                        {{ _self.nav_info('Inaktiv: kein Update offen – core/ entspricht dem Stand des letzten Update-Pakets. Erst nach Änderungen an core/ (oder wenn noch nie ein Paket gebaut wurde) wird „Update-Paket erstellen“ wieder aktiv.') }}
+                        {% endif %}
+                    </div>
                     {% endif %}
                     {% set updateReady = (config.update.manifest_url|default(''))|trim is not empty %}
-                    <form method="post">
+                    <div class="flex items-center gap-1">
+                    <form class="flex-1" method="post">
                         <input type="hidden" name="csrf" value="{{ csrf }}">
                         <input type="hidden" name="do" value="check-update">
                         <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if updateReady %}cursor-pointer text-[#241E18]/70 hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not updateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt"{% endif %}>Update prüfen</button>
                     </form>
-                    <form method="post">
+                    {{ _self.nav_info('Prüft über die Manifest-URL in data/config.json, ob eine neuere Core-Version verfügbar ist.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                    <form class="flex-1" method="post">
                         <input type="hidden" name="csrf" value="{{ csrf }}">
                         <input type="hidden" name="do" value="update">
                         <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if updateReady %}cursor-pointer text-[#B87333] hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not updateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt"{% endif %}>Core aktualisieren</button>
                     </form>
+                    {{ _self.nav_info('Installiert die neueste Core-Version – nur Code wird ausgetauscht, deine Inhalte bleiben unberührt.') }}
+                    </div>
                     <p class="mt-3 border-t border-[#241E18]/10 px-3 pt-3 text-[10px] font-semibold uppercase tracking-wide text-[#241E18]/35">Components</p>
                     {% if has_dev_tools %}
-                    <a class="section-nav-link transition-colors block rounded-lg px-3 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-components-update">Components-Update-Paket erstellen</a>
+                    <div class="flex items-center gap-1">
+                        {% if components_update_pending %}
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-components-update">Components-Update-Paket erstellen</a>
+                        {{ _self.nav_info('Entwickler-Werkzeug: zählt components/version.json hoch und packt den gesamten Components-Pool nach cache/ – nur aktiv, wenn ein Update wirklich offen ist (Components weichen vom Stand des letzten Pakets ab bzw. wurde noch nie verpackt).') }}
+                        {% else %}
+                        <span class="flex flex-1 cursor-not-allowed items-center truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/30" title="Kein Update offen: Components entsprechen dem Stand des letzten Update-Pakets. Änderungen schalten diese Option wieder frei.">Components-Update-Paket erstellen</span>
+                        {{ _self.nav_info('Inaktiv: kein Update offen – Components entsprechen dem Stand des letzten Update-Pakets. Erst nach Änderungen (oder wenn noch nie ein Paket gebaut wurde) wird „Components-Update-Paket erstellen“ wieder aktiv.') }}
+                        {% endif %}
+                    </div>
                     {% endif %}
                     {% set componentsUpdateReady = (config.update.components_manifest_url|default(''))|trim is not empty %}
-                    <form method="post">
+                    <div class="flex items-center gap-1">
+                    <form class="flex-1" method="post">
                         <input type="hidden" name="csrf" value="{{ csrf }}">
                         <input type="hidden" name="do" value="check-components-update">
                         <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if componentsUpdateReady %}cursor-pointer text-[#241E18]/70 hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not componentsUpdateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt (update.components_manifest_url)"{% endif %}>Components prüfen</button>
                     </form>
-                    <form method="post">
+                    {{ _self.nav_info('Prüft über update.components_manifest_url, ob eine neuere Components-Version verfügbar ist.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                    <form class="flex-1" method="post">
                         <input type="hidden" name="csrf" value="{{ csrf }}">
                         <input type="hidden" name="do" value="components-update">
                         <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if componentsUpdateReady %}cursor-pointer text-[#B87333] hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not componentsUpdateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt (update.components_manifest_url)"{% endif %}>Components aktualisieren</button>
                     </form>
+                    {{ _self.nav_info('Installiert die neueste Components-Version – nur Code wird ausgetauscht, deine Inhalte bleiben unberührt.') }}
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-changelog">Änderungen – Was ist neu</a>
+                        {{ _self.nav_info('Changelog der installierten Core- und Components-Version – wird mit jedem Update-Paket als CHANGELOG.md mitgeliefert.') }}
+                    </div>
                 </div>
                 {% endif %}
             </nav>
@@ -273,6 +371,7 @@
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             {% include 'admin-field.twig' with {field: {name: 'phone', type: 'text', label: 'Telefon'}, value: content.business.phone|default(''), prefix: 'business'} %}
+                            {% include 'admin-field.twig' with {field: {name: 'mobile', type: 'text', label: 'Mobiltelefon (optional)'}, value: content.business.mobile|default(''), prefix: 'business'} %}
                             {% include 'admin-field.twig' with {field: {name: 'email', type: 'text', label: 'E-Mail'}, value: content.business.email|default(''), prefix: 'business'} %}
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -315,6 +414,34 @@
                             <input type="checkbox" name="seo[robots_noindex]" value="1" {% if content.seo.robots_noindex|default(false) %}checked{% endif %} class="h-4 w-4 rounded border-[#241E18]/30 text-[#355E4B] focus:ring-[#355E4B]/30">
                             Von Suchmaschinen ausschließen (noindex) – z. B. für Staging/Testbetrieb
                         </label>
+
+                        <div class="border-t border-[#241E18]/10 pt-3">
+                            <p class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Sichtbarkeit &amp; strukturierte Daten</p>
+                            <ul class="mt-1 space-y-1 text-sm text-[#241E18]/80">
+                                <li class="flex items-center gap-2"><span class="w-24 text-xs text-[#241E18]/40">sitemap.xml</span><a class="underline underline-offset-2" href="#" data-open-special="sitemap.xml">ansehen / prüfen</a></li>
+                                <li class="flex items-center gap-2"><span class="w-24 text-xs text-[#241E18]/40">robots.txt</span><a class="underline underline-offset-2" href="#" data-open-special="robots.txt">ansehen / prüfen</a></li>
+                            </ul>
+                            <p class="mt-1 text-xs text-[#241E18]/40">Wird automatisch mitgeliefert. Für Suchmaschinen belastbare absolute URLs in der sitemap braucht es die Basis-URL oben.</p>
+                            <ul class="mt-2 space-y-1">
+                                {% for schema in seo_schemas %}
+                                <li class="flex items-center gap-1.5 text-xs {% if schema.active %}text-[#355E4B]{% else %}text-[#241E18]/35{% endif %}" {% if not schema.active %}title="Sektion fehlt oder ist noch ohne Inhalt"{% endif %}>
+                                    <span class="inline-block h-1.5 w-1.5 rounded-full {{ schema.active ? 'bg-[#355E4B]' : 'bg-[#241E18]/25' }}"></span>
+                                    {{ schema.label }} <span class="text-[#241E18]/35">({{ schema.active ? 'aktiv' : 'inaktiv' }})</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+
+                        <div class="border-t border-[#241E18]/10 pt-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">KI: SEO-Texte generieren</p>
+                                {% if ai_available %}
+                                <button type="button" data-ai-seo class="h-8 cursor-pointer rounded-lg border border-[#6D4AA3]/40 px-3 text-xs font-semibold text-[#6D4AA3] transition hover:bg-[#6D4AA3]/5" title="Aus Firmenname, Seitentitel und Sektionen Titel &amp; Beschreibung generieren">Titel &amp; Beschreibung generieren</button>
+                                {% endif %}
+                            </div>
+                            <div data-ai-seo-results></div>
+                            <p class="mt-1 text-xs text-[#241E18]/40">Erfordert API-Key in <code>config.json → apis.openai.api_key</code>. Damit aktivierst du auch die <span class="text-[#6D4AA3]">✦</span>-KI-Buttons an den Textfeldern der Sektionen.</p>
+                        </div>
                     </section>
 
                     {% if current_is_admin %}
@@ -454,13 +581,16 @@
                         {% if schema %}
                         <article id="panel-{{ section.id }}" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-{{ section.id }}" hidden>
                             <div class="flex flex-wrap items-center gap-3">
-                                <h2 class="font-['Commissioner',sans-serif] text-base font-semibold tracking-tight">{{ section.label|default(schema.label|default(section.type)) }}</h2>
+                                <h2 class="font-['Commissioner',sans-serif] text-base font-semibold tracking-tight">{{ section.label|localized(current_lang, languages)|default(schema.label|default(section.type)) }}</h2>
                                 {% if current_is_admin %}
-                                <button class="h-7 cursor-pointer rounded-lg border border-red-800/40 transition hover:border-red-800 hover:bg-red-800 hover:text-white px-2 text-xs text-red-800" type="submit" form="delete-{{ section.id }}">{{ section.label|default(schema.label|default(section.type)) }} löschen</button>
+                                <button class="h-7 cursor-pointer rounded-lg border border-red-800/40 transition hover:border-red-800 hover:bg-red-800 hover:text-white px-2 text-xs text-red-800" type="submit" form="delete-{{ section.id }}">{{ section.label|localized(current_lang, languages)|default(schema.label|default(section.type)) }} löschen</button>
                                 {% endif %}
                                 <label class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40" title="Eigener Name für diese Section in der linken Navigation (optional, sonst Komponenten-Name).">
                                     Bezeichnung
-                                    <input class="h-8 w-40 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-xs font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="sections[{{ section.id }}][label]" value="{{ section.label|default('') }}" placeholder="optional">
+                                    {% set labelMap = section.label is iterable ? section.label : {(languages|default(['de'])|first): section.label|default('')} %}
+                                    {% for lang in (languages is defined and languages|length > 1 ? languages : [languages|default(['de'])|first]) %}
+                                    <input class="h-8 w-40 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-xs font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10 {% if not loop.first %}hidden{% endif %}" data-lang-panel="{{ lang }}" name="sections[{{ section.id }}][label][{{ lang }}]" value="{{ attribute(labelMap, lang)|default(attribute(labelMap, languages|default(['de'])|first)|default('')) }}" placeholder="optional">
+                                    {% endfor %}
                                 </label>
                                 <label class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40" title="Technischer Anker für Links (#anker), z. B. in der Navigation. Nur Kleinbuchstaben, Ziffern, Bindestriche - Umbenennen zieht passende Nav-Links automatisch mit.">
                                     Anker
@@ -469,7 +599,7 @@
                                 <label class="ml-auto flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40" title="Hintergrund dieser Section (oder – bei Anker-Gruppe – des ganzen Blocks). „Automatisch“ wechselt weiß/getönt je nach Position auf der Seite ab.">
                                     Hintergrund
                                     <select class="h-8 w-32 cursor-pointer rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-xs font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="sections[{{ section.id }}][background]">
-                                        {% for value, label in {auto: 'Automatisch', white: 'Weiß', tint: 'Getönt', accent: 'Akzent'} %}
+                                        {% for value, label in {auto: 'Automatisch', white: 'Weiß', tint: 'Getönt', accent: 'Akzent', dark: 'Dunkel'} %}
                                         <option value="{{ value }}" {% if (section.background|default('auto')) == value %}selected{% endif %}>{{ label }}</option>
                                         {% endfor %}
                                     </select>
@@ -502,7 +632,7 @@
                     {% for s in schemas %}
                         {% if s.type == section.type %}{% set schema = s %}{% endif %}
                     {% endfor %}
-                <form id="delete-{{ section.id }}" method="post" data-confirm="„{{ section.label|default(schema.label|default(section.type)) }}“ wirklich löschen?">
+                <form id="delete-{{ section.id }}" method="post" data-confirm="„{{ section.label|localized(current_lang, languages)|default(schema.label|default(section.type)) }}“ wirklich löschen?">
                     <input type="hidden" name="csrf" value="{{ csrf }}">
                     <input type="hidden" name="do" value="delete">
                     <input type="hidden" name="id" value="{{ section.id }}">
@@ -606,6 +736,57 @@
                             <button class="h-11 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2c4f40] hover:shadow-md active:translate-y-px" type="submit">Theme speichern &amp; aktivieren</button>
                         </form>
                     </div>
+
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <h3 class="font-['Commissioner',sans-serif] text-base font-semibold tracking-tight">Sprachen verwalten</h3>
+                        <p class="mt-1 text-xs text-[#241E18]/40">Deutsch ist immer aktiv. Eigene Sprachen anlegen, nicht benötigte Basis-Sprachen ausblenden. Entfernen/Ausblenden löscht nur die Verfügbarkeit – Texte im Inhalt bleiben erhalten und fallen auf Deutsch zurück. Neue Sprachen erscheinen oben zur Aktivierung und im „Übersetzungen“-Panel zum Export/Upload.</p>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            {% set removableLanguages = available_languages|default({}) %}
+                            {% if removableLanguages|length <= 1 %}
+                            <p class="text-xs text-[#241E18]/40">Nur Deutsch verfügbar – weitere per Formular unten anlegen oder ausgeblendete unten wieder einblenden.</p>
+                            {% endif %}
+                            {% for code, label in removableLanguages %}
+                            {% if code != 'de' %}
+                            <span class="inline-flex items-center gap-1.5 rounded-lg border border-[#241E18]/15 bg-white px-2.5 py-1.5 text-xs" title="Aktuell verfügbar">{{ label }} <span class="text-[#241E18]/40">({{ code }})</span>
+                                <form method="post" data-confirm="Sprache „{{ code }}“ entfernen? Texte im Inhalt bleiben erhalten und fallen auf Deutsch zurück.">
+                                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                                    <input type="hidden" name="do" value="language-remove">
+                                    <input type="hidden" name="lang_code" value="{{ code }}">
+                                    <button class="flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-red-800/30 text-red-700 transition hover:border-red-800 hover:bg-red-800 hover:text-white" type="submit" title="Sprache entfernen">✕</button>
+                                </form>
+                            </span>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% if disabled_languages|default({}) is not empty %}
+                        <div class="mt-3">
+                            <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Ausgeblendet</p>
+                            <div class="mt-1.5 flex flex-wrap gap-2">
+                                {% for code, label in disabled_languages %}
+                                <span class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[#241E18]/25 bg-[#241E18]/[0.03] px-2.5 py-1.5 text-xs text-[#241E18]/60">{{ label }} <span class="text-[#241E18]/40">({{ code }})</span>
+                                    <form method="post">
+                                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                                        <input type="hidden" name="do" value="language-enable">
+                                        <input type="hidden" name="lang_code" value="{{ code }}">
+                                        <button class="flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-[#355E4B]/30 text-[#355E4B] transition hover:bg-[#355E4B] hover:text-white" type="submit" title="Sprache wieder verfügbar machen">+</button>
+                                    </form>
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        <form class="mt-3 flex flex-wrap items-end gap-3" method="post">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="language-add">
+                            <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Code
+                                <input class="mt-1 block h-10 w-24 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="lang_code" placeholder="pl" pattern="[a-z]{2,3}" required title="2–3 Kleinbuchstaben, z. B. pl für Polnisch">
+                            </label>
+                            <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Anzeigename (optional)
+                                <input class="mt-1 block h-10 w-40 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="lang_label" placeholder="Polnisch">
+                            </label>
+                            <button class="h-10 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2c4f40] hover:shadow-md active:translate-y-px" type="submit">Sprache anlegen</button>
+                        </form>
+                    </div>
                 </section>
 
                 {% if has_dev_tools %}
@@ -615,13 +796,16 @@
 
                     <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
                         <p class="font-semibold text-[#241E18]">Aktuelle Version: {{ version }}</p>
+                        {% if not core_update_pending %}
+                        <p class="mt-1 text-xs text-[#241E18]/40">Kein Update offen – core/ entspricht dem Stand des letzten Update-Pakets.</p>
+                        {% endif %}
                         <form class="mt-3 flex flex-wrap items-end gap-3" method="post">
                             <input type="hidden" name="csrf" value="{{ csrf }}">
                             <input type="hidden" name="do" value="build-update-package">
                             <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Neue Version
-                                <input class="mt-1 block h-10 w-36 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="version" placeholder="z. B. 1.1.0" pattern="\d+\.\d+\.\d+" required>
+                                <input class="mt-1 block h-10 w-36 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="version" placeholder="z. B. 1.1.0" pattern="\d+\.\d+\.\d+" required {% if not core_update_pending %}disabled{% endif %}>
                             </label>
-                            <button class="h-10 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Paket erstellen</button>
+                            <button class="h-10 rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition {% if core_update_pending %}cursor-pointer hover:brightness-110{% else %}cursor-not-allowed opacity-40{% endif %}" type="submit" {% if not core_update_pending %}disabled title="Kein Update offen: core/ entspricht dem Stand des letzten Update-Pakets."{% endif %}>Paket erstellen</button>
                         </form>
                     </div>
 
@@ -644,6 +828,12 @@
                             <label class="mt-3 block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Manifest (zip_url nach dem Hochladen ersetzen)
                                 <textarea class="mt-1.5 h-24 w-full rounded-lg border border-[#241E18]/10 bg-[#241E18]/[0.03] px-2.5 py-2 font-mono text-xs text-[#241E18]/80 outline-none focus:border-[#355E4B]/30" readonly onclick="this.select()">{{ pkg.manifest }}</textarea>
                             </label>
+                            <label class="mt-3 block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Release-Build-Befehl (in der Generator-Repo-Wurzel ausführen, um das ZIP als GitHub-Release zu veröffentlichen)
+                                <div class="mt-1.5 flex items-stretch gap-1.5" data-copy-host>
+                                    <code class="flex-1 select-all break-all rounded-lg border border-[#241E18]/10 bg-[#241E18]/[0.03] px-2.5 py-2 font-mono text-xs text-[#241E18]/80" data-copy-source>php dev/build-release.php {{ pkg.version }} --repo ludwigmair/onepage-cms-releases</code>
+                                    <button type="button" data-copy-command title="In Zwischenablage kopieren" class="shrink-0 cursor-pointer rounded-lg border border-[#355E4B]/30 px-2.5 text-xs font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5">Kopieren</button>
+                                </div>
+                            </label>
                         </div>
                         {% endfor %}
                     </div>
@@ -658,13 +848,16 @@
 
                     <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
                         <p class="font-semibold text-[#241E18]">Aktuelle Version: {{ components_version }}</p>
+                        {% if not components_update_pending %}
+                        <p class="mt-1 text-xs text-[#241E18]/40">Kein Update offen – Components entsprechen dem Stand des letzten Update-Pakets.</p>
+                        {% endif %}
                         <form class="mt-3 flex flex-wrap items-end gap-3" method="post">
                             <input type="hidden" name="csrf" value="{{ csrf }}">
                             <input type="hidden" name="do" value="build-components-update-package">
                             <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Neue Version
-                                <input class="mt-1 block h-10 w-36 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="version" placeholder="z. B. 1.1.0" pattern="\d+\.\d+\.\d+" required>
+                                <input class="mt-1 block h-10 w-36 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="version" placeholder="z. B. 1.1.0" pattern="\d+\.\d+\.\d+" required {% if not components_update_pending %}disabled{% endif %}>
                             </label>
-                            <button class="h-10 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Paket erstellen</button>
+                            <button class="h-10 rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition {% if components_update_pending %}cursor-pointer hover:brightness-110{% else %}cursor-not-allowed opacity-40{% endif %}" type="submit" {% if not components_update_pending %}disabled title="Kein Update offen: Components entsprechen dem Stand des letzten Update-Pakets."{% endif %}>Paket erstellen</button>
                         </form>
                     </div>
 
@@ -687,9 +880,42 @@
                             <label class="mt-3 block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Manifest (zip_url nach dem Hochladen ersetzen)
                                 <textarea class="mt-1.5 h-24 w-full rounded-lg border border-[#241E18]/10 bg-[#241E18]/[0.03] px-2.5 py-2 font-mono text-xs text-[#241E18]/80 outline-none focus:border-[#355E4B]/30" readonly onclick="this.select()">{{ pkg.manifest }}</textarea>
                             </label>
+                            <label class="mt-3 block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Release-Build-Befehl (in der Generator-Repo-Wurzel ausführen, um das ZIP als GitHub-Release zu veröffentlichen)
+                                <div class="mt-1.5 flex items-stretch gap-1.5" data-copy-host>
+                                    <code class="flex-1 select-all break-all rounded-lg border border-[#241E18]/10 bg-[#241E18]/[0.03] px-2.5 py-2 font-mono text-xs text-[#241E18]/80" data-copy-source>php dev/build-release.php {{ pkg.version }} --repo ludwigmair/onepage-cms-components-releases --target components</code>
+                                    <button type="button" data-copy-command title="In Zwischenablage kopieren" class="shrink-0 cursor-pointer rounded-lg border border-[#355E4B]/30 px-2.5 text-xs font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5">Kopieren</button>
+                                </div>
+                            </label>
                         </div>
                         {% endfor %}
                     </div>
+                    {% endif %}
+                </section>
+                {% endif %}
+
+                {% if current_is_admin %}
+                <section id="panel-changelog" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-changelog" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Änderungen</h2>
+                    <p class="text-xs text-[#241E18]/40">Was sich in der installierten Version geändert hat – kommt mit jedem Update-Paket als <code>CHANGELOG.md</code> mit (Core &amp; Components).</p>
+                    {% if core_changelog.html|default('') is not empty or components_changelog.html|default('') is not empty %}
+                    {% set updDetails = {
+                        'Core': core_changelog,
+                        'Components': components_changelog
+                    } %}
+                    {% for label, changelog in updDetails %}
+                    {% if changelog.html|default('') is not empty %}
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <details class="group" open>
+                            <summary class="flex cursor-pointer list-none items-center justify-between gap-2 font-['Commissioner',sans-serif] text-sm font-semibold tracking-tight text-[#241E18]">{{ label }} {{ changelog.version }} – Was ist neu?
+                                <svg class="h-3 w-3 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </summary>
+                            <div class="mt-3 space-y-3 border-t border-[#241E18]/10 pt-3 text-sm leading-relaxed text-[#241E18]/80">{{ changelog.html|raw }}</div>
+                        </details>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% else %}
+                    <p class="rounded-xl border border-[#241E18]/10 bg-white p-4 text-xs text-[#241E18]/40">Noch kein Changelog – wird ab dem nächsten Update-Paket mitgeliefert.</p>
                     {% endif %}
                 </section>
                 {% endif %}
@@ -719,6 +945,115 @@
                             {% endif %}
                         </form>
                         <p class="mt-2 text-[11px] text-[#241E18]/40">Landet unter <code>project-instances/&lt;Ordnername&gt;/</code>, direkt neben diesem Projekt – nie in <code>web/</code>. Danach dort ggf. noch <code>composer install</code> ausführen und eigene Admin-Zugänge in <code>data/config.json</code> setzen.</p>
+                    </div>
+
+                    {% if has_dev_tools and dev_instances is not empty %}
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <p class="font-semibold text-[#241E18]">Instanz angleichen (sync)</p>
+                        <p class="mt-1 text-xs text-[#241E18]/50">Überträgt den aktuellen Stand (Inhalte, Einstellungen, Bilder, aktives Theme <strong>{{ active_theme|default('–') }}</strong> und verwendete Components) in eine registrierte Instanz aus <code>dev/instances.conf</code> – <code>core/</code>, <code>vendor/</code> und damit verbundene Eigenheiten der Ziel-Instanz bleiben unangetastet, deren Page-Cache wird geleert. Gut, um z. B. ein Staging stets auf dem aktuellen Generator-Stand zu halten.</p>
+                        <div class="mt-3 space-y-2">
+                            {% for instance in dev_instances %}
+                            <form class="flex flex-wrap items-center gap-3 rounded-lg border border-[#241E18]/10 bg-[#241E18]/[0.02] px-3 py-2" method="post"
+                                data-confirm="Instanz „{{ instance.name }}“ (Port {{ instance.port }}) auf den aktuellen Generator-Stand angleichen? Kopiert data (inkl. config.json), uploads/ und das aktive Theme in {{ instance.path }} – Dateien dort werden überschrieben."
+                                data-confirm-title="Instanz angleichen?"
+                                data-confirm-action="Angleichen"
+                                data-confirm-variant="primary">
+                                <input type="hidden" name="csrf" value="{{ csrf }}">
+                                <input type="hidden" name="do" value="instance-sync">
+                                <input type="hidden" name="instance" value="{{ instance.name }}">
+                                <span class="flex min-w-0 flex-1 flex-col">
+                                    <span class="font-semibold text-[#241E18]">{{ instance.name }} <span class="text-[11px] font-normal text-[#241E18]/40">Port {{ instance.port }}</span></span>
+                                    <span class="truncate text-[11px] text-[#241E18]/50">{{ instance.path }}{% if not instance.exists %} <span class="text-red-500">(Ordner fehlt)</span>{% endif %}</span>
+                                </span>
+                                <button class="h-9 cursor-pointer rounded-lg bg-[#B87333] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit" {% if not instance.exists %}disabled title="Ziel-Ordner existiert nicht"{% endif %}>Angleichen</button>
+                            </form>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <p class="font-semibold text-[#241E18]">Theme &amp; Daten als Paket exportieren</p>
+                        <p class="mt-1 text-xs text-[#241E18]/50">Zippt den aktuellen Stand (Inhalte, Einstellungen, Bilder, aktives Theme <strong>{{ active_theme|default('–') }}</strong> und verwendete Components) samt Prüfsummen-Manifest nach <code>cache/</code> – als transportables Gegenstück zum Sync, z. B. für Instanzen außerhalb dieses Rechners. In der Ziel-Instanz einfach unter „Projekt-Paket importieren“ hochladen.</p>
+                        <form class="mt-3 flex flex-wrap items-center gap-3" method="post">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="build-project-package">
+                            <button class="h-10 cursor-pointer rounded-lg bg-[#B87333] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Paket erstellen</button>
+                        </form>
+                        {% if project_packages is not empty %}
+                        <div class="mt-3 space-y-2">
+                            {% for pkg in project_packages %}
+                            <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#241E18]/10 bg-[#241E18]/[0.02] px-3 py-2">
+                                <span class="min-w-0 flex flex-col">
+                                    <span class="font-semibold text-[#241E18]">{{ pkg.file }}</span>
+                                    <span class="text-[11px] text-[#241E18]/50">{{ pkg.created }} · {{ (pkg.size / 1024)|round(1) }} KB{% if pkg.theme %} · Theme {{ pkg.theme }}{% endif %}</span>
+                                </span>
+                                <span class="flex items-center gap-2">
+                                    <a class="h-8 inline-flex cursor-pointer items-center rounded-lg border border-[#355E4B]/30 px-3 text-xs font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5" href="?admin=1&amp;do=download-project-package&amp;file={{ pkg.file }}">Herunterladen</a>
+                                    <form method="post" data-confirm="Paket „{{ pkg.file }}“ wirklich aus cache/ löschen?">
+                                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                                        <input type="hidden" name="do" value="delete-project-package">
+                                        <input type="hidden" name="file" value="{{ pkg.file }}">
+                                        <button class="h-8 cursor-pointer rounded-lg border border-red-800/30 px-3 text-xs font-semibold text-red-800 transition hover:bg-red-800/5" type="submit">Löschen</button>
+                                    </form>
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </section>
+
+                <section id="panel-import-project" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-import-project" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Projekt-Paket importieren</h2>
+                    <p class="text-xs text-[#241E18]/40">Spielt ein vom Generator erstelltes „Theme-&amp;-Daten-Paket“ (projekt-*.zip) in diese Instanz ein: <code>data/content.json</code> + <code>config.json</code>, <code>uploads/</code> und das dazugehörige Theme samt verwendeter Components. <code>core/</code> und <code>vendor/</code> bleiben unangetastet, die Admin-Logins dieser Instanz werden bewusst <strong>nicht</strong> überschrieben, der Page-Cache wird geleert.</p>
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <form class="flex flex-wrap items-end gap-3" method="post" enctype="multipart/form-data"
+                            data-confirm="Projekt-Paket wirklich importieren? Bestehende Inhalte, Einstellungen und Bilder dieser Instanz werden überschrieben (Admin-Logins bleiben erhalten).">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="import-project-package">
+                            <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Paket-Datei (.zip)
+                                <input class="mt-1 block h-10 w-72 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="file" name="package" accept=".zip,application/zip" required>
+                            </label>
+                            <button class="h-10 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Importieren</button>
+                        </form>
+                    </div>
+                </section>
+
+                <section id="panel-translations" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-translations" hidden>
+                    <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Übersetzungen</h2>
+                    <p class="text-xs text-[#241E18]/40">Den gesamten Text-Bestand einer Sprache als flache <code>JSON</code>-Datei exportieren (eine Zeile je übersetzbarem Feld, leere Werte = noch nicht übersetzt), extern übersetzen und die Datei hier wieder hochladen. Es werden nur die Felder der gewählten Sprache übernommen – die Struktur des Inhalts bleibt unangetastet, davor wird automatisch ein Sicherungs-Stand angelegt.</p>
+
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <p class="font-semibold text-[#241E18]">Exportieren (zum Übersetzen)</p>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            {% for code in active_languages %}
+                            <a class="h-8 inline-flex cursor-pointer items-center rounded-lg border border-[#355E4B]/30 px-3 text-xs font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5" href="?admin=1&amp;do=export-translations&amp;lang={{ code }}">{{ available_languages[code]|default(code) }} – Sprachdatei herunterladen</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <p class="font-semibold text-[#241E18]">Importieren (übersetzte Datei)</p>
+                        <form class="mt-3 flex flex-wrap items-end gap-3" method="post" enctype="multipart/form-data"
+                            data-confirm="Übersetzungen wirklich importieren? Die Felder der gewählten Sprache werden überschrieben (Sicherungs-Stand wird vorher angelegt, anderer Inhalt bleibt unangetastet)."
+                            data-confirm-title="Übersetzungen importieren?"
+                            data-confirm-action="Importieren"
+                            data-confirm-variant="primary">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="import-translations">
+                            <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Sprache
+                                <select class="mt-1 block h-10 w-40 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="lang" required>
+                                    {% for code in active_languages %}
+                                    <option value="{{ code }}" {{ code == active_languages[0] ? 'selected' : '' }}>{{ available_languages[code]|default(code) }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                            <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Übersetzungs-Datei (.json)
+                                <input class="mt-1 block h-10 w-72 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="file" name="translation_file" accept=".json,application/json" required>
+                            </label>
+                            <button class="h-10 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Importieren</button>
+                        </form>
                     </div>
                 </section>
 
@@ -771,7 +1106,13 @@
                 {% if dev_imports is not empty %}
                 <section id="panel-dev-import" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-dev-import" hidden>
                     <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Projekt-Import (lokal)</h2>
-                    <p class="text-xs text-[#241E18]/40">Nur auf dieser Maschine sichtbar – dev-imports/ existiert in keinem Deploy. Übernehmen ersetzt content.json/config.json vollständig durch die des gewählten Projekts; web/uploads/ nur, wenn das Projekt selbst mindestens ein Bild mitbringt.</p>
+                    <p class="text-xs text-[#241E18]/40">Nur auf dieser Maschine sichtbar – dev-imports/ liegt außerhalb von web/, ist gitignored und existiert in keinem Deploy. Jeder Eintrag ist ein komplett eigener Projekt-Stand (echter oder fiktiver Kunde); „Übernehmen“ ersetzt die aktiven Stammdaten ungemergt und vollständig; „Exportieren“ sichert den aktuell aktiven Stand (auch als aktives Projekt) in den jeweiligen dev-imports/-Eintrag:</p>
+                    <ul class="list-disc space-y-1 pl-5 text-xs text-[#241E18]/50">
+                        <li><strong class="font-medium text-[#241E18]/60">content.json + config.json</strong> werden immer durch die des Projekts ersetzt (Texte, Bilder-Referenzen, Theme, Einstellungen – inkl. der im Snapshot enthaltenen Admin-Logins).</li>
+                        <li><strong class="font-medium text-[#241E18]/60">web/uploads/</strong> wird nur komplett ersetzt, wenn das Projekt eigene Bilder mitbringt – der Bild-Pool ist nicht git-versioniert, ein Leeren ohne Ersatz wäre endgültiger Datenverlust.</li>
+                        <li>Nach der Übernahme trägt config.json den Marker <code>dev_import</code>: Grundlage für das „Aktiv“-Badge hier und für „Auf Import-Stand zurücksetzen“ im Bereich Sicherung.</li>
+                        <li>Der Marker ist rein lokal – deployed Instanzen und Projekt-Pakete werden bewusst ohne ihn exportiert.</li>
+                    </ul>
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         {% for project in dev_imports %}
                         <div class="flex items-center justify-between gap-3 rounded-xl border border-[#241E18]/10 bg-white p-4">
@@ -781,18 +1122,31 @@
                                 <span class="rounded-full border border-[#355E4B] bg-[#355E4B] px-2 py-0.5 text-[10px] font-semibold text-white">Aktiv</span>
                                 {% endif %}
                             </div>
-                            {% if active_dev_import|default('') != project.slug %}
+                            {% set confirmText = (active_dev_import|default('') == project.slug)
+                                ? 'Projekt „' ~ project.label ~ '“ neu einspielen? Aktuelle Stammdaten (content.json/config.json) und web/uploads/ werden durch den Import-Stand von dev-imports/' ~ project.slug ~ '/ ersetzt – seit der letzten Übernahme gespeicherte Änderungen gehen verloren.'
+                                : 'Projekt „' ~ project.label ~ '“ übernehmen? Aktuelle Stammdaten (content.json/config.json) und web/uploads/ werden vollständig ersetzt.' %}
+                            <div class="flex items-center gap-2">
                             <form method="post"
-                                data-confirm="Projekt „{{ project.label }}“ übernehmen? Aktuelle Stammdaten (content.json/config.json) und web/uploads/ werden vollständig ersetzt."
-                                data-confirm-title="Projekt übernehmen?"
+                                data-confirm="Aktuellen Stand (content.json/config.json/uploads/) in dev-imports/{{ project.slug }}/ speichern? Der dortige Snapshot wird überschrieben."
+                                data-confirm-title="Lokal exportieren?"
+                                data-confirm-action="Exportieren"
+                                data-confirm-variant="primary">
+                                <input type="hidden" name="csrf" value="{{ csrf }}">
+                                <input type="hidden" name="do" value="export-import">
+                                <input type="hidden" name="project" value="{{ project.slug }}">
+                                <button class="h-9 cursor-pointer rounded-lg border border-[#355E4B]/30 px-4 text-sm font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5" type="submit">Exportieren</button>
+                            </form>
+                            <form method="post"
+                                data-confirm="{{ confirmText }}"
+                                data-confirm-title="Projekt {{ active_dev_import|default('') == project.slug ? 'neu einspielen?' : 'übernehmen?' }}"
                                 data-confirm-action="Übernehmen"
                                 data-confirm-variant="primary">
                                 <input type="hidden" name="csrf" value="{{ csrf }}">
                                 <input type="hidden" name="do" value="switch-project">
                                 <input type="hidden" name="project" value="{{ project.slug }}">
-                                <button class="h-9 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Übernehmen</button>
+                                <button class="h-9 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">{{ active_dev_import|default('') == project.slug ? 'Neu einspielen' : 'Übernehmen' }}</button>
                             </form>
-                            {% endif %}
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
@@ -847,9 +1201,25 @@
                 <section id="panel-images" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-images" hidden>
                     <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Bildverwaltung</h2>
 
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <label class="flex cursor-pointer select-none items-center gap-2 text-xs text-[#241E18]/60" title="Nur nicht in Verwendung befindliche Bilder">
+                            <input data-bulk-select-all type="checkbox" class="h-3.5 w-3.5 cursor-pointer accent-[#355E4B]"> Alle auswählen
+                        </label>
+                        <form id="bulk-delete-form" method="post">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="image-delete-many">
+                            <button type="submit" data-bulk-delete disabled class="h-9 cursor-pointer rounded-lg border border-red-800/40 px-3 text-xs text-red-800 transition hover:border-red-800 hover:bg-red-800 hover:text-white disabled:cursor-not-allowed disabled:border-[#241E18]/10 disabled:bg-transparent disabled:text-[#241E18]/30 disabled:hover:border-[#241E18]/10 disabled:hover:bg-transparent disabled:hover:text-[#241E18]/30">Auswahl löschen (<span data-bulk-count>0</span>)</button>
+                        </form>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                         {% for u in uploads %}
-                        <div class="space-y-2 border border-[#241E18]/10 p-2">
+                        <div class="relative space-y-2 border border-[#241E18]/10 p-2">
+                            {% if u.used %}
+                            <span class="absolute left-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-md border border-[#241E18]/15 bg-[#E7E1D3]/90 text-[10px] text-[#241E18]/40" title="In Verwendung – erst dort entfernen, dann löschbar">✕</span>
+                            {% else %}
+                            <input type="checkbox" form="bulk-delete-form" name="filenames[]" value="{{ u.name }}" class="absolute left-2 top-2 h-4 w-4 cursor-pointer rounded accent-[#355E4B] shadow-sm" data-bulk-image title="Für Sammellöschung auswählen">
+                            {% endif %}
                             <img class="h-24 w-full rounded-lg border border-[#241E18]/10 object-cover" src="/uploads/{{ u.name }}" alt="{{ u.name }}" loading="lazy">
                             <p class="truncate text-xs text-[#241E18]/60" title="{{ u.name }}">{{ u.name }}</p>
                             {% if u.used %}
@@ -882,9 +1252,9 @@
 
                     <form method="post" class="border-t border-[#241E18]/10 pt-4">
                         <input type="hidden" name="csrf" value="{{ csrf }}">
-                        <input type="hidden" name="do" value="image-import">
-                        <button class="h-9 cursor-pointer rounded-lg border border-[#241E18]/20 px-3 text-xs" type="submit">Externe Bilder aus Sections importieren</button>
-                        <p class="mt-1 text-xs text-[#241E18]/40">Lädt extern verlinkte Bilder (z. B. Unsplash-URLs) herunter und biegt die jeweilige Section-Referenz auf den lokalen Pool um.</p>
+                        <input type="hidden" name="do" value="regen-thumbs">
+                        <button class="h-9 cursor-pointer rounded-lg border border-[#241E18]/20 px-3 text-xs" type="submit">Thumbnails nachziehen</button>
+                        <p class="mt-1 text-xs text-[#241E18]/40">Erzeugt für alle vorhandenen Bilder die responsiven Varianten (480/960/1600/1920 px) nach – nur nötig für Bilder, die vor dieser Funktion hochgeladen wurden.</p>
                     </form>
                 </section>
             </div>
@@ -1189,6 +1559,42 @@
           s.classList.toggle('text-[#B87333]', starVal <= val);
           s.classList.toggle('text-[#241E18]/15', starVal > val);
         });
+      });
+
+      document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-copy-command]');
+        if (!btn) return;
+        var host = btn.closest('[data-copy-host]');
+        var source = host ? host.querySelector('[data-copy-source]') : null;
+        if (!source) return;
+        var text = (source.textContent || '').trim();
+        var done = function () {
+          var icon = btn.querySelector('svg');
+          if (icon) {
+            var original = icon.outerHTML;
+            icon.outerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+            setTimeout(function () { btn.querySelector('svg').outerHTML = original; }, 1500);
+          } else {
+            var original = btn.textContent;
+            btn.textContent = 'Kopiert';
+            setTimeout(function () { btn.textContent = original; }, 1500);
+          }
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () { legacyCopy(text, done); });
+        } else {
+          legacyCopy(text, done);
+        }
+        function legacyCopy(t, cb) {
+          var ta = document.createElement('textarea');
+          ta.value = t;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); cb(); } catch (err) { /* noop */ }
+          document.body.removeChild(ta);
+        }
       });
 
       (function () {
@@ -1618,6 +2024,132 @@
           .finally(function () { fileInput.value = ''; });
       });
 
+      // ——— KI-Buttons: data-ai-rewrite an ai_supported-Feldern, data-ai-seo im SEO-Panel, data-open-special für sitemap/robots ———
+      function activeAdminLang() {
+        var active = document.querySelector('[data-lang-switch].bg-\\[\\#355E4B\\]');
+        return active ? active.getAttribute('data-lang-switch') : 'de';
+      }
+
+      function aiFetch(params, done) {
+        var body = new FormData();
+        body.append('csrf', '{{ csrf }}');
+        Object.keys(params).forEach(function (k) { body.append(k, params[k]); });
+        fetch('?admin=1', { method: 'POST', body: body })
+          .then(function (r) { return r.json(); })
+          .then(function (json) { done(json); })
+          .catch(function () { done({ ok: false, message: 'Verbindung fehlgeschlagen.' }); });
+      }
+
+      function clearAiSuggest() {
+        var box = document.querySelector('[data-ai-suggest]');
+        if (box) box.remove();
+      }
+
+      document.addEventListener('click', function (e) {
+        var openBtn = e.target.closest('[data-open-special]');
+        if (openBtn) {
+          e.preventDefault();
+          window.open(location.origin + '/' + openBtn.getAttribute('data-open-special'), '_blank');
+          return;
+        }
+
+        var rewriteBtn = e.target.closest('[data-ai-rewrite]');
+        if (rewriteBtn) {
+          var wrap = rewriteBtn.closest('[data-lang-panel], [data-field-wrap]');
+          var input = wrap ? (wrap.querySelector('textarea') || wrap.querySelector('input:not([type="hidden"])')) : null;
+          if (!input) return;
+          clearAiSuggest();
+          var panel = rewriteBtn.closest('.section-panel');
+          var h2 = panel && panel.querySelector('h2');
+          var lang = wrap ? (wrap.getAttribute('data-lang-panel') || activeAdminLang()) : activeAdminLang();
+
+          var label = rewriteBtn.getAttribute('data-ai-label') || 'Text';
+          var prevIcon = rewriteBtn.textContent;
+          rewriteBtn.disabled = true;
+          rewriteBtn.textContent = '…';
+          aiFetch({
+            do: 'ai-rewrite',
+            label: label,
+            value: input.value || '',
+            lang: lang,
+            section: h2 ? h2.textContent.trim() : ''
+          }, function (result) {
+            rewriteBtn.disabled = false;
+            rewriteBtn.textContent = prevIcon;
+            if (!result.ok) { alert(result.message || 'KI-Anfrage fehlgeschlagen.'); return; }
+            var list = result.alternatives || [];
+            if (!list.length) { alert('Keine Vorschläge erhalten.'); return; }
+            var box = document.createElement('div');
+            box.setAttribute('data-ai-suggest', '');
+            box.className = 'mt-1.5 space-y-1.5 rounded-xl border border-[#6D4AA3]/25 bg-[#6D4AA3]/5 p-2.5';
+            var head = document.createElement('p');
+            head.className = 'text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6D4AA3]/80';
+            head.textContent = 'KI-Vorschläge – Klick übernimmt';
+            box.appendChild(head);
+            list.forEach(function (alt) {
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'block w-full cursor-pointer rounded-lg border border-[#6D4AA3]/20 bg-white px-3 py-2 text-left text-[13px] text-[#241E18]/80 transition hover:border-[#6D4AA3]/50 hover:text-[#241E18]';
+              btn.textContent = alt;
+              btn.addEventListener('click', function () {
+                input.value = alt;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                clearAiSuggest();
+              });
+              box.appendChild(btn);
+            });
+            (wrap || rewriteBtn).after(box);
+          });
+          return;
+        }
+
+        var seoBtn = e.target.closest('[data-ai-seo]');
+        if (seoBtn) {
+          var outWrap = document.querySelector('[data-ai-seo-results]');
+          if (!outWrap) return;
+          var oldText = seoBtn.textContent;
+          seoBtn.disabled = true;
+          seoBtn.textContent = 'Generiert …';
+          aiFetch({ do: 'ai-seo', lang: activeAdminLang() }, function (result) {
+            seoBtn.disabled = false;
+            seoBtn.textContent = oldText;
+            outWrap.innerHTML = '';
+            if (!result.ok) { alert(result.message || 'KI-Anfrage fehlgeschlagen.'); return; }
+            var list = result.suggestions || [];
+            if (!list.length) { alert('Keine Vorschläge erhalten.'); return; }
+            var note = document.createElement('p');
+            note.className = 'mt-1 text-[11px] text-[#6D4AA3]/70';
+            note.textContent = 'Vorschlag anklicken füllt Titel, Beschreibung und OG-Felder – danach unten speichern.';
+            outWrap.appendChild(note);
+            list.forEach(function (s) {
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'mt-1.5 block w-full cursor-pointer rounded-lg border border-[#6D4AA3]/20 bg-white px-3 py-2 text-left transition hover:border-[#6D4AA3]/50';
+              var title = document.createElement('span');
+              title.className = 'block text-[13px] font-semibold text-[#241E18]';
+              title.textContent = s.title || '—';
+              var desc = document.createElement('span');
+              desc.className = 'block text-xs text-[#241E18]/60';
+              desc.textContent = s.description || '';
+              btn.appendChild(title);
+              btn.appendChild(desc);
+              btn.addEventListener('click', function () {
+                ['title', 'description', 'og_title', 'og_description'].forEach(function (name) {
+                  var el = document.querySelector('input[name="seo[' + name + ']"], textarea[name="seo[' + name + ']"]');
+                  if (el) el.value = name === 'og_title' ? (s.title || '') : name === 'og_description' ? (s.description || '') : name === 'title' ? (s.title || '') : (s.description || '');
+                });
+              });
+              outWrap.appendChild(btn);
+            });
+          });
+          return;
+        }
+      });
+
+      document.addEventListener('click', function (e) {
+        if (e.target.closest('[data-lang-switch]')) clearAiSuggest();
+      });
+
       (function () {
         var panels = document.querySelectorAll('.section-panel');
         var navLinks = document.querySelectorAll('.section-nav-link');
@@ -1709,6 +2241,28 @@
         document.addEventListener('keydown', function (e) {
           if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
         });
+      })();
+
+      (function () {
+        var bulkForm = document.getElementById('bulk-delete-form');
+        if (!bulkForm) return;
+        var boxes = Array.prototype.slice.call(document.querySelectorAll('[data-bulk-image]'));
+        var btn = bulkForm.querySelector('[data-bulk-delete]');
+        var countEl = bulkForm.querySelector('[data-bulk-count]');
+        var allToggle = document.querySelector('[data-bulk-select-all]');
+        function refresh() {
+          var n = boxes.filter(function (b) { return b.checked; }).length;
+          countEl.textContent = String(n);
+          btn.disabled = n === 0;
+          if (allToggle) allToggle.checked = n > 0 && n === boxes.length;
+          bulkForm.dataset.confirm = n > 1 ? n + ' Bilder wirklich löschen?' : (n === 1 ? 'Bild wirklich löschen?' : '');
+        }
+        boxes.forEach(function (b) { b.addEventListener('change', refresh); });
+        if (allToggle) allToggle.addEventListener('change', function () {
+          boxes.forEach(function (b) { b.checked = allToggle.checked; });
+          refresh();
+        });
+        refresh();
       })();
 
       (function () {

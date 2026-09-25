@@ -2,7 +2,7 @@
     "type": "aktuelles",
     "label": "Aktuelles",
     "help": "Kleiner Ankündigungs-Streifen, meist direkt unter dem Hero. Mehrere Einträge möglich (z. B. für später), es wird immer nur der erste aktive angezeigt.",
-    "requires_core": "1.0.0",
+    "requires_core": "2.2.2",
     "fields": [
         {
             "name": "items",

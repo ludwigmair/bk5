@@ -48,8 +48,17 @@
     {% if seo.og_image|default('') %}
     <meta name="twitter:image" content="{{ ogImageUrl }}">
     {% endif %}
-    {% if structured_data|default('') %}
-    <script type="application/ld+json">{{ structured_data|raw }}</script>
+    {% for sd in structured_data|default([]) %}
+    {% if sd is not empty %}
+    <script type="application/ld+json">{{ sd|raw }}</script>
+    {% endif %}
+    {% endfor %}
+    {% if canonicalBase and languages|default([])|length > 1 %}
+    {% set alternatePath = current_path|default('/') %}
+    {% for alternateLang in languages %}
+    <link rel="alternate" hreflang="{{ alternateLang }}" href="{{ canonicalBase ~ (alternateLang != site.lang|default('de') ? '/' ~ alternateLang ~ alternatePath : alternatePath) }}">
+    {% endfor %}
+    <link rel="alternate" hreflang="x-default" href="{{ pageUrl }}">
     {% endif %}
 
     {% set fontDisplay = (brand.font_display|default('Commissioner'))|replace({' ': '+'}) %}
@@ -57,6 +66,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family={{ fontDisplay }}:wght@400;500;600;700&family={{ fontBody }}:wght@400;600&display=swap" rel="stylesheet">
+    {% if not static_css_url|default('') %}
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -76,8 +86,17 @@
         }
       }
     </script>
+    {% endif %}
     {% if needs_swiper %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11.2.10/swiper-bundle.min.css">
+    {% endif %}
+    {% if static_css_url|default('') %}
+    {# Vorproduziertes Tailwind-CSS (dev/build-css.sh): kein Play-CDN/JS-Compiler
+       zur Laufzeit. Theme-agnostisch, weil die Utilities die Marken-Tokens über
+       die :root-CSS-Variablen unten auflösen. Bewusst NACH den Bibliotheks-CSS
+       (swiper-bundle u. a.), damit die Utilities deren Klassendefinitionen
+       nicht überschreiben – wie es das Play-CDN-<style> zur Laufzeit ebenfalls tut. #}
+    <link rel="stylesheet" href="{{ static_css_url }}">
     {% endif %}
     <style>
       :root {
@@ -86,6 +105,13 @@
         --brand-walnut: {{ brand.walnut|default('#241E18') }};
         --brand-ash: {{ brand.ash|default('#E7E4DC') }};
         --brand-radius: {{ brand.radius|default('0.125rem') }};
+        --brand-font-display: {{ brand.font_display|default('Commissioner') }};
+        --brand-font-sans: {{ brand.font_body|default('Source Serif 4') }};
+        /* RGB-Tripel für das statische Tailwind-CSS (Alpha-Modifier) */
+        --brand-primary-rgb: {{ brand_rgb.primary|default('53 94 75') }};
+        --brand-secondary-rgb: {{ brand_rgb.secondary|default('184 115 51') }};
+        --brand-walnut-rgb: {{ brand_rgb.walnut|default('36 30 24') }};
+        --brand-ash-rgb: {{ brand_rgb.ash|default('231 228 220') }};
       }
     </style>
     <link rel="stylesheet" href="/core/assets/style.css">

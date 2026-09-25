@@ -34,6 +34,9 @@
         <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-xs text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-format="list" title="Häkchen-Liste (je Zeile ein Punkt, beginnend mit -)">☰</button>
         <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-xs text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-format="link" title="Link ([Text](url))">🔗</button>
         <span class="mx-1 h-4 w-px bg-[#241E18]/15"></span>
+        {% if field.ai_supported|default(false) and ai_available %}
+        <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#6D4AA3]/30 bg-[#6D4AA3]/[0.06] text-xs font-bold text-[#6D4AA3] shadow-sm transition hover:border-[#6D4AA3]/50 hover:bg-[#6D4AA3]/[0.12]" type="button" data-ai-rewrite data-ai-label="{{ field.label }}" title="KI: Formulierung verbessern">✦</button>
+        {% endif %}
         <span class="relative inline-flex h-5 w-5 shrink-0">
           <button type="button" class="flex h-5 w-5 cursor-help items-center justify-center rounded-full border border-[#241E18]/20 bg-[#241E18]/[0.06] text-[10px] font-bold text-[#241E18]/70" data-info-icon>i</button>
           <span class="pointer-events-none absolute left-1/2 top-full z-20 mt-1.5 hidden w-56 -translate-x-1/2 rounded-lg bg-[#241E18] p-2.5 text-[11px] font-normal normal-case leading-snug tracking-normal text-white shadow-lg" data-info-tooltip>{{ placeholderHint }}</span>
@@ -125,6 +128,18 @@
       <button class="h-8 shrink-0 cursor-pointer rounded-lg border border-[#241E18]/25 bg-[#E7E1D3] px-2.5 text-xs font-medium text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-image-pick>Auswählen…</button>
       <button class="h-8 shrink-0 cursor-pointer rounded-lg border border-[#241E18]/25 bg-[#E7E1D3] px-2.5 text-xs font-medium text-[#241E18]/70 shadow-sm transition hover:border-red-800/40 hover:bg-red-50 hover:text-red-700" type="button" data-image-clear>✕ Entfernen</button>
     </div>
+    {% if field.size|default(false) %}
+    {% set sizeValue = row is defined ? attribute(row, field.name ~ '_size')|default('auto') : 'auto' %}
+    <div class="mt-1.5 flex items-center gap-2">
+      <span class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Größe</span>
+      <select class="h-8 shrink-0 cursor-pointer rounded-lg border border-[#241E18]/25 bg-[#E7E1D3] px-2 text-xs text-[#241E18]/70" name="{{ prefix }}[{{ field.name }}_size]">
+        <option value="auto" {% if sizeValue == 'auto' %}selected{% endif %}>Automatisch</option>
+        <option value="small" {% if sizeValue == 'small' %}selected{% endif %}>Klein</option>
+        <option value="medium" {% if sizeValue == 'medium' %}selected{% endif %}>Mittel</option>
+        <option value="full" {% if sizeValue == 'full' %}selected{% endif %}>Voll breit</option>
+      </select>
+    </div>
+    {% endif %}
   </div>
 
 {% elseif field.type == 'icon' %}
@@ -240,7 +255,7 @@
             {% if sc.type == linkSection.type %}{% set linkSchema = sc %}{% endif %}
           {% endfor %}
           {% if linkSchema %}
-          <option value="#{{ linkSection.id }}">{{ linkSection.label|default(linkSchema.label|default(linkSection.type)) }}</option>
+          <option value="#{{ linkSection.id }}">{{ linkSection.label|localized(current_lang, languages)|default(linkSchema.label|default(linkSection.type)) }}</option>
           {% endif %}
         {% endfor %}
         {% set groupsSeen = [] %}
@@ -273,7 +288,12 @@
   {% set multiLang = languages is defined and languages|length > 1 %}
   {% for lang in (multiLang ? languages : [languages|default(['de'])|first]) %}
   <div {% if multiLang %}class="{{ loop.first ? 'block' : 'hidden' }}{{ not loop.first ? ' mt-1.5' : '' }}" data-lang-panel="{{ lang }}"{% else %}data-field-wrap{% endif %}>
-    <label class="{{ labelBase }}" for="{{ fid }}">{{ field.label }}</label>
+    <div class="flex items-center justify-between gap-2">
+      <label class="{{ labelBase }}" for="{{ fid }}">{{ field.label }}</label>
+      {% if field.ai_supported|default(false) and ai_available %}
+      <button class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[#6D4AA3]/30 bg-[#6D4AA3]/[0.06] text-xs font-bold text-[#6D4AA3] shadow-sm transition hover:border-[#6D4AA3]/50 hover:bg-[#6D4AA3]/[0.12]" type="button" data-ai-rewrite data-ai-label="{{ field.label }}" title="KI: Formulierung verbessern">✦</button>
+      {% endif %}
+    </div>
     <div class="mt-1 flex gap-2">
       <input class="h-11 min-w-0 flex-1 {{ inputBase }} px-3.5 text-[15px]" id="{{ fid }}_{{ lang }}" name="{{ name }}[{{ lang }}]" value="{{ attribute(valueMap, lang)|default(attribute(valueMap, languages|default(['de'])|first)|default('')) }}">
       <span class="relative inline-flex h-11 w-5 shrink-0 items-center">

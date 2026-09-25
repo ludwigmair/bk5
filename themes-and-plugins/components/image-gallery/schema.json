@@ -1,8 +1,7 @@
 {
     "type": "image-gallery",
     "label": "Bildgalerie",
-    "requires_core": "1.0.0",
-    "needs_swiper": true,
+    "requires_core": "2.2.2",
     "fields": [
         {
             "name": "kicker",

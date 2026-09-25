@@ -61,9 +61,12 @@ final class Admin
                 'toggle-topbar' => $this->toggleTopbar(),
                 'image-upload' => $this->uploadImage(),
                 'image-delete' => $this->deleteImage(),
+                'image-delete-many' => $this->deleteImagesMany(),
                 'image-import' => $this->importImages(),
+                'regen-thumbs' => $this->regenerateThumbnails(),
                 'reorder-sections' => $this->reorderSections(),
                 'switch-project' => $this->switchProject(),
+                'export-import' => $this->exportDevImport(),
                 'restore-import' => $this->restoreImportBaseline(),
                 'restore-history' => $this->restoreHistory(),
                 'build-update-package' => $this->buildUpdatePackage(),
@@ -71,6 +74,17 @@ final class Admin
                 'build-components-update-package' => $this->buildComponentsUpdatePackage(),
                 'delete-components-update-package' => $this->deleteComponentsUpdatePackage(),
                 'export-instance' => $this->exportProjectInstance(),
+                'instance-sync' => $this->syncProjectInstance(),
+                'build-project-package' => $this->buildProjectPackage(),
+                'download-project-package' => $this->downloadProjectPackage(),
+                'delete-project-package' => $this->deleteProjectPackage(),
+                'import-project-package' => $this->importProjectPackage(),
+                'import-translations' => $this->importTranslations(),
+                'language-add' => $this->languageAdd(),
+                'language-remove' => $this->languageRemove(),
+                'language-enable' => $this->languageEnable(),
+                'ai-rewrite' => $this->aiRewrite(),
+                'ai-seo' => $this->aiSeo(),
                 default => $this->redirect('Unbekannte Aktion.'),
             };
             return;
@@ -113,6 +127,14 @@ final class Admin
             return;
         }
 
+        if ($action === 'export-translations') {
+            if (!$this->currentIsAdmin()) {
+                $this->redirect('Keine Berechtigung.');
+            }
+            $this->exportTranslations();
+            return;
+        }
+
         $this->renderDashboard();
     }
 
@@ -148,10 +170,13 @@ final class Admin
         'user-add', 'user-remove', 'user-setpw',
         'apply-theme', 'build-theme', 'delete-theme', 'toggle-topbar',
         'add', 'delete', 'reorder-sections',
-        'switch-project', 'restore-import', 'restore-history',
+        'switch-project', 'export-import', 'restore-import', 'restore-history',
         'build-update-package', 'download-update-package', 'delete-update-package',
         'build-components-update-package', 'download-components-update-package', 'delete-components-update-package',
-        'export-instance',
+        'export-instance', 'instance-sync',
+        'build-project-package', 'download-project-package', 'delete-project-package', 'import-project-package',
+        'export-translations', 'import-translations',
+        'language-add', 'language-remove', 'language-enable',
     ];
 
     /**
@@ -165,11 +190,198 @@ final class Admin
         ]],
     ];
 
-    /** Sprachen, die zur Auswahl stehen – "de" ist immer Pflicht/Default, siehe normalizeLanguages(). */
-    private const AVAILABLE_LANGUAGES = [
-        'de' => 'Deutsch', 'en' => 'Englisch', 'fr' => 'Französisch',
-        'it' => 'Italienisch', 'es' => 'Spanisch', 'nl' => 'Niederländisch',
-    ];
+    /**
+     * {code => Anzeigename} aller wählbaren Sprachen – Basis-Namen aus dem Core
+     * plus projektspezifische Ergänzungen aus config.languages_allowed (siehe
+     * CMS::languageLabels()). "de" bleibt Pflicht und steht immer an erster
+     * Stelle, siehe normalizeLanguages().
+     */
+    private function availableLanguages(): array
+    {
+        return CMS::languageLabels($this->cms->config());
+    }
+
+    /**
+     * {code => Anzeigename} der NUR per config.languages_allowed ergänzten
+     * Sprachen (ohne den festen Basis-Satz) – für die Sprachen-Verwaltung im
+     * Themes-Panel (anlegen/entfernen).
+     *
+     * @return array<string, string>
+     */
+    private function extraLanguages(): array
+    {
+        $extra = $this->cms->config()['languages_allowed'] ?? null;
+        if (!is_array($extra)) {
+            return [];
+        }
+        if (array_is_list($extra)) {
+            $map = [];
+            foreach ($extra as $code) {
+                $code = (string) $code;
+                if ($code !== '') {
+                    $map[$code] = $code;
+                }
+            }
+            return $map;
+        }
+        $map = [];
+        foreach ($extra as $code => $label) {
+            $code = (string) $code;
+            if ($code === '') {
+                continue;
+            }
+            $map[$code] = is_string($label) && $label !== '' ? $label : $code;
+        }
+        return $map;
+    }
+
+    /**
+     * Liest die CHANGELOG.md des Update-Pakets (installierte Version) und
+     * rendert sie für das „Änderungen“-Feld im Admin. version = neueste
+     * Version im Changelog (erste ##-Überschrift).
+     *
+     * @return array{version: string, html: string}
+     */
+    private function changelogInfo(string $path): array
+    {
+        $markdown = is_file($path) ? (string) file_get_contents($path) : '';
+        if (trim($markdown) === '') {
+            return ['version' => '', 'html' => ''];
+        }
+        $version = '';
+        if (preg_match('/^##\s+([0-9]+\.[0-9]+\.[0-9]+)/m', $markdown, $m) === 1) {
+            $version = $m[1];
+        }
+        return ['version' => $version, 'html' => Markdown::render($markdown)];
+    }
+
+    /**
+     * Eigene Sprache pro Projekt anlegen (Schreibt config.languages_allowed
+     * als Map {code: label}) – Basis-Sprachen des Cores sind davon unberührt.
+     * Danach erscheint die Sprache in den Theme-Checkboxen und im
+     * Übersetzungen-Panel; der Übersetzungs-Upload selbst läuft wie bisher
+     * über das Übersetzungen-Panel.
+     */
+    private function languageAdd(): void
+    {
+        $this->assertCsrf();
+        $code = trim((string) ($_POST['lang_code'] ?? ''));
+        $label = trim((string) ($_POST['lang_label'] ?? ''));
+        if (!preg_match('/^[a-z]{2,3}$/', $code)) {
+            $this->redirectToPanel('Ungültiger Sprachcode (2–3 Kleinbuchstaben, z. B. "pl").', 'panel-theme');
+        }
+        if (in_array($code, CMS::AVAILABLE_LANGUAGES, true)) {
+            if (in_array($code, CMS::disabledCodes($this->cms->config()), true)) {
+                // Ausgeblendete Basis-Sprache im Anlege-Formular eingetippt → wieder verfügbar machen.
+                $path = $this->cms->root() . '/data/config.json';
+                $config = CMS::readJson($path);
+                $disabled = array_values(array_filter(
+                    CMS::disabledCodes($config),
+                    static fn (string $c): bool => $c !== $code
+                ));
+                if ($disabled !== []) {
+                    $config['languages_disabled'] = $disabled;
+                } else {
+                    unset($config['languages_disabled']);
+                }
+                CMS::writeJson($path, $config);
+                $this->redirectToPanel('Sprache „' . $code . '“ ist wieder verfügbar – oben zur Aktivierung auswählen.', 'panel-theme');
+            }
+            $this->redirectToPanel('„' . $code . '“ ist Teil des Basis-Sprachsatzes.', 'panel-theme');
+        }
+
+        $path = $this->cms->root() . '/data/config.json';
+        $config = CMS::readJson($path);
+        $map = $this->extraLanguages();
+        if (isset($map[$code])) {
+            $this->redirectToPanel('Sprache „' . $code . '“ ist bereits angelegt.', 'panel-theme');
+        }
+        $config['languages_allowed'] = [...$map, $code => $label !== '' ? $label : $code];
+        CMS::writeJson($path, $config);
+
+        $this->redirectToPanel('Sprache „' . $code . ($label !== '' ? ' (' . $label . ')' : '') . '“ angelegt – oben zur Aktivierung verfügbar, Übersetzungen im „Übersetzungen“-Panel.', 'panel-theme');
+    }
+
+    /**
+     * Sprache entfernen: eigene (config.languages_allowed) werden gelöscht,
+     * unnötige Basis-Sprachen (außer "de") werden per config.languages_disabled
+     * für dieses Projekt ausgeblendet. Beides bereinigt die aktive
+     * config.languages-Liste; Inhalte (Tekte/Übersetzungen) bleiben erhalten
+     * und fallen auf Deutsch zurück.
+     */
+    private function languageRemove(): void
+    {
+        $this->assertCsrf();
+        $code = trim((string) ($_POST['lang_code'] ?? ''));
+        if ($code === '' || $code === 'de') {
+            $this->redirectToPanel('„de“ ist Pflicht- und Fallback-Sprache und kann nicht entfernt werden.', 'panel-theme');
+        }
+
+        $path = $this->cms->root() . '/data/config.json';
+        $config = CMS::readJson($path);
+        $map = $this->extraLanguages();
+
+        if (isset($map[$code])) {
+            unset($map[$code], $config['languages_allowed']);
+            if ($map !== []) {
+                $config['languages_allowed'] = $map;
+            }
+            $msg = 'Sprache „' . $code . '“ entfernt – Texte im Inhalt bleiben erhalten und fallen auf Deutsch zurück.';
+        } elseif (in_array($code, CMS::AVAILABLE_LANGUAGES, true)) {
+            $config['languages_disabled'] = array_values(array_unique(array_merge(CMS::disabledCodes($config), [$code])));
+            $msg = 'Sprache „' . $code . '“ ausgeblendet – sie verschwindet aus Auswahl und Übersetzungen, vorhandene Texte bleiben erhalten und fallen auf Deutsch zurück.';
+        } else {
+            $this->redirectToPanel('Sprache „' . $code . '“ ist nicht angelegt.', 'panel-theme');
+        }
+
+        if (isset($config['languages']) && is_array($config['languages'])) {
+            $config['languages'] = array_values(array_filter(
+                array_map('strval', $config['languages']),
+                static fn (string $l): bool => $l !== $code
+            ));
+        }
+        CMS::writeJson($path, $config);
+
+        $this->redirectToPanel($msg, 'panel-theme');
+    }
+
+    /** Ausgeblendete Basis-Sprache wieder verfügbar machen (config.languages_disabled bereinigen). */
+    private function languageEnable(): void
+    {
+        $this->assertCsrf();
+        $code = trim((string) ($_POST['lang_code'] ?? ''));
+        $disabled = CMS::disabledCodes($this->cms->config());
+        if ($code === '' || !in_array($code, $disabled, true)) {
+            $this->redirectToPanel('Sprache „' . $code . '“ ist nicht ausgeblendet.', 'panel-theme');
+        }
+
+        $path = $this->cms->root() . '/data/config.json';
+        $config = CMS::readJson($path);
+        $disabled = array_values(array_filter(
+            CMS::disabledCodes($config),
+            static fn (string $c): bool => $c !== $code
+        ));
+        if ($disabled !== []) {
+            $config['languages_disabled'] = $disabled;
+        } else {
+            unset($config['languages_disabled']);
+        }
+        CMS::writeJson($path, $config);
+
+        $this->redirectToPanel('Sprache „' . $code . '“ ist wieder verfügbar – oben zur Aktivierung auswählen.', 'panel-theme');
+    }
+
+    /**
+     * {code => Anzeigename} der per config.languages_disabled ausgeblendeten
+     * Basis-Sprachen – für die Rücksprung-Chips im „Sprachen verwalten“-Panel.
+     */
+    private function disabledLanguages(): array
+    {
+        $config = $this->cms->config();
+        $all = CMS::languageLabels(['languages_allowed' => $config['languages_allowed'] ?? null]);
+
+        return array_intersect_key($all, array_flip(CMS::disabledCodes($config)));
+    }
 
     private function handleLogin(): void
     {
@@ -215,6 +427,10 @@ final class Admin
         $schemas = $this->scanSchemas();
         $flash = $_SESSION['flash'] ?? '';
         unset($_SESSION['flash']);
+        $flashCommand = $_SESSION['flash_command'] ?? '';
+        unset($_SESSION['flash_command']);
+        $flashAfter = $_SESSION['flash_after'] ?? '';
+        unset($_SESSION['flash_after']);
         $updateInfo = $_SESSION['update_info'] ?? null;
         unset($_SESSION['update_info']);
         $componentsUpdateInfo = $_SESSION['components_update_info'] ?? null;
@@ -233,6 +449,8 @@ final class Admin
         echo $this->cms->twig()->render('admin.twig', array_merge([
             'site_name' => $this->displayString($content['site']['title'] ?? '', 'CMS'),
             'version' => CMS::readJson($this->cms->root() . '/core/version.json')['version'] ?? '1.0.0',
+            'core_update_pending' => $this->coreModifiedSincePackage()
+                || trim((string) (CMS::readJson($this->cms->root() . '/core/version.json')['checksum'] ?? '')) === '',
             'content' => $content,
             'schemas' => $schemas,
             'layoutSchemas' => [
@@ -253,25 +471,445 @@ final class Admin
                 'cookiebanner' => $this->scanRegionVariants('cookiebanner'),
             ],
             'flash' => $flash,
+            'flash_command' => $flashCommand,
+            'flash_after' => $flashAfter,
             'csrf' => $_SESSION['csrf'] ?? '',
             'users' => $this->usersList(),
             'current_user' => $this->currentUsername(),
             'current_is_admin' => $this->currentIsAdmin(),
             'uploads' => $this->listUploads(),
             'active_languages' => CMS::activeLanguages($this->cms->config()),
-            'available_languages' => self::AVAILABLE_LANGUAGES,
+            'available_languages' => $this->availableLanguages(),
             'dev_imports' => $this->scanDevImports(),
             'active_dev_import' => $this->cms->config()['dev_import'] ?? null,
             'content_history' => $this->listHistory(),
             'update_packages' => $this->listUpdatePackages(),
             'core_modified' => $this->coreModifiedSincePackage(),
             'update_info' => $updateInfo,
+            'core_changelog' => $this->changelogInfo($this->cms->root() . '/core/CHANGELOG.md'),
+            'components_changelog' => $this->changelogInfo($this->componentsDir() . '/CHANGELOG.md'),
+            'extra_languages' => $this->extraLanguages(),
+            'disabled_languages' => $this->disabledLanguages(),
             'components_version' => CMS::readJson($this->componentsDir() . '/version.json')['version'] ?? '1.0.0',
+            'components_update_pending' => $this->componentsModifiedSincePackage()
+                || trim((string) (CMS::readJson($this->componentsDir() . '/version.json')['checksum'] ?? '')) === '',
             'components_update_packages' => $this->listComponentsUpdatePackages(),
             'components_modified' => $this->componentsModifiedSincePackage(),
             'components_update_info' => $componentsUpdateInfo,
             'has_dev_tools' => $hasDevTools,
+            'dev_instances' => $hasDevTools ? $this->devInstances() : [],
+            'project_packages' => $this->projectPackages(),
+            'seo_schemas' => $this->detectSeoSchemas(),
         ], $extra));
+    }
+
+    /**
+     * KI-Button in den Bearbeitungsfeldern (admin-field.twig → data-ai-rewrite):
+     * schlägt bis zu drei Alternativformulierungen für den aktuellen Feldwert vor.
+     * Antworte als JSON; die Buttons erscheinen nur, wenn ein API-Key
+     * konfiguriert ist (ai_available in CMS::boot), hier wird zusätzlich geprüft.
+     */
+    private function aiRewrite(): void
+    {
+        $config = $this->cms->config();
+        if (!Ai::configured($config)) {
+            $this->respondJson(['ok' => false, 'message' => 'Kein API-Key konfiguriert (config.json → apis.openai.api_key).', 'alternatives' => []]);
+            return;
+        }
+
+        $label = trim((string) ($_POST['label'] ?? '')) ?: 'Text';
+        $value = (string) ($_POST['value'] ?? '');
+        $lang = $this->pickAdminLang((string) ($_POST['lang'] ?? ''));
+        $section = trim((string) ($_POST['section'] ?? ''));
+
+        $business = $this->cms->content()['business'] ?? [];
+        $system = 'Du bist ein erfahrener deutschsprachiger Texter für Unternehmenswebsites. '
+            . 'Du überarbeitest einzelne Texte so, dass sie präzise, konkret und vertrauensvoll klingen – '
+            . 'ohne Marketing-Floskeln, ohne Übertreibungen. '
+            . 'Behalte Fakten und Fachbegriffe unverändert bei und erfinde nichts. '
+            . 'Die Fassungen sollen jeweils anders beginnen und anders formuliert sein, aber denselben Inhalt transportieren.';
+
+        $user = 'Website/Einrichtung: ' . $this->displayString($business['name'] ?? '', '')
+            . "\nFeld: " . $label
+            . ($section !== '' ? "\nZugehörige Sektion: " . $section : '')
+            . "\nSprache: " . $lang
+            . "\n\nAktueller Text:\n" . ($value !== '' ? $value : '(leer – bitte einen Entwurf liefern)');
+
+        $this->respondJson(Ai::alternatives($config, $system, $user));
+    }
+
+    /**
+     * KI-Button im SEO-Panel (admin.twig → data-ai-seo): generiert aus Firmenname,
+     * Seitentitel und den Sektions-Überschriften passende SEO-Titel/-Description-Paare.
+     */
+    private function aiSeo(): void
+    {
+        $config = $this->cms->config();
+        if (!Ai::configured($config)) {
+            $this->respondJson(['ok' => false, 'message' => 'Kein API-Key konfiguriert (config.json → apis.openai.api_key).', 'suggestions' => []]);
+            return;
+        }
+
+        $lang = $this->pickAdminLang((string) ($_POST['lang'] ?? ''));
+        $content = $this->cms->content();
+        $business = $content['business'] ?? [];
+        $site = $content['site'] ?? [];
+
+        $headings = $this->sectionHeadings();
+        $context = 'Website-Titel: ' . $this->displayString($site['title'] ?? '', '')
+            . "\nFirmenname: " . $this->displayString($business['name'] ?? '', '')
+            . ($this->displayString($site['tagline'] ?? '', '') !== '' ? "\nUnterzeile: " . $this->displayString($site['tagline']) : '')
+            . ($headings !== [] ? "\nSeitenabschnitte: " . implode(' · ', $headings) : '')
+            . "\nSprache: " . $lang;
+
+        $system = 'Du bist SEO- und UX-Texter für eine kleine Unternehmenswebsite. '
+            . 'Erstelle zum Titel und den Sektionen eine passende Title-Meta (maximal 60 Zeichen) '
+            . 'und Description-Meta (maximal 155 Zeichen). '
+            . 'Klingt natürlich, kein Keyword-Stuffing, keine Werbeversprechen. '
+            . 'Die Vorschläge sollen unterschiedliche Blickwinkel bieten.';
+
+        $result = Ai::seoSuggestions($config, $system, $context);
+        $this->respondJson(['ok' => $result['ok'], 'message' => $result['message'], 'suggestions' => $result['suggestions']]);
+    }
+
+    /** Dezimale Sparschätzung der aktiven Schemas für das SEO-Panel (statische Ist-Liste). */
+    private function detectSeoSchemas(): array
+    {
+        $content = $this->cms->content();
+        $business = $content['business'] ?? [];
+
+        $hasFaq = false;
+        $hasReviews = false;
+        foreach (($content['sections'] ?? []) as $section) {
+            $type = (string) ($section['type'] ?? '');
+            $data = is_array($section['data'] ?? null) ? $section['data'] : [];
+            if ($type === 'faq') {
+                foreach (($data['items'] ?? []) as $item) {
+                    if (($item['active'] ?? true) !== false
+                        && ($this->displayString($item['question'] ?? '', '') !== '' || $this->displayString($item['answer'] ?? '', '') !== '')) {
+                        $hasFaq = true;
+                    }
+                }
+            }
+            if ($type === 'google-reviews') {
+                foreach (($data['fallback_reviews'] ?? []) as $review) {
+                    if (($review['active'] ?? true) !== false && $this->displayString($review['text'] ?? '', '') !== '') {
+                        $hasReviews = true;
+                    }
+                }
+            }
+        }
+
+        // Achtung: die Komponenten-Zusatzschemas erscheinen nur, wenn die jeweilige
+        // Sektion inhaltlich gefüllt ist – leere Sektionen steuern kein Schema bei.
+        return [
+            ['type' => 'local', 'label' => 'LocalBusiness (Firmendaten)', 'active' => $this->displayString($business['name'] ?? '', '') !== ''],
+            ['type' => 'faq', 'label' => 'FAQPage (FAQ-Sektion)', 'active' => $hasFaq],
+            ['type' => 'reviews', 'label' => 'AggregateRating + Review (Bewertungs-Sektion)', 'active' => $hasReviews],
+        ];
+    }
+
+    /** Kopfzeilen der Sektionen (jeweils erstes plausibles Textelement) für den SEO-KI-Kontext. */
+    private function sectionHeadings(): array
+    {
+        $headings = [];
+        $wanted = ['heading', 'claim', 'title', 'kicker', 'subtitle', 'name'];
+
+        foreach (($this->cms->content()['sections'] ?? []) as $section) {
+            $data = is_array($section['data'] ?? null) ? $section['data'] : [];
+
+            $candidates = [];
+            $langCodes = CMS::availableLanguages($this->cms->config());
+            $collect = static function (array $arr) use (&$collect, &$candidates, $langCodes): void {
+                foreach ($arr as $key => $value) {
+                    $key = (string) $key;
+                    if (in_array($key, $langCodes, true)) {
+                        continue; // Sprach-Map: nur von außen als Feld, nicht die Rohwerte
+                    }
+                    if (is_string($value) && trim($value) !== '') {
+                        $candidates[] = ['k' => strtolower($key), 'v' => trim($value)];
+                    } elseif (is_array($value) && !array_is_list($value)) {
+                        $collect($value); // benannte Objekte/Sections rekursiv abklappern
+                    }
+                }
+            };
+            $collect($data);
+
+            $chosen = '';
+            foreach ($wanted as $w) {
+                foreach ($candidates as $c) {
+                    if ($c['k'] === $w) {
+                        $chosen = $c['v'];
+                        break 2;
+                    }
+                }
+            }
+            if ($chosen === '') {
+                foreach ($candidates as $c) {
+                    if (!in_array($c['k'], ['lead', 'intro', 'description', 'text', 'answer'], true) && mb_strlen($c['v']) <= 90) {
+                        $chosen = $c['v'];
+                        break;
+                    }
+                }
+            }
+            if ($chosen !== '') {
+                $headings[] = $chosen;
+            }
+        }
+
+        return array_slice($headings, 0, 8);
+    }
+
+    /** Validen Sprachcode liefern (Prüfung gegen die wählbaren Sprachschlüssel). */
+    private function pickAdminLang(string $lang): string
+    {
+        if ($lang !== '' && array_key_exists($lang, $this->availableLanguages())) {
+            return $lang;
+        }
+
+        $langs = CMS::activeLanguages($this->cms->config());
+
+        return $langs[0] ?? 'de';
+    }
+
+    /**
+     * Mehrsprachige Inhalte als flache Key->Wert-Datei exportieren (eine Zeile
+     * je übersetzbarem Feld, leere Werte = noch nicht übersetzt). Die Datei
+     * wird extern übersetzt und über importTranslations() wieder hochgeladen –
+     * es wird nur map[<lang>] gesetzt, die Struktur von content.json nie
+     * verändert (gleiche Heuristik wie dev/translate.php).
+     */
+    private function exportTranslations(): void
+    {
+        $lang = (string) ($_GET['lang'] ?? '');
+        if (!in_array($lang, $this->translationActiveCodes(), true)) {
+            $this->redirectToPanel('Ungültige Sprache: ' . $lang, 'panel-translations');
+            return;
+        }
+
+        $maps = [];
+        $seen = [];
+        $this->translationFlattenMaps(
+            CMS::readJson($this->cms->root() . '/data/content.json'),
+            '',
+            CMS::availableLanguages($this->cms->config()),
+            $seen,
+            $maps
+        );
+        ksort($maps, SORT_STRING);
+
+        $rows = [];
+        foreach ($maps as $path => $map) {
+            $value = $map[$lang] ?? '';
+            $rows[$path] = is_array($value) ? '' : (string) $value;
+        }
+
+        $body = json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="translations-' . $lang . '.json"');
+        header('Content-Length: ' . (string) strlen($body));
+        echo $body;
+        exit;
+    }
+
+    /** Hochgeladene flache Übersetzungsdatei auf die gewählte Sprache anwenden. */
+    private function importTranslations(): void
+    {
+        $lang = (string) ($_POST['lang'] ?? '');
+        if (!in_array($lang, $this->translationActiveCodes(), true)) {
+            $this->redirectToPanel('Ungültige Sprache: ' . $lang, 'panel-translations');
+            return;
+        }
+
+        $fileField = $_FILES['translation_file'] ?? null;
+        if (!is_array($fileField) || ($fileField['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || $fileField['size'] > 5 * 1024 * 1024) {
+            $this->redirectToPanel('Keine gültige Übersetzungsdatei übermittelt (JSON, max. 5 MB).', 'panel-translations');
+            return;
+        }
+
+        $raw = (string) file_get_contents((string) $fileField['tmp_name']);
+        $rows = json_decode($raw, true);
+        if (!is_array($rows)) {
+            $this->redirectToPanel('Datei ist keine gültige JSON-Übersetzungsdatei (flache Key->Wert-Struktur erwartet).', 'panel-translations');
+            return;
+        }
+
+        $root = $this->cms->root();
+        $content = CMS::readJson($root . '/data/content.json');
+        $this->pushHistory($content);
+
+        $applied = 0;
+        $skipped = 0;
+        $ignored = 0;
+        $missing = [];
+        foreach ($rows as $path => $value) {
+            $path = (string) $path;
+            $tokens = explode('.', $path);
+            if ($value === null) {
+                $ignored++;
+                continue;
+            }
+            if (is_array($value)) {
+                $skipped++;
+                $missing[] = $path . ' (Wert ist ein Objekt)';
+                continue;
+            }
+            if ($this->translationApplyKey($content, $tokens, $lang, (string) $value)) {
+                $applied++;
+            } else {
+                $skipped++;
+                $missing[] = $path . ' (unerkannt – Struktur/Sprachcodes geändert?)';
+            }
+        }
+
+        CMS::writeJson($root . '/data/content.json', $content);
+        CMS::clearPageCache($root);
+
+        $message = $applied . ' Keys übernommen (Sprache: ' . $lang . ').';
+        if ($ignored > 0) {
+            $message .= ' ' . $ignored . ' null-Werte ignoriert.';
+        }
+        if ($missing !== []) {
+            $show = array_slice($missing, 0, 5);
+            $tail = count($missing) > count($show) ? '; …' : '';
+            $message .= ' Übersprungen: ' . count($missing) . ' (' . implode('; ', $show) . $tail . ').';
+        }
+        $this->redirectToPanel($message, 'panel-translations');
+    }
+
+    /** Aktive Sprachcodes (config.languages, als Liste oder Map) – mindestens ["de"]. */
+    private function translationActiveCodes(): array
+    {
+        $languages = $this->cms->config()['languages'] ?? ['de'];
+        if (!is_array($languages) || $languages === []) {
+            return ['de'];
+        }
+        $codes = array_is_list($languages) ? $languages : array_keys($languages);
+        $out = [];
+        foreach ($codes as $code) {
+            $code = (string) $code;
+            if ($code !== '') {
+                $out[] = $code;
+            }
+        }
+        return $out !== [] ? $out : ['de'];
+    }
+
+    /** Liste aller Sprach-Maps in content.json flach aufsammeln (Key = Pfad). */
+    private function translationFlattenMaps(array $node, string $path, array $available, array &$seenIds, array &$out): void
+    {
+        $keys = array_keys($node);
+        if (!array_is_list($node) && $keys !== [] && array_diff($keys, $available) === []) {
+            $out[$path] = $node;
+            return;
+        }
+        if (array_is_list($node)) {
+            foreach ($node as $i => $item) {
+                if (is_array($item)) {
+                    $id = $item['id'] ?? null;
+                    $id = is_string($id) ? trim($id) : '';
+                    if ($id !== '' && !isset($seenIds[$id])) {
+                        $seenIds[$id] = true;
+                        $this->translationFlattenMaps($item, $path . '[' . $id . ']', $available, $seenIds, $out);
+                        continue;
+                    }
+                }
+                $this->translationFlattenMaps($item, $path . '[' . $i . ']', $available, $seenIds, $out);
+            }
+            return;
+        }
+        foreach ($node as $k => $v) {
+            if (is_string($k) && $k !== '' && is_array($v)) {
+                $this->translationFlattenMaps($v, $path === '' ? $k : $path . '.' . $k, $available, $seenIds, $out);
+            }
+        }
+    }
+
+    private function translationParseToken(string $token): array
+    {
+        if (preg_match('/^[A-Za-z0-9_]+$/', $token, $m)) {
+            return [$m[0], null];
+        }
+        if (preg_match('/^([A-Za-z0-9_]+)\[([^\]]+)\]$/', $token, $m)) {
+            return [$m[1], $m[2]];
+        }
+        return [null, null];
+    }
+
+    /** Leerer Wert auf eine Map ohne diesen Sprachschlüssel ist No-op (Fallback auf erste aktive Sprache). */
+    private function translationSetOrSkip(array &$map, string $lang, string $value): void
+    {
+        if ($value === '' && !array_key_exists($lang, $map)) {
+            return;
+        }
+        $map[$lang] = $value;
+    }
+
+    private function translationApplyKey(array &$node, array $tokens, string $lang, string $value): bool
+    {
+        $token = array_shift($tokens) ?? '';
+        if ($token === '') {
+            return false;
+        }
+        [$key, $member] = $this->translationParseToken($token);
+        if ($key === null || !is_array($node[$key] ?? null)) {
+            return false;
+        }
+        if ($member === null) {
+            if ($tokens === []) {
+                if (array_is_list($node[$key])) {
+                    return false;
+                }
+                $this->translationSetOrSkip($node[$key], $lang, $value);
+                return true;
+            }
+            return $this->translationApplyKey($node[$key], $tokens, $lang, $value);
+        }
+        if (array_is_list($node[$key])) {
+            if (is_numeric($member)) {
+                $idx = (int) $member;
+                if (!array_key_exists($idx, $node[$key]) || !is_array($node[$key][$idx])) {
+                    return false;
+                }
+            } else {
+                $idx = null;
+                foreach ($node[$key] as $i => $item) {
+                    if (is_array($item) && ($item['id'] ?? null) === $member) {
+                        $idx = $i;
+                        break;
+                    }
+                }
+                if ($idx === null) {
+                    return false;
+                }
+            }
+            if ($tokens === []) {
+                if (array_is_list($node[$key][$idx])) {
+                    return false;
+                }
+                $this->translationSetOrSkip($node[$key][$idx], $lang, $value);
+                return true;
+            }
+            return $this->translationApplyKey($node[$key][$idx], $tokens, $lang, $value);
+        }
+        if (!array_key_exists($member, $node[$key])) {
+            return false;
+        }
+        if ($tokens === []) {
+            if (!is_array($node[$key][$member]) || array_is_list($node[$key][$member])) {
+                return false;
+            }
+            $this->translationSetOrSkip($node[$key][$member], $lang, $value);
+            return true;
+        }
+        return $this->translationApplyKey($node[$key][$member], $tokens, $lang, $value);
+    }
+
+    /** JSON an den Browser (KI-Endpoints), REST-mäßig ohne Redirect wie die übrigen Formular-Aktionen. */
+    private function respondJson(array $payload): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE);
     }
 
     private function saveContent(): void
@@ -322,14 +960,14 @@ final class Admin
             $schema = $this->schemaFor($type);
             $data = $this->normalizeData($schema['fields'] ?? [], $row['data'] ?? [], 'sections[' . $id . '][data]');
             $background = (string) ($row['background'] ?? 'auto');
-            if (!in_array($background, ['auto', 'white', 'tint', 'accent'], true)) {
+            if (!in_array($background, ['auto', 'white', 'tint', 'accent', 'dark'], true)) {
                 $background = 'auto';
             }
             $sections[] = [
                 'id' => $idMap[$id] ?? $id,
                 'type' => $type,
                 'sort' => (int) ($row['sort'] ?? 0),
-                'label' => trim((string) ($row['label'] ?? '')),
+                'label' => $this->translatableValue($row['label'] ?? null, ''),
                 'group' => trim((string) ($row['group'] ?? '')),
                 'background' => $background,
                 'data' => $data,
@@ -579,6 +1217,7 @@ final class Admin
             'message' => 'Neue Version ' . $latest . ' (aktuell ' . $current . ').',
             'latest' => $latest,
             'url' => $zip,
+            'notes' => (string) ($manifest['notes'] ?? ''),
             'incompatible' => $this->incompatibleComponents($latest),
         ];
     }
@@ -761,8 +1400,10 @@ final class Admin
         $this->addDirToZip($zip, $core, 'core');
         $zip->close();
 
-        $this->redirectToPanel('Update-Paket ' . $version . ' erstellt (core/version.json wurde mit hochgezählt). '
-            . 'Noch nicht live für andere Instanzen – dafür zusätzlich "php dev/build-release.php ' . $version . ' --repo <releases-repo>" ausführen (siehe docs/UPDATE-CORE.md).', 'panel-update-package');
+        $this->redirectToPanel('Update-Paket ' . $version . ' erstellt (core/version.json wurde mit hochgezählt). Noch nicht live für andere Instanzen – dafür zusätzlich ',
+            'panel-update-package',
+            'php dev/build-release.php ' . $version . ' --repo ludwigmair/onepage-cms-releases',
+            ' ausführen (siehe docs/UPDATE-CORE.md).');
     }
 
     private function addDirToZip(\ZipArchive $zip, string $dir, string $localBase): void
@@ -976,6 +1617,7 @@ final class Admin
             'message' => 'Neue Components-Version ' . $latest . ' (aktuell ' . $current . ').',
             'latest' => $latest,
             'url' => $zip,
+            'notes' => (string) ($manifest['notes'] ?? ''),
         ];
     }
 
@@ -1113,8 +1755,10 @@ final class Admin
         $this->addDirToZip($zip, $components, 'components');
         $zip->close();
 
-        $this->redirectToPanel('Components-Update-Paket ' . $version . ' erstellt (components/version.json wurde mit hochgezählt). '
-            . 'Noch nicht live für andere Instanzen – dafür zusätzlich "php dev/build-release.php ' . $version . ' --repo <releases-repo> --target components" ausführen (siehe docs/UPDATE-COMPONENTS.md).', 'panel-components-update');
+        $this->redirectToPanel('Components-Update-Paket ' . $version . ' erstellt (components/version.json wurde mit hochgezählt). Noch nicht live für andere Instanzen – dafür zusätzlich ',
+            'panel-components-update',
+            'php dev/build-release.php ' . $version . ' --repo ludwigmair/onepage-cms-components-releases --target components',
+            ' ausführen (siehe docs/UPDATE-COMPONENTS.md).');
     }
 
     /**
@@ -1314,7 +1958,437 @@ final class Admin
     }
 
     /**
-     * Optional beim Export: eigenes Git-Repo mit main/develop/staging-Branches
+     * Registrierte Instanzen aus dev/instances.conf (Name → Port → Docroot),
+     * wie dev/serve.sh sie nutzt. Rein lokale Dev-Tooling-Info – nur über
+     * hasDevTools() erreichbar; deployed Instanzen haben kein dev/-Geschwister
+     * und liefern hier eine leere Liste.
+     *
+     * @return list<array{name: string, port: int, path: string, exists: bool}>
+     */
+    private function devInstances(): array
+    {
+        $file = dirname($this->cms->root()) . '/dev/instances.conf';
+        if (!is_file($file)) {
+            return [];
+        }
+        $root = $this->cms->root();
+        $instances = [];
+        foreach (file($file, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+            $line = trim($line);
+            if ($line === '' || $line[0] === '#') {
+                continue;
+            }
+            if (!preg_match('/^([a-z0-9][a-z0-9-]*)\s+(\d+)\s+(.+)$/', $line, $m)) {
+                continue;
+            }
+            // Der Generator selbst (docroot = web/ = this->cms->root() synced sich
+            // nie selbst an – wäre ein No-op, das nur dessen Page-Cache leert.
+            // Docroot ist relativ zum Repo-Root (nicht zu web/), außer absolut.
+            $docroot = $m[3];
+            $path = str_starts_with($docroot, '/') ? $docroot : dirname($root) . '/' . $docroot;
+            if ($path === $root) {
+                continue;
+            }
+            $instances[] = [
+                'name' => $m[1],
+                'port' => (int) $m[2],
+                'path' => $path,
+                'exists' => is_dir($path),
+            ];
+        }
+        return $instances;
+    }
+
+    /**
+     * "Instanz angleichen": überträgt den aktuellen Stand (Inhalte, config ohne
+     * dev_import-Marker, uploads/, aktives Theme + verwendete Regions/Components)
+     * in eine per dev/instances.conf registrierte Instanz – core/ und vendor/
+     * der Ziel-Instanz bleiben unangetastet, da nur das Webprojekt-Spezifische
+     * synchronisiert wird. Docroot kommt ausschließlich
+     * aus dev/instances.conf (kein frei wählbarer Pfad), der Eintrag wird per
+     * Name validiert.
+     */
+    private function syncProjectInstance(): void
+    {
+        if (!$this->hasDevTools()) {
+            $this->redirectToPanel('„Instanz angleichen“ gibt es nur im Generator (dev/-Tooling).', 'panel-export-instance');
+            return;
+        }
+        $name = trim((string) ($_POST['instance'] ?? ''));
+        $target = null;
+        foreach ($this->devInstances() as $instance) {
+            if ($instance['name'] === $name) {
+                $target = $instance;
+                break;
+            }
+        }
+        if ($target === null) {
+            $this->redirectToPanel('Unbekannte Instanz „' . $name . '“.', 'panel-export-instance');
+            return;
+        }
+        $dest = $target['path'];
+        if (!is_dir($dest . '/data') || !is_file($dest . '/data/content.json')) {
+            $this->redirectToPanel("„{$name}“ ({$dest}) sieht nicht wie eine Instanz aus (data/content.json fehlt).", 'panel-export-instance');
+            return;
+        }
+
+        $root = $this->cms->root();
+        mkdir($dest . '/data', 0775, true);
+
+        copy($root . '/data/content.json', $dest . '/data/content.json');
+        copy($root . '/data/content.json', $dest . '/data/content.seed.json');
+        $config = $this->cms->config();
+        unset($config['dev_import']);
+        CMS::writeJson($dest . '/data/config.json', $config);
+        $seedConfig = $config;
+        $seedConfig['admin']['users'] = [];
+        CMS::writeJson($dest . '/data/config.seed.json', $seedConfig);
+
+        if (is_dir($root . '/uploads')) {
+            $this->copyDir($root . '/uploads', $dest . '/uploads');
+        }
+
+        $theme = (string) ($config['theme'] ?? '');
+        if ($theme !== '' && is_dir($root . "/themes-and-plugins/themes/{$theme}")) {
+            $this->copyDir(
+                $root . "/themes-and-plugins/themes/{$theme}",
+                $dest . "/themes-and-plugins/themes/{$theme}"
+            );
+        }
+        foreach (['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] as $region) {
+            if ($theme !== '' && is_dir($root . "/themes-and-plugins/themes/{$theme}/{$region}")) {
+                continue;
+            }
+            $variant = $this->resolveRegionVariant($config, $region);
+            if ($variant === null) {
+                continue;
+            }
+            $poolFolder = $region . 's';
+            $src = $root . "/themes-and-plugins/{$poolFolder}/{$variant}";
+            if (is_dir($src)) {
+                $this->copyDir($src, $dest . "/themes-and-plugins/{$poolFolder}/{$variant}");
+            }
+        }
+        foreach ($this->usedComponentTypes() as $type) {
+            $src = $root . "/themes-and-plugins/components/{$type}";
+            if (is_dir($src)) {
+                $this->copyDir($src, $dest . "/themes-and-plugins/components/{$type}");
+            }
+        }
+        $componentsVersionFile = $root . '/themes-and-plugins/components/version.json';
+        if (is_file($componentsVersionFile)) {
+            if (!is_dir($dest . '/themes-and-plugins/components')) {
+                mkdir($dest . '/themes-and-plugins/components', 0775, true);
+            }
+            copy($componentsVersionFile, $dest . '/themes-and-plugins/components/version.json');
+        }
+
+        // Stale Page-Cache der Ziel-Instanz: Signatur-Invalidierung greift zwar von
+        // selbst (content.json ändert sich), aber das Leeren macht den Sync sofort
+        // sichtbar und räumt verwaiste Varianten auf.
+        $this->removeDir($dest . '/cache/pages');
+
+        $this->redirectToPanel(
+            "Instanz „{$name}“ (Port {$target['port']}) angeglichen: data, uploads, Theme und verwendete Components aus dem aktuellen Generator-Stand übernommen ({$dest}). core/, vendor/ und config-Eigenheiten der Ziel-Instanz wurden nicht angefasst – die Page-Caches sind geleert.",
+            'panel-export-instance'
+        );
+    }
+
+    private function removeDir(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        foreach (array_diff(scandir($dir) ?: [], ['.', '..']) as $item) {
+            $path = $dir . '/' . $item;
+            if (is_dir($path)) {
+                $this->removeDir($path);
+            } else {
+                unlink($path);
+            }
+        }
+        rmdir($dir);
+    }
+
+    /**
+     * "Theme-/Daten-Paket bauen": zippt content.json, config.json (ohne
+     * dev_import-Marker), uploads/ (ohne generierte .optim-Varianten), aktives
+     * Theme + verwendete Regions/Components und ein Manifest nach
+     * cache/projekt-<stempel>.zip. Lokales Gegenstück zum Sync: das Paket kann
+     * man beliebig verteilen und in jeder Instanz über "Projekt-Paket
+     * importieren" einspielen – ohne dass dort dev/-Tooling oder ein gemeinsamer
+     * Ordner nötig wäre.
+     */
+    private function buildProjectPackage(): void
+    {
+        $root = $this->cms->root();
+        $file = 'projekt-' . date('Ymd-His') . '.zip';
+        $zipPath = $root . '/cache/' . $file;
+        if (is_file($zipPath)) {
+            $this->redirectToPanel('Paket existiert bereits: ' . $file, 'panel-export-instance');
+            return;
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            $this->redirectToPanel('Paket konnte nicht angelegt werden (cache/ beschreibbar?).', 'panel-export-instance');
+            return;
+        }
+
+        $zip->addFromString('manifest.json', (string) json_encode([
+            'package' => 'project',
+            'created' => date('c'),
+            'theme' => (string) ($this->cms->config()['theme'] ?? ''),
+            'content_sha256' => hash_file('sha256', $root . '/data/content.json'),
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
+        $zip->addFile($root . '/data/content.json', 'data/content.json');
+        $cleanConfig = $this->cms->config();
+        unset($cleanConfig['dev_import']);
+        $zip->addFromString('data/config.json', (string) json_encode($cleanConfig, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+
+        if (is_dir($root . '/uploads')) {
+            $this->addDirToZipSkipping($zip, $root . '/uploads', 'uploads', ['.optim']);
+        }
+
+        $theme = (string) ($cleanConfig['theme'] ?? '');
+        if ($theme !== '' && is_dir($root . "/themes-and-plugins/themes/{$theme}")) {
+            $this->addDirToZip($zip, $root . "/themes-and-plugins/themes/{$theme}", 'themes-and-plugins/themes/' . $theme);
+        }
+        foreach (['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] as $region) {
+            if ($theme !== '' && is_dir($root . "/themes-and-plugins/themes/{$theme}/{$region}")) {
+                continue;
+            }
+            $variant = $this->resolveRegionVariant($cleanConfig, $region);
+            if ($variant === null) {
+                continue;
+            }
+            $poolFolder = $region . 's';
+            $src = $root . "/themes-and-plugins/{$poolFolder}/{$variant}";
+            if (is_dir($src)) {
+                $this->addDirToZip($zip, $src, 'themes-and-plugins/' . $poolFolder . '/' . $variant);
+            }
+        }
+        foreach ($this->usedComponentTypes() as $type) {
+            $src = $root . "/themes-and-plugins/components/{$type}";
+            if (is_dir($src)) {
+                $this->addDirToZip($zip, $src, 'themes-and-plugins/components/' . $type);
+            }
+        }
+        $componentsVersionFile = $root . '/themes-and-plugins/components/version.json';
+        if (is_file($componentsVersionFile)) {
+            $zip->addFile($componentsVersionFile, 'themes-and-plugins/components/version.json');
+        }
+
+        $zip->close();
+
+        $this->redirectToPanel('Theme-/Daten-Paket „' . $file . '“ erstellt unter cache/ – in einer beliebigen Instanz unter „Projekt-Paket importieren“ einspielen.', 'panel-export-instance');
+    }
+
+    /** addDirToZip-Variante mit Skip-Liste für Verzeichnisnamen (z. B. .optim). */
+    private function addDirToZipSkipping(\ZipArchive $zip, string $dir, string $localBase, array $skipDirs): void
+    {
+        foreach (scandir($dir) ?: [] as $item) {
+            if ($item === '.' || $item === '..' || $item === '.DS_Store') {
+                continue;
+            }
+            $path = $dir . '/' . $item;
+            $local = $localBase . '/' . $item;
+            if (is_dir($path)) {
+                if (in_array($item, $skipDirs, true)) {
+                    continue;
+                }
+                $zip->addEmptyDir($local);
+                $this->addDirToZipSkipping($zip, $path, $local, $skipDirs);
+            } else {
+                $zip->addFile($path, $local);
+            }
+        }
+    }
+
+    /** Gebaute Projekt-Pakete in cache/ (projekt-<Zeitstempel>.zip), neueste zuerst. */
+    private function projectPackages(): array
+    {
+        $cacheDir = $this->cms->root() . '/cache';
+        $out = [];
+        foreach ((is_dir($cacheDir) ? (glob($cacheDir . '/projekt-*.zip') ?: []) : []) as $path) {
+            $name = basename((string) $path);
+            if (!preg_match('/^projekt-\d{8}-\d{6}\.zip$/', $name)) {
+                continue;
+            }
+            $manifest = null;
+            $zip = new \ZipArchive();
+            if ($zip->open($path) === true) {
+                $json = $zip->getFromName('manifest.json');
+                $zip->close();
+                $decoded = $json === false ? null : json_decode((string) $json, true);
+                if (is_array($decoded)) {
+                    $manifest = $decoded;
+                }
+            }
+            $out[] = [
+                'file' => $name,
+                'size' => filesize($path),
+                'created' => date('Y-m-d H:i', (int) filemtime($path)),
+                'theme' => (string) ($manifest['theme'] ?? ''),
+                'content_sha256' => (string) ($manifest['content_sha256'] ?? ''),
+            ];
+        }
+        usort($out, static fn (array $a, array $b): int => strcmp($b['file'], $a['file']));
+        return $out;
+    }
+
+    private function downloadProjectPackage(): void
+    {
+        $file = basename((string) ($_GET['file'] ?? ''));
+        $path = $this->cms->root() . '/cache/' . $file;
+        if ($file === '' || !preg_match('/^projekt-\d{8}-\d{6}\.zip$/', $file) || !is_file($path)) {
+            $this->redirectToPanel('Paket nicht gefunden.', 'panel-export-instance');
+            return;
+        }
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . $file . '"');
+        header('Content-Length: ' . (string) filesize($path));
+        readfile($path);
+        exit;
+    }
+
+    private function deleteProjectPackage(): void
+    {
+        $file = basename((string) ($_POST['file'] ?? ''));
+        $path = $this->cms->root() . '/cache/' . $file;
+        if ($file === '' || !preg_match('/^projekt-\d{8}-\d{6}\.zip$/', $file) || !is_file($path)) {
+            $this->redirectToPanel('Paket nicht gefunden.', 'panel-export-instance');
+            return;
+        }
+
+        unlink($path);
+        $this->redirectToPanel('Paket gelöscht: ' . $file, 'panel-export-instance');
+    }
+
+    /**
+     * "Projekt-Paket importieren" (gilt in jeder Instanz, nicht nur im Generator):
+     * nimmt ein vom Generator gebautes projekt-*.zip hoch und spielt data/,
+     * uploads/ und das Theme-/Component-Subset in die Instanz ein. Bewusst robust:
+     * Zip-Slip-Guard (keine .. /absolute Pfade /Backslashes), Manifest-Pflicht,
+     * content.json-Prüfsumme; die Admin-Logins der Instanz (config.json →
+     * admin.users) bleiben erhalten, die pflegt nur die Instanz selbst.
+     */
+    private function importProjectPackage(): void
+    {
+        $root = $this->cms->root();
+        $fileField = $_FILES['package'] ?? null;
+        if (!is_array($fileField) || ($fileField['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || ($fileField['size'] ?? 0) <= 0) {
+            $this->redirectToPanel('Keine gültige Paket-Datei übermittelt.', 'panel-import-project');
+            return;
+        }
+
+        $tmpDir = $root . '/cache/projekt-import-' . bin2hex(random_bytes(4));
+        mkdir($tmpDir, 0775, true);
+
+        $zip = new \ZipArchive();
+        if ($zip->open($fileField['tmp_name']) !== true) {
+            $this->removeDir($tmpDir);
+            $this->redirectToPanel('Datei ist kein gültiges ZIP-Paket.', 'panel-import-project');
+            return;
+        }
+
+        $manifest = null;
+        $entries = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = (string) ($zip->getNameIndex($i) ?? '');
+            if ($name === '' || str_ends_with($name, '/')) {
+                continue;
+            }
+            $clean = str_replace('\\', '/', $name);
+            if ($clean !== $name || str_starts_with($clean, '/') || str_contains($clean, '../')) {
+                $zip->close();
+                $this->removeDir($tmpDir);
+                $this->redirectToPanel('Ungültiger Eintrag im Paket: ' . $name, 'panel-import-project');
+                return;
+            }
+            if ($clean === 'manifest.json') {
+                $json = $zip->getFromIndex($i);
+                $manifest = $json === false ? null : json_decode((string) $json, true);
+                continue;
+            }
+            $allowed = false;
+            foreach (['data/', 'uploads/', 'themes-and-plugins/'] as $rootPath) {
+                if (str_starts_with($clean, $rootPath)) {
+                    $allowed = true;
+                    break;
+                }
+            }
+            if (!$allowed) {
+                $zip->close();
+                $this->removeDir($tmpDir);
+                $this->redirectToPanel('Paket enthält nicht unterstützte Einträge (' . $name . ').', 'panel-import-project');
+                return;
+            }
+            $content = $zip->getFromIndex($i);
+            if ($content === false) {
+                $zip->close();
+                $this->removeDir($tmpDir);
+                $this->redirectToPanel('Eintrag kann nicht gelesen werden: ' . $name, 'panel-import-project');
+                return;
+            }
+            $entries[$clean] = $content;
+        }
+        $zip->close();
+
+        if (!is_array($manifest) || ($manifest['package'] ?? '') !== 'project') {
+            $this->removeDir($tmpDir);
+            $this->redirectToPanel('Paket-Manifest fehlt oder passt nicht – das ist kein Projekt-Paket.', 'panel-import-project');
+            return;
+        }
+        if (!isset($entries['data/content.json'])) {
+            $this->removeDir($tmpDir);
+            $this->redirectToPanel('Paket enthält kein data/content.json.', 'panel-import-project');
+            return;
+        }
+        if (($manifest['content_sha256'] ?? '') !== '' && !hash_equals((string) $manifest['content_sha256'], hash('sha256', $entries['data/content.json']))) {
+            $this->removeDir($tmpDir);
+            $this->redirectToPanel('content.json-Prüfsumme weicht ab – Paket ist vermutlich beschädigt.', 'panel-import-project');
+            return;
+        }
+
+        // Bestehende Instanz-Konfiguration merken, damit die Admin-Logins der
+        // Instanz beim Import erhalten bleiben (die pflegt nur die Instanz selbst)
+        // und die Update-Manifests (Update-Buttons "ausgegraut", wenn leer).
+        $existing = CMS::readJson($root . '/data/config.json');
+        $existingUsers = array_values($existing['admin']['users'] ?? []);
+        $existingUpdate = $existing['update'] ?? [];
+
+        $written = 0;
+        foreach ($entries as $rel => $content) {
+            $dest = $root . '/' . $rel;
+            if (!is_dir(dirname($dest))) {
+                mkdir(dirname($dest), 0775, true);
+            }
+            file_put_contents($dest, $content);
+            $written++;
+        }
+
+        // Seeds nachziehen (ensureSeeded-Fallback) – der Import soll auch eine
+        // noch nie gebootete Instanz standfest machen. config.seed.json behält
+        // bewusst die leere Nutzerliste; Logins erzeugt ensureSeeded() aus .env.
+        copy($root . '/data/content.json', $root . '/data/content.seed.json');
+        $newConfig = CMS::readJson($root . '/data/config.json');
+        $newConfig['admin']['users'] = $existingUsers;
+        $newConfig['update'] = $existingUpdate;
+        CMS::writeJson($root . '/data/config.json', $newConfig);
+        $seedConfig = $newConfig;
+        $seedConfig['admin']['users'] = [];
+        CMS::writeJson($root . '/data/config.seed.json', $seedConfig);
+
+        $this->removeDir($root . '/cache/pages');
+        $this->removeDir($tmpDir);
+
+        $this->redirectToPanel('Projekt-Paket importiert: ' . $written . ' Dateien (content.json, config.json, uploads/, Theme + verwendete Components). Admin-Logins dieser Instanz blieben erhalten, der Page-Cache wurde geleert.', 'panel-import-project');
+    }
+
+    /**
      * + einem auf dieses Projekt zugeschnittenen FTP-Deploy-Workflow (siehe
      * dev/templates/) - fürs spätere Verbinden mit einem eigenen GitHub-Repo
      * und CI-gestütztem Staging-Deploy. Legt bewusst KEIN Remote an und
@@ -1669,6 +2743,12 @@ final class Admin
             }
             if ($type === 'image') {
                 $out[$name] = $this->handleUpload($filePrefix . '[' . $name . ']', (string) ($posted[$name] ?? ''));
+                // Optionales Größen-Preset am Bildfeld ("size": true im Schema):
+                // wird als Schwester-Feld "<name>_size" neben den Bildpfad gespeichert.
+                if (($field['size'] ?? false)) {
+                    $size = (string) ($posted[$name . '_size'] ?? 'auto');
+                    $out[$name . '_size'] = in_array($size, ['auto', 'small', 'medium', 'full'], true) ? $size : 'auto';
+                }
                 continue;
             }
             if ($type === 'number' || $type === 'rating') {
@@ -1738,6 +2818,7 @@ final class Admin
         if (!move_uploaded_file($tmp, $target)) {
             return $fallback;
         }
+        Image::generateVariants($target);
 
         return 'uploads/' . basename($target);
     }
@@ -1918,7 +2999,20 @@ final class Admin
             $config['layout']['topbar']['theme'] = $themeLayout['topbar'];
         }
         if (isset($theme['languages'])) {
-            $config['languages'] = $this->normalizeLanguages($theme['languages']);
+            $themeLangs = array_values(array_filter(
+                array_map('strval', $theme['languages']),
+                static fn (string $l): bool => $l !== ''
+            ));
+
+            // Das Theme definiert den Sprachsatz des Projekts: mitgebrachte
+            // Basis-Sprachen wieder freigeben, nicht benötigte Basis-Sprachen
+            // ausblenden (config.languages_disabled), sobald das Theme sie
+            // nicht mitbringt. Ein Wechsel auf ein rein deutschsprachiges
+            // Theme blendet damit automatisch die Sprachen des Vorgänger-Themes
+            // aus – sie schleppen sich nicht weiter mit. Projekteigene
+            // Ergänzungen aus config.languages_allowed sind nicht betroffen.
+            $config = $this->syncThemeLanguages($themeLangs, $config);
+            $config['languages'] = $this->normalizeLanguages($themeLangs, $config);
         }
         $config['theme'] = $name;
 
@@ -1948,17 +3042,58 @@ final class Admin
     }
 
     /**
+     * Passt config.languages_disabled an den Sprachsatz eines Themes an:
+     * Basis-Sprachen, die das Theme mitbringt, werden wieder verfügbar,
+     * Basis-Sprachen, die es nicht mitbringt, werden ausgeblendet. "de" ist
+     * nie ausblendbar. Projekteigene Ergänzungen aus config.languages_allowed
+     * bleiben unberührt (die sind projekt-, nicht theme-spezifisch). Liefert
+     * $config mit aktualisiertem languages_disabled zurück – Aufrufer müssen
+     * danach normalizeLanguages() gegen DIESEN Stand laufen lassen (siehe dort).
+     *
+     * @param list<string> $themeLangs
+     */
+    private function syncThemeLanguages(array $themeLangs, array $config): array
+    {
+        $disabled = CMS::disabledCodes($config);
+        foreach (CMS::AVAILABLE_LANGUAGES as $code) {
+            if ($code === 'de') {
+                continue;
+            }
+            if (in_array($code, $themeLangs, true)) {
+                $disabled = array_values(array_filter(
+                    $disabled,
+                    static fn (string $c): bool => $c !== $code
+                ));
+            } elseif (!in_array($code, $disabled, true)) {
+                $disabled[] = $code;
+            }
+        }
+        if ($disabled !== []) {
+            $config['languages_disabled'] = $disabled;
+        } else {
+            unset($config['languages_disabled']);
+        }
+
+        return $config;
+    }
+
+    /**
      * "de" ist immer Pflicht und steht immer an erster Stelle (= Default-/
      * Fallback-Sprache, siehe CMS::detectLocale()/localizeContent()). Reduziert
      * sich die Auswahl auf nur "de", verschwindet der Sprach-Umschalter im
      * Admin wieder und jedes Feld zeigt ein einzelnes Eingabefeld statt der
      * Sprach-Tabs – nichts geht dabei verloren, die Sprach-Maps in
      * content.json bleiben einfach ungenutzt liegen.
+     *
+     * $config für Aufrufer, die config.json vorher selbst verändert haben
+     * (z. B. applyTheme, das languages_disabled aufhebt): Die Validierung
+     * muss gegen den NEUEN Stand laufen, nicht gegen den Boot-Snapshot.
      */
-    private function normalizeLanguages(mixed $selected): array
+    private function normalizeLanguages(mixed $selected, ?array $config = null): array
     {
         $selected = is_array($selected) ? array_map('strval', $selected) : [];
-        $selected = array_values(array_intersect($selected, array_keys(self::AVAILABLE_LANGUAGES)));
+        $labels = $config !== null ? CMS::languageLabels($config) : $this->availableLanguages();
+        $selected = array_values(array_intersect($selected, array_keys($labels)));
 
         return array_values(array_unique(array_merge(['de'], $selected)));
     }
@@ -2057,6 +3192,11 @@ final class Admin
 
         $config['theme'] = $slug;
         $config['languages'] = $languages;
+        // Wie applyTheme: Das Theme definiert den Sprachsatz. Beim Speichern/
+        // Aktivieren werden Basis-Sprachen, die es nicht mitbringt, ausgeblendet
+        // und mitgebrachte wieder verfügbar gemacht – mitgebrachte toplevel,
+        // nicht-mitgebrachte als languages_disabled.
+        $config = $this->syncThemeLanguages($languages, $config);
         $config['layout']['header'] = $chosen['header'];
         $config['layout']['footer'] = $chosen['footer'];
         $config['layout']['stickybar'] = $chosen['stickybar'];
@@ -2114,6 +3254,7 @@ final class Admin
         if (!move_uploaded_file((string) $file['tmp_name'], $target)) {
             $this->failUpload($ajax, 'Bild konnte nicht gespeichert werden.');
         }
+        Image::generateVariants($target);
 
         if ($ajax) {
             header('Content-Type: application/json; charset=utf-8');
@@ -2149,15 +3290,57 @@ final class Admin
 
         $file = $this->cms->root() . '/uploads/' . $name;
         if (is_file($file)) {
+            Image::removeVariants($file);
             unlink($file);
         }
         $this->redirectToPanel('Bild gelöscht.', 'panel-images');
     }
 
     /**
-     * Bilder in web/uploads/ mit Verwendungs-Status (welche Sections referenzieren sie).
-     * @return list<array{name:string, used:bool, usedIn:list<string>}>
+     * Sammellöschung: mehrere Bilder aus web/uploads/ auf einmal entfernen.
      */
+    private function deleteImagesMany(): void
+    {
+        $raw = (array) ($_POST['filenames'] ?? []);
+        $names = [];
+        foreach ($raw as $name) {
+            $n = basename((string) $name);
+            if ($n !== '' && $n !== '.' && $n !== '..') {
+                $names[] = $n;
+            }
+        }
+        $names = array_values(array_unique($names));
+        if ($names === []) {
+            $this->redirectToPanel('Keine Bilder ausgewählt.', 'panel-images');
+        }
+
+        $deleted = 0;
+        $blocked = [];
+        foreach ($names as $name) {
+            $usedIn = $this->imageUsage('uploads/' . $name);
+            if ($usedIn !== []) {
+                $blocked[] = $name . ' (' . implode(', ', $usedIn) . ')';
+                continue;
+            }
+            $file = $this->cms->root() . '/uploads/' . $name;
+            if (is_file($file)) {
+                Image::removeVariants($file);
+                unlink($file);
+                $deleted++;
+            }
+        }
+
+        $msg = [];
+        if ($deleted > 0) {
+            $msg[] = $deleted . ' Bild' . ($deleted === 1 ? '' : 'er') . ' gelöscht.';
+        }
+        if ($blocked !== []) {
+            $msg[] = 'Noch in Verwendung: ' . implode('; ', $blocked);
+        }
+        $this->redirectToPanel($msg !== [] ? implode(' ', $msg) : 'Keine Bilder gelöscht.', 'panel-images');
+    }
+
+    /** @return list<array{name:string, used:bool, usedIn:list<string>}> */
     private function listUploads(): array
     {
         $dir = $this->cms->root() . '/uploads';
@@ -2193,6 +3376,10 @@ final class Admin
             if (is_array($section) && $this->valueContainsImage($section['data'] ?? [], $path)) {
                 $usedIn[] = (string) ($section['type'] ?? '?') . ' (' . (string) ($section['id'] ?? '?') . ')';
             }
+        }
+        $site = $content['site'] ?? [];
+        if (is_array($site) && $this->valueContainsImage($site, $path)) {
+            $usedIn[] = 'Site (Logo/Favicon)';
         }
         return $usedIn;
     }
@@ -2243,9 +3430,25 @@ final class Admin
         $this->redirectToPanel($count > 0 ? $count . ' Bild(er) in den Pool importiert.' : 'Keine externen Bilder gefunden.', 'panel-images');
     }
 
-    /** @param array<string, mixed> $fields @param array<string, mixed> $data @param array<string, string> $mapping */
-    private function importImagesInData(array $fields, array &$data, array &$mapping): void
+    /**
+     * "Thumbnails nachziehen": erzeugt für alle vorhandenen Raster-Bilder im
+     * Pool die responsiven Varianten nach (Image::generateVariants()) – für
+     * Bilder, die vor dieser Funktion hochgeladen wurden. Leert anschließend
+     * den Public-Seiten-Cache, weil sich dadurch srcset/width/height im
+     * gerenderten HTML ändern, ohne dass content.json angefasst wird.
+     */
+    private function regenerateThumbnails(): void
     {
+        $result = Image::generateAllVariants($this->cms->root() . '/uploads');
+        CMS::clearPageCache($this->cms->root());
+        if ($result['checked'] === 0) {
+            $this->redirectToPanel('Keine Raster-Bilder im Pool gefunden (SVG/GIF brauchen keine Varianten).', 'panel-images');
+        }
+        $this->redirectToPanel("Thumbnails erzeugt/aktualisiert für {$result['generated']} von {$result['checked']} Raster-Bild(ern).", 'panel-images');
+    }
+
+    /** @param array<string, mixed> $fields @param array<string, mixed> $data @param array<string, string> $mapping */
+    private function importImagesInData(array $fields, array &$data, array &$mapping): void    {
         foreach ($fields as $field) {
             $name = (string) ($field['name'] ?? '');
             $type = (string) ($field['type'] ?? '');
@@ -2292,6 +3495,7 @@ final class Admin
         }
         $name = bin2hex(random_bytes(6)) . '.' . $ext;
         file_put_contents($dir . '/' . $name, $bytes);
+        Image::generateVariants($dir . '/' . $name);
 
         $rel = 'uploads/' . $name;
         $mapping[$url] = $rel;
@@ -2346,9 +3550,11 @@ final class Admin
      * fachlich immer zu einem bestimmten Panel gehören, unabhängig davon, wo man
      * gerade zufällig war.
      */
-    private function redirectToPanel(string $message, string $panel): void
+    private function redirectToPanel(string $message, string $panel, string $cmd = '', string $after = ''): void
     {
         $_SESSION['flash'] = $message;
+        $_SESSION['flash_command'] = $cmd;
+        $_SESSION['flash_after'] = $after;
         header('Location: ?admin=1#' . $panel);
         exit;
     }
@@ -2393,6 +3599,63 @@ final class Admin
      * web/uploads/ ist nicht Git-versioniert, ein Leeren ohne Ersatz wäre
      * endgültiger Datenverlust.
      */
+    /**
+     * Lokaler Export des AKTUELLEN aktiven Stands in einen bestehenden
+     * dev-imports/-Eintrag (Überschreiben des dortigen Snapshots) – Gegenstück
+     * zu switchProject(), damit ein Projekt – gerade das aktive – nach
+     * Änderungen erneut exportiert und so jederzeit re-importiert werden kann.
+     * Nur für Slugs, die scanDevImports() bereits kennt (kein beliebiger
+     * Zielordner). uploads/ wird ohne generierte .optim-Varianten kopiert;
+     * config.json erhält bewusst keinen dev_import-Marker (rein lokale
+     * Information, der Snapshot soll davon frei bleiben – der Marker entsteht
+     * erst wieder durch switchProject()).
+     */
+    private function exportDevImport(): void
+    {
+        $slug = trim((string) ($_POST['project'] ?? ''));
+        $project = null;
+        foreach ($this->scanDevImports() as $candidate) {
+            if ($candidate['slug'] === $slug) {
+                $project = $candidate;
+                break;
+            }
+        }
+        if ($project === null) {
+            $this->redirectToPanel('Projekt nicht gefunden – lokaler Export nur in bestehende dev-imports/-Einträge.', 'panel-dev-import');
+        }
+
+        $dest = dirname($this->cms->root()) . '/dev-imports/' . $slug;
+        mkdir($dest, 0775, true);
+
+        copy($this->cms->root() . '/data/content.json', $dest . '/content.json');
+
+        $config = $this->cms->config();
+        unset($config['dev_import']);
+        CMS::writeJson($dest . '/config.json', $config);
+
+        $uploadsDst = $dest . '/uploads';
+        if (is_dir($uploadsDst)) {
+            $this->rrmdir($uploadsDst);
+        }
+        mkdir($uploadsDst, 0775, true);
+        foreach (scandir($this->cms->root() . '/uploads') ?: [] as $entry) {
+            $srcFile = $this->cms->root() . '/uploads/' . $entry;
+            if ($entry === '.' || $entry === '..' || $entry === '.optim' || $entry[0] === '.' || !is_file($srcFile)) {
+                continue;
+            }
+            copy($srcFile, $uploadsDst . '/' . $entry);
+        }
+
+        $metaPath = $dest . '/meta.json';
+        $meta = is_file($metaPath) ? CMS::readJson($metaPath) : [];
+        $existingLabel = trim((string) ($meta['label'] ?? ''));
+        $siteTitle = $this->displayString($this->cms->content()['site']['title'] ?? '');
+        $meta['label'] = $existingLabel !== '' ? $existingLabel : ($siteTitle !== '' ? $siteTitle : $slug);
+        CMS::writeJson($metaPath, $meta);
+
+        $this->redirectToPanel('Aktueller Stand als dev-imports/' . $slug . '/ exportiert – „Übernehmen“/„Neu einspielen“ zieht ihn nun wieder ein.', 'panel-dev-import');
+    }
+
     private function switchProject(): void
     {
         $slug = trim((string) ($_POST['project'] ?? ''));
@@ -2421,6 +3684,11 @@ final class Admin
         $configSrc = $sourceDir . '/config.json';
         $config = is_file($configSrc) ? CMS::readJson($configSrc) : CMS::readJson($configPath);
         $config['dev_import'] = $slug;
+        // Die Update-Manifest-URLs sind Deploy-Infrastruktur des Generators und
+        // kein Projekt-Inhalt: beim Projekt-Wechsel nie überschreiben, sonst
+        // sind die Update-Buttons in dieser (und jeder danach exportierten)
+        // Instanz ohne Grund ausgegraut (bl01-Fall).
+        $config['update'] = CMS::readJson($configPath)['update'] ?? [];
         CMS::writeJson($configPath, $config);
 
         $uploadsSrc = $sourceDir . '/uploads';

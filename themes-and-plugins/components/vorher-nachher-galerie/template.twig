@@ -17,13 +17,15 @@
             <div class="grid grid-cols-2 gap-px bg-walnut/15">
                 <button type="button" class="group relative h-36 cursor-pointer overflow-hidden md:h-40" data-vng-open data-vng-lightbox-target="{{ id }}" data-vng-index="{{ loop.index0 }}" data-vng-start="0">
                     {% if item.before_image %}
-                    <img class="h-full w-full object-cover transition duration-300 group-hover:scale-105" src="{{ item.before_image starts with 'http' ? item.before_image : '/' ~ item.before_image }}" alt="{{ item.title|default('') }} – vorher" loading="lazy">
+                    {% set before = img_src(item.before_image, 480) %}
+                    <img class="h-full w-full object-cover transition duration-300 group-hover:scale-105" src="{{ before.src }}" srcset="{{ before.srcset }}" {% if before.width %}width="{{ before.width }}"{% endif %} {% if before.height %}height="{{ before.height }}"{% endif %} alt="{{ item.title|default('') }} – vorher" loading="lazy">
                     {% endif %}
                     <span class="absolute bottom-2.5 left-2.5 rounded-full bg-walnut/60 px-2.5 py-1 font-display text-[11px] font-bold uppercase tracking-[0.08em] text-white">Vorher</span>
                 </button>
                 <button type="button" class="group relative h-36 cursor-pointer overflow-hidden md:h-40" data-vng-open data-vng-lightbox-target="{{ id }}" data-vng-index="{{ loop.index0 }}" data-vng-start="1">
                     {% if item.after_image %}
-                    <img class="h-full w-full object-cover transition duration-300 group-hover:scale-105" src="{{ item.after_image starts with 'http' ? item.after_image : '/' ~ item.after_image }}" alt="{{ item.title|default('') }} – nachher" loading="lazy">
+                    {% set after = img_src(item.after_image, 480) %}
+                    <img class="h-full w-full object-cover transition duration-300 group-hover:scale-105" src="{{ after.src }}" srcset="{{ after.srcset }}" {% if after.width %}width="{{ after.width }}"{% endif %} {% if after.height %}height="{{ after.height }}"{% endif %} alt="{{ item.title|default('') }} – nachher" loading="lazy">
                     {% endif %}
                     <span class="absolute bottom-2.5 left-2.5 rounded-full bg-walnut/60 px-2.5 py-1 font-display text-[11px] font-bold uppercase tracking-[0.08em] text-white">Nachher</span>
                 </button>
@@ -46,13 +48,15 @@
             <div class="relative h-[50vh] overflow-hidden rounded-[var(--brand-radius)] md:h-[60vh]" data-crossfade>
                 {% if item.before_image %}
                 <div class="absolute inset-0 opacity-100" data-crossfade-slide>
-                    <img class="h-full w-full object-cover" src="{{ item.before_image starts with 'http' ? item.before_image : '/' ~ item.before_image }}" alt="{{ item.title|default('') }} – vorher" loading="lazy">
+                    {% set before = img_src(item.before_image, 1200) %}
+                    <img class="h-full w-full object-cover" src="{{ before.src }}" srcset="{{ before.srcset }}" {% if before.width %}width="{{ before.width }}"{% endif %} {% if before.height %}height="{{ before.height }}"{% endif %} alt="{{ item.title|default('') }} – vorher" loading="lazy">
                     <span class="absolute bottom-3 left-3 rounded-full bg-walnut/60 px-2.5 py-1 font-display text-[11px] font-bold uppercase tracking-[0.08em] text-white">Vorher</span>
                 </div>
                 {% endif %}
                 {% if item.after_image %}
                 <div class="absolute inset-0 opacity-0" data-crossfade-slide>
-                    <img class="h-full w-full object-cover" src="{{ item.after_image starts with 'http' ? item.after_image : '/' ~ item.after_image }}" alt="{{ item.title|default('') }} – nachher" loading="lazy">
+                    {% set after = img_src(item.after_image, 1200) %}
+                    <img class="h-full w-full object-cover" src="{{ after.src }}" srcset="{{ after.srcset }}" {% if after.width %}width="{{ after.width }}"{% endif %} {% if after.height %}height="{{ after.height }}"{% endif %} alt="{{ item.title|default('') }} – nachher" loading="lazy">
                     <span class="absolute bottom-3 left-3 rounded-full bg-walnut/60 px-2.5 py-1 font-display text-[11px] font-bold uppercase tracking-[0.08em] text-white">Nachher</span>
                 </div>
                 {% endif %}

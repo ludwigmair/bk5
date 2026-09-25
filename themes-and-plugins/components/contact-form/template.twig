@@ -68,6 +68,9 @@
             {% if business.phone %}
             <p class="mt-5 font-display text-xs font-medium uppercase tracking-[0.2em] text-primary">Telefon</p>
             <p class="mt-1"><a class="text-walnut/80 hover:text-primary" href="tel:{{ business.phone|replace({' ': ''}) }}">{{ business.phone }}</a></p>
+            {% if business.mobile %}
+            <p class="mt-1"><a class="text-walnut/80 hover:text-primary" href="tel:{{ business.mobile|replace({' ': ''}) }}">{{ business.mobile }}</a></p>
+            {% endif %}
             {% endif %}
             {% if business.email %}
             <p class="mt-5 font-display text-xs font-medium uppercase tracking-[0.2em] text-primary">E-Mail</p>

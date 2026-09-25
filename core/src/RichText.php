@@ -34,7 +34,7 @@ final class RichText
             $safe = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
             $external = preg_match('#^https?://#i', $url) === 1;
             $attrs = $external ? ' target="_blank" rel="noopener noreferrer"' : '';
-            return '<a href="' . $safe . '"' . $attrs . '>' . $m[1] . '</a>';
+            return '<a class="rich-link" href="' . $safe . '"' . $attrs . '>' . $m[1] . '</a>';
         }, $t) ?? $t;
 
         $t = preg_replace('/%%(.+?)%%/s', '<span class="rich-note">$1</span>', $t) ?? $t;

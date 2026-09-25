@@ -6,8 +6,9 @@
     <div class="relative swiper min-w-0 overflow-hidden rounded-[var(--brand-radius)]" data-hero-swiper-plain>
         <div class="swiper-wrapper">
             {% for slide in activeSlides %}
+            {% set img = img_src(slide.image, 1200) %}
             <div class="swiper-slide">
-                <img class="h-[30vh] w-full object-cover md:h-[38vh]" src="{{ slide.image }}" alt="{{ slide.alt|default('') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+                <img class="h-[30vh] w-full object-cover md:h-[38vh]" src="{{ img.src }}" srcset="{{ img.srcset }}" {% if img.width %}width="{{ img.width }}"{% endif %} {% if img.height %}height="{{ img.height }}"{% endif %} alt="{{ slide.alt|default('') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
             </div>
             {% endfor %}
         </div>
@@ -68,7 +69,8 @@
         </div>
         <div class="relative h-[320px] overflow-hidden rounded-[var(--brand-radius)] md:h-[460px]" data-crossfade>
             {% for slide in activeSlides %}
-            <img class="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-in-out {% if loop.first %}opacity-100{% else %}opacity-0{% endif %}" data-crossfade-slide src="{{ slide.image }}" alt="{{ slide.alt|default('') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+            {% set img = img_src(slide.image, 900) %}
+            <img class="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ease-in-out {% if loop.first %}opacity-100{% else %}opacity-0{% endif %}" data-crossfade-slide src="{{ img.src }}" srcset="{{ img.srcset }}" {% if img.width %}width="{{ img.width }}"{% endif %} {% if img.height %}height="{{ img.height }}"{% endif %} alt="{{ slide.alt|default('') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
             {% endfor %}
             {% if activeSlides|length > 1 %}
             <button type="button" class="swiper-nav-btn hero-nav-arrow !absolute bottom-3 left-3 z-10" data-crossfade-prev aria-label="Vorheriges Bild">
@@ -92,8 +94,9 @@
     <div class="swiper absolute inset-0" data-hero-swiper>
         <div class="swiper-wrapper">
             {% for slide in activeSlides %}
+            {% set img = img_src(slide.image, 1600) %}
             <div class="swiper-slide">
-                <img class="h-[72vh] w-full object-cover" src="{{ slide.image }}" alt="{{ slide.alt|default('') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
+                <img class="h-[72vh] w-full object-cover" src="{{ img.src }}" srcset="{{ img.srcset }}" {% if img.width %}width="{{ img.width }}"{% endif %} {% if img.height %}height="{{ img.height }}"{% endif %} alt="{{ slide.alt|default('') }}" {% if loop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}>
             </div>
             {% endfor %}
         </div>

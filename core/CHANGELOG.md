@@ -1,0 +1,46 @@
+## 2.3.6 – 2026-09-24
+
+Core-Update-Release, automatisch erstellt mit dev/build-release.php.
+
+## 2.3.5 – 2026-09-23
+
+Theme-Wechsel setzt den Sprachsatz komplett durch: Beim Wechsel von einem mehrsprachigen Theme (z. B. de/en/fr/lb) auf ein rein deutsches werden die nicht mehr benötigten Sprachen automatisch ausgeblendet und tauchen nicht mehr als verfügbar im Admin auf (bisher blieben sie stehen). Mitgebrachte Theme-Sprachen werden beim Anwenden wieder freigegeben. Projekteigene Zusatzsprachen (languages_allowed) bleiben unberührt.
+
+## 2.3.4 – 2026-09-23
+
+Sprachen repariert: (1) Ausgeblendete Sprachen („Sprachen verwalten“) waren ohne gesetztes language_allowed wirkungslos und blieben als aktiv gelistet – jetzt korrekt überall ausgeblendet. (2) Wechselt man auf ein Theme mit eigenen Sprachen, werden diese automatisch wieder freigegeben (also aus dem Ausgeblendet-Bereich entfernt). Regressionstests für die Sprach-Auswahl ergänzt.
+
+## 2.3.3 – 2026-09-23
+
+Changelog „Was ist neu“ jetzt im Änderungen-Panel der Inhaltsseite (Body) statt in der Sidebar. Sprachen-Verwaltung: nicht benötigte Basis-Sprachen (außer „de“) lassen sich pro Projekt ausblenden und wieder einblenden (config.languages_disabled); Auswahl- und Theme-Listen, aktive Sprachen und Übersetzungserkennung bleiben konsistent, vorhandene Texte fallen auf Deutsch zurück.
+
+## 2.3.2 – 2026-09-23
+
+Admin-Übersetzungen-Panel komplettiert: Changelog „Was ist neu“ (CHANGELOG.md je Release im Update-Paket + Notes im Manifest), Übersetzungen-Export/Import pro Sprache. Sprachen-Verwaltung im Themes-Panel: eigene Sprachen anlegen/entfernen (config.languages_allowed), Basis-Satz bleibt fix.
+
+# Changelog – Core
+
+## 2.3.1 – 2026-09-23
+
+Update-Manifest-URLs bleiben bei Projekt-Import (dev_import) und Projekt-Paket-Import erhalten – keine ausgegrauten Update-Buttons mehr, wenn aus einer dev-Import-Config ohne `update`-Abschnitt auf einen echten Kundenstand gewechselt wird.
+
+## 2.3.0 – 2026-09-23
+
+- Admin „Übersetzungen“: Übersetzungen pro aktiver Sprache als flache Sprachdatei exportieren (Download) und wieder importieren (Upload, max. 5 MB) – Ablage bleibt ausschließlich `data/content.json` mit Inline-Sprach-Maps.
+- Sprachen-Handling läuft jetzt aus `config.languages_allowed` statt fest im Core; der Basis-Satz (AVAILABLE_LANGUAGES) bleibt eingebaut.
+
+## 2.2.0 – 2026-09-20
+
+Instanz-Angleich (Sync auf project-instances), Bulk-Bild-Löschung, .optim-Router-Fix, KI-Texthilfe.
+
+## 1.2.7 – 2026-09-18
+
+CSS-Reihenfolge-Fix für statisches Tailwind (theme-agnostische `tailwind.css`).
+
+## 1.2.6 – 2026-09-18
+
+Optimierungs-Release (gemeinsam mit Components 1.1.9).
+
+## 1.2.4 – 2026-09-17
+
+Seed-Cleanup (`uploads.seed` nach dem Seed löschen); `config.seed.json`-Export bzw. Seeding-Stand nachgezogen.

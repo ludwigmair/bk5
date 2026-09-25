@@ -2,7 +2,7 @@
     "type": "content-block",
     "label": "Content-Block",
     "help": "Flexibler Baustein: 1–3 Spalten, Bild neben/unter dem Text, oder Bild als Hintergrund. Layout wählen, dann passend viele Einträge anlegen – bei allen Bild-Layouts (links/rechts/unten/Hintergrund) zählt nur der erste aktive Eintrag.",
-    "requires_core": "1.0.0",
+    "requires_core": "2.2.2",
     "fields": [
         {
             "name": "kicker",
@@ -36,7 +36,8 @@
                 {
                     "name": "image",
                     "type": "image",
-                    "label": "Bild"
+                    "label": "Bild",
+                    "size": true
                 },
                 {
                     "name": "title",

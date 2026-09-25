@@ -2,7 +2,7 @@
     "type": "cards",
     "label": "Cards",
     "help": "Karten-Raster, beliebig viele Karten. Pro Karte wahlweise Bild (oben, volle Breite) oder Icon (oben, links/mittig/rechts ausrichtbar), darunter Titel, Untertitel und Text.",
-    "requires_core": "1.0.0",
+    "requires_core": "2.2.2",
     "fields": [
         {
             "name": "kicker",

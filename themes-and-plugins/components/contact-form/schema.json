@@ -1,7 +1,7 @@
 {
     "type": "contact-form",
     "label": "Kontaktformular",
-    "requires_core": "1.0.0",
+    "requires_core": "2.2.2",
     "help": "Die Kontaktinfo-Karte (Adresse, Telefon, E-Mail) neben dem Formular wird automatisch aus Betrieb / Kontaktdaten übernommen und ist hier nicht separat editierbar.",
     "fields": [
         {

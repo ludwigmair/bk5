@@ -2,7 +2,7 @@
     "type": "hero-slider",
     "label": "Hero-Slider",
     "help": "Layout wählen: Vollflächig legt den Text über das Bildkarussell (klassischer Hero, Text bleibt als Overlay stehen). Bildkarussell oben zeigt das Karussell in normaler Höhe, Text separat darunter. Geteilt zeigt Text und Bildkarussell nebeneinander auf hellem Grund, ohne Overlay.",
-    "requires_core": "1.0.0",
+    "requires_core": "2.2.2",
     "needs_swiper": true,
     "fields": [
         {

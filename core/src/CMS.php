@@ -12,17 +12,30 @@ use Twig\TwigFunction;
 final class CMS
 {
     /**
-     * Alle Sprachcodes, die im Content jemals als Übersetzungs-Map-Schlüssel
-     * vorkommen können (unabhängig davon, welche Sprachen im aktiven Theme
-     * gerade ausgewählt sind) – siehe localizeContent().
+     * Basis-Satz aller Sprachcodes, die im Content als Übersetzungs-Map-Schlüssel
+     * erkannt werden (unabhängig davon, welche Sprachen im aktiven Theme gerade
+     * ausgewählt sind). Projekte können über config.languages_allowed weitere
+     * Codes ergänzen und über config.languages_disabled unnötige Basis-Codes
+     * ausblenden, ohne ein Core-Update zu brauchen – siehe availableLanguages().
      */
-    public const AVAILABLE_LANGUAGES = ['de', 'en', 'fr', 'it', 'es', 'nl'];
+    public const AVAILABLE_LANGUAGES = ['de', 'en', 'fr', 'it', 'es', 'nl', 'lb'];
+
+    /** Standard-Anzeigenamen je Sprachcode (Basis für languageLabels()). */
+    private const DEFAULT_LANGUAGE_LABELS = [
+        'de' => 'Deutsch', 'en' => 'Englisch', 'fr' => 'Französisch',
+        'it' => 'Italienisch', 'es' => 'Spanisch', 'nl' => 'Niederländisch',
+        'lb' => 'Lëtzebuergesch',
+    ];
+
+    /** Fertig gerenderte Public-Seiten (siehe render()/renderLegal()). */
+    public const PAGE_CACHE_DIR = '/cache/pages';
 
     public function __construct(
         private readonly string $root,
         private readonly array $config,
         private readonly array $content,
         private readonly Environment $twig,
+        private readonly ?string $locale = null,
     ) {
     }
 
@@ -41,9 +54,10 @@ final class CMS
         $config = self::readJson($root . '/data/config.json');
         $content = self::readJson($root . '/data/content.json');
         $languages = self::activeLanguages($config);
+        $available = self::availableLanguages($config);
 
         if ($locale !== null) {
-            $content = self::localizeContent($content, $locale, $languages);
+            $content = self::localizeContent($content, $locale, $languages, $available);
         }
 
         $cacheDir = $root . '/cache/twig';
@@ -65,7 +79,29 @@ final class CMS
         $twig->addFilter(new TwigFilter('rich', [RichText::class, 'render'], ['is_safe' => ['html']]));
         $twig->addFilter(new TwigFilter('rich_block', [RichText::class, 'renderBlock'], ['is_safe' => ['html']]));
         $twig->addFilter(new TwigFilter('slug', [self::class, 'slugify']));
+        // Löst eine Sprach-Map ({"de": "…", "fr": "…"}) für die aktuelle Sprache
+        // zu einem String auf – dieselbe Logik wie localizeContent(), aber als
+        // Filter auch für Admin-Ansichten, die mit den rohen (unaufgelösten)
+        // Inhalten arbeiten. Normale Strings bleiben unverändert.
+        $twig->addFilter(new TwigFilter('localized', static function (mixed $value, string $locale, array $languages) use ($available): mixed {
+            if (!is_array($value)) {
+                return $value;
+            }
+            $keys = array_keys($value);
+            if (array_diff($keys, $available) !== []) {
+                return $value;
+            }
+            $resolved = $value[$locale] ?? '';
+            if ($resolved === '' || $resolved === null) {
+                $resolved = $value[$languages[0]] ?? reset($value);
+            }
+            return $resolved;
+        }));
         $twig->addFunction(new TwigFunction('icon', [Icons::class, 'render'], ['is_safe' => ['html']]));
+        // Liefert für ein Bild im uploads-Pool die passende Variante + srcset
+        // (siehe Image::responsive()). $root steckt in der Closure, damit
+        // Components den Helfer ohne weitere Argumente aufrufen können.
+        $twig->addFunction(new TwigFunction('img_src', static fn (string $src, int $maxWidth = 1200): object => (object) Image::responsive($src, $maxWidth, $root)));
 
         if (isset($content['labels']) && is_array($content['labels'])) {
             $content['labels'] = self::substituteBusinessPlaceholders($content['labels'], $content['business'] ?? []);
@@ -78,6 +114,10 @@ final class CMS
         $twig->addGlobal('icon_categories', Icons::byCategory());
         $twig->addGlobal('languages', $languages);
         $twig->addGlobal('current_lang', $locale ?? $languages[0]);
+        // Nur ein Server-seitiges Flag, NIE der Key selbst – so entscheidet das
+        // Admin-UI, ob es KI-Buttons anzeigt (siehe Ai::configured()). Ohne
+        // konfigurierten Key bleiben die Buttons schlicht weg.
+        $twig->addGlobal('ai_available', Ai::configured($config));
         // Für interne Links, die absolut auf "/" + Anker verweisen (Header-Logo,
         // Nav/Footer/Sticky-Bar - müssen auch von /impressum, /datenschutz aus
         // funktionieren, ein bloßes "#anker" reicht dafür nicht): Sprachpräfix
@@ -85,7 +125,7 @@ final class CMS
         // egal von welcher Sprachversion aus geklickt wurde.
         $twig->addGlobal('locale_prefix', ($locale !== null && $locale !== $languages[0]) ? '/' . $locale : '');
 
-        return new self($root, $config, $content, $twig);
+        return new self($root, $config, $content, $twig, $locale);
     }
 
     /**
@@ -326,6 +366,105 @@ final class CMS
     }
 
     /**
+     * Alle Sprachcodes, die im Content dieses Projekts als Sprach-Map-Schlüssel
+     * erkannt werden: der Basis-Satz (AVAILABLE_LANGUAGES) plus optional per
+     * config.languages_allowed ergänzte Codes – als Liste `["pl"]` oder als
+     * Map `{"pl": "Polnisch"}`. Bewusst Merge statt Ersetzen: ein Projekt
+     * erweitert die Erkennung, ohne bestehende Felder (z. B. ein inzwischen
+     * inaktives "en") zu verlieren – und ohne dass deshalb Core aktualisiert
+     * werden müsste. Siehe localizeContent()/languageLabels().
+     *
+     * @return list<string>
+     */
+    public static function availableLanguages(array $config): array
+    {
+        $codes = self::AVAILABLE_LANGUAGES;
+        $extra = $config['languages_allowed'] ?? null;
+        if (!is_array($extra)) {
+            return $codes;
+        }
+        $extra = array_is_list($extra)
+            ? array_map('strval', $extra)
+            : array_map('strval', array_keys($extra));
+        foreach ($extra as $code) {
+            if ($code !== '' && !in_array($code, $codes, true)) {
+                $codes[] = $code;
+            }
+        }
+
+        return $codes;
+    }
+
+    /**
+     * {code => Anzeigename} aller im Admin auswählbaren Sprachen (Basis −
+     * config.languages_disabled + config.languages_allowed). Map-Form des
+     * Config-Werts darf Namen überschreiben/ergänzen; Liste bzw. unbekannte
+     * Codes fallen auf den Code selbst bzw. den Basis-Namen zurück. "de" ist
+     * nie ausblendbar und bleibt immer enthalten.
+     *
+     * @return array<string, string> code => Display-Name
+     */
+    public static function languageLabels(array $config): array
+    {
+        $labels = self::DEFAULT_LANGUAGE_LABELS;
+        $extra = $config['languages_allowed'] ?? null;
+        if (is_array($extra) && array_is_list($extra)) {
+            foreach ($extra as $code) {
+                $code = (string) $code;
+                if ($code !== '') {
+                    $labels[$code] ??= $code;
+                }
+            }
+        } elseif (is_array($extra)) {
+            foreach ($extra as $code => $label) {
+                $code = (string) $code;
+                if ($code === '') {
+                    continue;
+                }
+                $labels[$code] = is_string($label) && $label !== '' ? $label : ($labels[$code] ?? $code);
+            }
+        }
+
+        foreach (self::disabledCodes($config) as $code) {
+            unset($labels[$code]);
+        }
+
+        return $labels;
+    }
+
+    /**
+     * Per Projekt ausgeblendete Basis-Sprachen aus config.languages_disabled
+     * (Liste der Codes). Sie verschwinden damit aus den Admin-Auswahlen
+     * (Themes-Checkboxen, „Sprachen verwalten“) und der aktiven Liste, bleiben
+     * aber Teil des Erkennungssatzes availableLanguages(): bereits gespeicherte
+     * Sprach-Maps mit diesen Schlüsseln rendern weiterhin sauber (Fallback auf
+     * die Default-Sprache), statt als rohe Arrays bei Twig zu landen – derselbe
+     * „Merge statt Ersetzen“-Grundsatz wie bei languages_allowed. "de" ist nie
+     * ausblendbar.
+     *
+     * @return list<string>
+     */
+    public static function disabledCodes(array $config): array
+    {
+        $disabled = $config['languages_disabled'] ?? null;
+        if (!is_array($disabled)) {
+            return [];
+        }
+        $out = [];
+        foreach ($disabled as $code) {
+            $code = (string) $code;
+            if ($code === 'de' || $code === '' || !in_array($code, self::AVAILABLE_LANGUAGES, true)) {
+                continue;
+            }
+            if (!in_array($code, $out, true)) {
+                $out[] = $code;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * Ermittelt aus dem Request-Pfad die Sprache (Präfix wie /fr/... – die
      * Default-Sprache hat keinen Präfix) und gibt den restlichen Pfad ohne
      * das Sprachkürzel zurück. Rein aus config.json gelesen, kein CMS-Objekt
@@ -361,8 +500,9 @@ final class CMS
      * sie sehen immer nur den fertig aufgelösten Wert.
      *
      * @param list<string> $languages
+     * @param list<string> $available Alle projektweit möglichen Sprachcodes (siehe availableLanguages())
      */
-    private static function localizeContent(array $content, string $locale, array $languages): array
+    private static function localizeContent(array $content, string $locale, array $languages, array $available): array
     {
         $result = [];
         foreach ($content as $key => $value) {
@@ -372,13 +512,13 @@ final class CMS
             }
 
             // Die Erkennung "ist das eine Sprach-Map?" prüft gegen ALLE
-            // jemals möglichen Sprachcodes (AVAILABLE_LANGUAGES), nicht nur
-            // gegen die aktuell aktiven $languages: sonst würde ein bereits
+            // projektweit möglichen Sprachcodes (availableLanguages()), nicht
+            // nur gegen die aktuell aktiven $languages: sonst würde ein bereits
             // gespeichertes Feld mit z. B. "en"/"fr"-Schlüsseln nach einem
             // Wechsel auf ein Theme mit weniger aktiven Sprachen plötzlich
             // nicht mehr erkannt und landete als rohes Array bei Twig.
             $keys = array_keys($value);
-            $isLanguageMap = !array_is_list($value) && $keys !== [] && array_diff($keys, self::AVAILABLE_LANGUAGES) === [];
+            $isLanguageMap = !array_is_list($value) && $keys !== [] && array_diff($keys, $available) === [];
             if ($isLanguageMap) {
                 $resolved = $value[$locale] ?? '';
                 if ($resolved === '' || $resolved === null) {
@@ -388,7 +528,7 @@ final class CMS
                 continue;
             }
 
-            $result[$key] = self::localizeContent($value, $locale, $languages);
+            $result[$key] = self::localizeContent($value, $locale, $languages, $available);
         }
 
         return $result;
@@ -416,7 +556,28 @@ final class CMS
 
     public function render(): string
     {
+        // sitemap.xml/robots.txt sind virtuell generierte Dateien und werden
+        // bewusst HIER in core/ geroutet statt in web/index.php: index.php ist
+        // nicht Teil des Core-Update-ZIPs (siehe docs/ARCHITECTURE.md), so
+        // erreicht das Feature jede Instanz allein über ein Core-Update, ohne
+        // dass die Instanz ihr web/ neu deployen muss.
+        $requestPath = self::detectLocale($this->root, $this->requestPath())['path'];
+        if ($requestPath === 'sitemap.xml') {
+            header('Content-Type: application/xml; charset=utf-8');
+            return $this->sitemapXml();
+        }
+        if ($requestPath === 'robots.txt') {
+            header('Content-Type: text/plain; charset=utf-8');
+            return $this->robotsTxt();
+        }
+
+        $cacheFile = $this->pageCacheFile('/');
+        if ($cacheFile !== null && is_file($cacheFile)) {
+            return (string) file_get_contents($cacheFile);
+        }
+
         $sectionsHtml = '';
+        $structuredDataJson = [];
         $needsSwiper = false;
         $openGroup = null;
         $blockIndex = 0;
@@ -466,6 +627,26 @@ final class CMS
                 }
             }
 
+            // Optionales Component-Mitbringsel für strukturierte Daten (JSON-LD):
+            // Eine Component kann in ihrem data.php unter "structured_data" ein
+            // Array (oder JSON-String) liefern, das der generische Sammler hier
+            // einsammelt und später als eigenes <script type="application/ld+json">
+            // in den <head> rendert. Der Key wird aus $data entfernt, damit die
+            // Template-Variablen davon unberührt bleiben. "/"-Slashes bleiben
+            // unescaped – wie in buildStructuredData(), um ein vorzeitiges
+            // Schließen des Script-Tags durch "</script>"-artige Werte zu
+            // verhindern.
+            $structured = $data['structured_data'] ?? null;
+            unset($data['structured_data']);
+            if (is_string($structured) && trim($structured) !== '') {
+                $structuredDataJson[] = $structured;
+            } elseif (is_array($structured) && $structured !== []) {
+                $json = json_encode($structured, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                if ($json !== false && trim($json) !== '') {
+                    $structuredDataJson[] = $json;
+                }
+            }
+
             $sectionsHtml .= $this->twig->render($template, $data);
 
             if ($group === '') {
@@ -476,7 +657,10 @@ final class CMS
             $sectionsHtml .= '</div>';
         }
 
-        return $this->renderShell($sectionsHtml, $needsSwiper, '/');
+        $html = $this->renderShell($sectionsHtml, $needsSwiper, '/', $structuredDataJson);
+        $this->writePageCache('/', $html);
+
+        return $html;
     }
 
     /**
@@ -489,7 +673,10 @@ final class CMS
      * Für den Sonderfall (eine bestimmte Section soll in einer 3. Farbe oder
      * außerhalb der Reihe stehen) kann jede Section "background" explizit auf
      * "white"/"tint"/"accent" setzen, das überschreibt die Automatik nur für
-     * diesen einen Block.
+     * diesen einen Block. "dark" rendert die Section durchgehend auf
+     * Primärfarbe (dunkel) mit heller Schrift – passende Componenten blenden
+     * ihre internen Farben über die Klasse "section-dark" um (siehe
+     * components/content-block/template.twig).
      */
     private static function sectionBackgroundAttr(array $section, int $blockIndex, bool $zebraAccent = false): string
     {
@@ -502,6 +689,9 @@ final class CMS
         }
         if ($bg === 'accent') {
             return ' style="background-color: color-mix(in srgb, var(--brand-walnut) 8%, var(--brand-ash))"';
+        }
+        if ($bg === 'dark') {
+            return ' class="bg-primary text-ash section-dark"';
         }
         if ($zebraAccent) {
             return $blockIndex % 2 === 1
@@ -524,6 +714,11 @@ final class CMS
             return null;
         }
 
+        $cacheFile = $this->pageCacheFile('/' . $key);
+        if ($cacheFile !== null && is_file($cacheFile)) {
+            return (string) file_get_contents($cacheFile);
+        }
+
         // Rückwärtskompatibel zum alten Einzelfeld "body" (vor der Umstellung
         // auf beliebig viele Textblöcke): existiert noch kein "blocks", aber
         // ein alter body-Wert, wird der als einzelner Block behandelt - kein
@@ -541,7 +736,124 @@ final class CMS
             'show_business' => $key === 'impressum',
         ]);
 
-        return $this->renderShell($body, false, '/' . $key);
+        $html = $this->renderShell($body, false, '/' . $key);
+        $this->writePageCache('/' . $key, $html);
+
+        return $html;
+    }
+
+    /**
+     * Generierte sitemap.xml: Startseite + Rechtstexte, je aktiver Sprache,
+     * inklusive hreflang-Alternates. Absolute URLs brauchen zwingend die
+     * Basis-URL aus {config.seo.domain} – ist sie nicht gesetzt, wird auf
+     * den aktuellen Request-Host zurückgegriffen (beste Art, auch ohne
+     * Konfiguration Standards-konform zu sein); ohne beides bleiben die
+     * Einträge leer.
+     */
+    public function sitemapXml(): string
+    {
+        $base = rtrim((string) ($this->config['seo']['domain'] ?? ''), '/');
+        if ($base === '') {
+            $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+            if ($host !== '') {
+                $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $base = $scheme . '://' . $host;
+            }
+        }
+
+        $contentFile = $this->root . '/data/content.json';
+        $lastmod = is_file($contentFile) ? date('c', (int) filemtime($contentFile)) : '';
+
+        $out = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        $out .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
+            . 'xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
+
+        foreach (self::sitemapEntries($this->config, $this->content) as $entry) {
+            $langs = $entry['langs'];
+            $primaryRel = trim((string) ($langs[$entry['default_lang']] ?? reset($langs) ?? ''));
+            if ($primaryRel === '' || $base === '') {
+                continue;
+            }
+            $primary = $base . $primaryRel;
+            $out .= "  <url>\n";
+            $out .= '    <loc>' . self::xmlEscape($primary) . "</loc>\n";
+            if ($lastmod !== '') {
+                $out .= '    <lastmod>' . $lastmod . "</lastmod>\n";
+            }
+            foreach ($langs as $lang => $rel) {
+                if ($rel === '') {
+                    continue;
+                }
+                $out .= '    <xhtml:link rel="alternate" hreflang="' . htmlspecialchars($lang, ENT_XML1, 'UTF-8')
+                    . '" href="' . self::xmlEscape($base . $rel) . '" />' . "\n";
+            }
+            $out .= "  </url>\n";
+        }
+
+        return $out . "</urlset>\n";
+    }
+
+    /**
+     * Generierte robots.txt: folgt der noindex-Einstellung (Inhalt → SEO →
+     * "Von Suchmaschinen ausschließen") und verweist auf die Sitemap.
+     */
+    public function robotsTxt(): string
+    {
+        $noindex = (bool) ($this->content['seo']['robots_noindex'] ?? false);
+        $base = rtrim((string) ($this->config['seo']['domain'] ?? ''), '/');
+
+        $lines = ['User-agent: *'];
+        $lines[] = $noindex ? 'Disallow: /' : 'Allow: /';
+        if (!$noindex && $base !== '') {
+            $lines[] = '';
+            $lines[] = 'Sitemap: ' . $base . '/sitemap.xml';
+        }
+
+        return implode("\n", $lines) . "\n";
+    }
+
+    /**
+     * Basis der Sitemap-Einträge: Seiten (Startseite + vorhandene Rechtstexte)
+     * für alle aktiven Sprachen, jeweils mit relativer URL je Sprache. Statisch,
+     * damit sie ohne CMS-Instanz testbar ist (siehe tests/run.php). Absolute
+     * URLs macht erst sitemapXml() daraus (Basis-URL aus config.seo.domain bzw.
+     * Fallback: Request-Host).
+     *
+     * @return list<array{path: string, langs: array<string, string>, default_lang: string}>
+     */
+    public static function sitemapEntries(array $config, array $content): array
+    {
+        $languages = self::activeLanguages($config);
+        $default = $languages[0];
+
+        $pages = ['/'];
+        foreach (['impressum', 'datenschutz'] as $key) {
+            if (is_array($content['legal'][$key] ?? null)) {
+                $pages[] = '/' . $key;
+            }
+        }
+
+        $entries = [];
+        foreach ($pages as $path) {
+            $langs = [];
+            foreach ($languages as $lang) {
+                $langs[$lang] = $lang !== $default ? '/' . $lang . $path : $path;
+            }
+            $entries[] = ['path' => $path, 'langs' => $langs, 'default_lang' => $default];
+        }
+
+        return $entries;
+    }
+
+    /** Reiner Request-Pfad aus $_SERVER (ohne Locale-Präfix-Auflösung – die macht detectLocale()). */
+    private function requestPath(): string
+    {
+        return trim((string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/'), '/');
+    }
+
+    private static function xmlEscape(string $s): string
+    {
+        return htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
     }
 
     /**
@@ -571,8 +883,13 @@ final class CMS
         return $this->twig->render("{$poolFolder}/{$variant}/template.twig", $vars);
     }
 
-    /** Baut Header/Topbar/Footer um das übergebene Body-HTML herum (Startseite wie Rechtsseiten). */
-    private function renderShell(string $bodyHtml, bool $needsSwiper, string $currentPath): string
+    /**
+     * Baut Header/Topbar/Footer um das übergebene Body-HTML herum (Startseite wie Rechtsseiten).
+     *
+     * @param list<string> $sectionStructuredData Vom generischen Sammler in
+     *     render() gesammelte JSON-LD-Strings der Sections (siehe dort).
+     */
+    private function renderShell(string $bodyHtml, bool $needsSwiper, string $currentPath, array $sectionStructuredData = []): string
     {
         $site = $this->content['site'] ?? [];
         $nav = $this->content['nav'] ?? [];
@@ -630,12 +947,58 @@ final class CMS
             $themeCssUrl = "/themes-and-plugins/themes/{$theme}/theme.css";
         }
 
+        // Vorproduziertes Tailwind-CSS (dev/build-css.sh, theme-agnostisch über
+        // die CSS-Variablen in :root) – existiert es, rendert layout.twig ohne
+        // Play-CDN. Fehlt es, bleibt das bisherige Verhalten (CDN) unverändert.
+        $staticCssUrl = null;
+        if ($theme !== '' && is_file($this->root . "/themes-and-plugins/themes/{$theme}/tailwind.css")) {
+            $staticCssUrl = "/themes-and-plugins/themes/{$theme}/tailwind.css";
+        }
+
+        $brand = $this->config['brand'] ?? [];
+        // RGB-Tripel (z. B. "53 94 75") zu den Hex-Farbwerten: nötig für das
+        // vorproduzierte Tailwind-CSS, das mit <alpha-value> (text-walnut/70)
+        // arbeitet, ohne zur Laufzeit zu kompilieren. Die CDN-Branch ignorieren
+        // sie einfach.
+        $hexToRgb = static function (string $hex): string {
+            $hex = ltrim($hex, '#');
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            if (strlen($hex) !== 6 || !ctype_xdigit($hex)) {
+                return '';
+            }
+
+            return implode(' ', array_map('hexdec', str_split($hex, 2)));
+        };
+        $brandRgb = [
+            'primary' => $hexToRgb((string) ($brand['primary'] ?? '#355E4B')),
+            'secondary' => $hexToRgb((string) ($brand['secondary'] ?? '#B87333')),
+            'walnut' => $hexToRgb((string) ($brand['walnut'] ?? '#241E18')),
+            'ash' => $hexToRgb((string) ($brand['ash'] ?? '#E7E4DC')),
+        ];
+
+        // Strukturierte Daten als Liste von JSON-LD-Strings: das LocalBusiness-
+        // Grundschema aus buildStructuredData() plus die von den Components
+        // beigesteuerten Schemas (FAQPage, Reviews, …) – layout.twig rendert
+        // je Eintrag ein eigenes <script type="application/ld+json">.
+        $structuredDataList = [];
+        $baseStructuredData = $this->buildStructuredData();
+        if ($baseStructuredData !== null) {
+            $structuredDataList[] = $baseStructuredData;
+        }
+        foreach ($sectionStructuredData as $json) {
+            if (is_string($json) && trim($json) !== '') {
+                $structuredDataList[] = $json;
+            }
+        }
+
         return $this->twig->render('layout.twig', [
             'site' => $site,
             'seo' => $this->content['seo'] ?? [],
             'og_image_size' => $this->ogImageSize((string) ($this->content['seo']['og_image'] ?? '')),
             'current_path' => $currentPath,
-            'structured_data' => $this->buildStructuredData(),
+            'structured_data' => $structuredDataList,
             'topbar' => $topbar,
             'header' => $header,
             'sections' => $bodyHtml,
@@ -644,7 +1007,9 @@ final class CMS
             'cookie_banner' => $cookieBanner,
             'needs_swiper' => $needsSwiper,
             'theme_css_url' => $themeCssUrl,
-            'brand' => $this->config['brand'] ?? [],
+            'static_css_url' => $staticCssUrl,
+            'brand' => $brand,
+            'brand_rgb' => $brandRgb,
             'business' => $this->content['business'] ?? [],
             'contact_id' => $contactId,
         ]);
@@ -808,6 +1173,149 @@ final class CMS
         $slug = preg_replace('/[^a-z0-9]+/', '-', $lower) ?? '';
 
         return trim($slug, '-');
+    }
+
+    /**
+     * Dateipfad der gecachten Public-Seite, oder null wenn nicht gecacht
+     * werden soll. Kein Cache:
+     *  - Nicht-GET-Requests (die Public-Seite rendert nur bei GET, aber
+     *    doppelt hält besser),
+     *  - Generator-Instanzen (dev/-Ordner neben web/): dort wird ständig an
+     *    Templates gearbeitet, ein Cache würde beim Entwickeln nur verwirren.
+     *    Deployte Instanzen haben kein dev/ und nutzen den Cache.
+     */
+    private function pageCacheFile(string $path): ?string
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            return null;
+        }
+        if (is_dir(dirname($this->root) . '/dev')) {
+            return null;
+        }
+
+        return $this->root . self::PAGE_CACHE_DIR . '/' . self::pageCachePrefix($path) . '-' . $this->pageCacheKey($path) . '.html';
+    }
+
+    /** Menschlich lesbarer Dateiname-Teil je Seite ("/" -> home, "/impressum" -> impressum). */
+    private static function pageCachePrefix(string $path): string
+    {
+        $slug = trim(strtr($path, '/', '-'), '-');
+
+        return $slug === '' ? 'home' : $slug;
+    }
+
+    /**
+     * Signatur der Public-Seite: ändert sich eine der Abhängigkeiten (Inhalte,
+     * Config, genutzte Component/Region, Theme-/Core-/Components-Stand,
+     * Sprache, Jahreszahl im Footer), ist der Hash ein anderer → der alte
+     * Cache-Treffer wird nicht mehr gefunden und beim nächsten Schreiben
+     * aufgeräumt. content.json/config.json gehen als Prüfsumme ein, damit
+     * auch zwei Speicherungen innerhalb derselben Sekunde sicher
+     * invalidieren (filemtime allein hätte nur Sekundengranularität).
+     */
+    private function pageCacheKey(string $path): string
+    {
+        $theme = (string) ($this->config['theme'] ?? '');
+        $signature = [];
+        foreach (['/data/config.json', '/data/content.json'] as $rel) {
+            $file = $this->root . $rel;
+            $signature[] = $rel . ':' . (is_file($file) ? (string) md5_file($file) : '-');
+        }
+
+        $deps = [
+            '/core/version.json',
+            '/themes-and-plugins/components/version.json',
+            '/core/templates/layout.twig',
+            '/core/templates/legal.twig',
+            '/core/assets/style.css',
+        ];
+        if ($theme !== '') {
+            $deps[] = "/themes-and-plugins/themes/{$theme}/theme.css";
+            $deps[] = "/themes-and-plugins/themes/{$theme}/tailwind.css";
+        }
+        foreach ($this->sortedSections() as $section) {
+            $type = (string) ($section['type'] ?? '');
+            if ($type === '') {
+                continue;
+            }
+            $deps[] = "/themes-and-plugins/components/{$type}/template.twig";
+            $deps[] = "/themes-and-plugins/components/{$type}/data.php";
+        }
+        $layout = $this->config['layout'] ?? [];
+        foreach (['header', 'footer', 'stickybar', 'cookiebanner'] as $region) {
+            $deps[] = $this->regionTemplate($theme, $region, (string) ($layout[$region] ?? ''));
+        }
+        if ((bool) ($layout['topbar']['enabled'] ?? false)) {
+            $deps[] = $this->regionTemplate($theme, 'topbar', (string) ($layout['topbar']['theme'] ?? 'standard'));
+        }
+
+        foreach ($deps as $rel) {
+            if (!is_string($rel) || $rel === '') {
+                continue;
+            }
+            $file = $this->root . $rel;
+            $signature[] = $rel . ':' . (is_file($file) ? filemtime($file) . '-' . filesize($file) : '-');
+        }
+
+        array_unshift($signature, $path . '|' . ($this->locale ?? '') . '|' . date('Y'));
+
+        return hash('sha1', implode('|', $signature));
+    }
+
+    /** Root-relativer Pfad des Region-Templates; Theme-eigene Kopie hat Vorrang (wie renderRegion()). */
+    private function regionTemplate(string $theme, string $region, string $variant): ?string
+    {
+        if ($theme !== '') {
+            $themed = "/themes-and-plugins/themes/{$theme}/{$region}/template.twig";
+            if (is_file($this->root . $themed)) {
+                return $themed;
+            }
+        }
+        if ($variant === '') {
+            return null;
+        }
+
+        return "/themes-and-plugins/{$region}s/{$variant}/template.twig";
+    }
+
+    private function writePageCache(string $path, string $html): void
+    {
+        $file = $this->pageCacheFile($path);
+        if ($file === null) {
+            return;
+        }
+        $dir = dirname($file);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        $tmp = $file . '.tmp';
+        if (@file_put_contents($tmp, $html, LOCK_EX) === false) {
+            return;
+        }
+        if (!@rename($tmp, $file)) {
+            @unlink($tmp);
+            return;
+        }
+        // Ältere Stände desselben Pfads (frühere Content-/Theme-Signaturen)
+        // aufräumen, damit cache/pages/ nicht unbegrenzt wächst.
+        $prefix = self::pageCachePrefix($path) . '-';
+        foreach (glob($dir . '/' . $prefix . '*.html') ?: [] as $old) {
+            if ($old !== $file) {
+                @unlink($old);
+            }
+        }
+    }
+
+    /**
+     * Leert den Public-Seiten-Cache. Nötig für Aktionen, die gerenderte Seiten
+     * verändern, ohne content.json/config.json anzufassen (z. B. "Thumbnails
+     * nachziehen" – die Bild-URLs in srcset/width/stammen aus den Varianten).
+     */
+    public static function clearPageCache(string $root): void
+    {
+        foreach (glob($root . self::PAGE_CACHE_DIR . '/*.html') ?: [] as $file) {
+            @unlink($file);
+        }
     }
 
     public static function readJson(string $path): array

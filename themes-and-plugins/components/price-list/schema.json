@@ -1,0 +1,73 @@
+{
+    "type": "price-list",
+    "label": "Preisliste (Behandlungs-Menü)",
+    "help": "Preisliste im Stil einer gedruckten Spa-Karte: Kategorien mit Behandlungen, Preise rechtsbündig mit gepunkteter Führungslinie. Unter jeder Kategorie ein bis viele Preise. Notizen (z. B. Zahlungshinweis, Etikette) erscheinen als Karte unter der Liste.",
+    "requires_core": "2.2.2",
+    "fields": [
+        {
+            "name": "kicker",
+            "type": "text",
+            "label": "Kicker",
+            "ai_supported": true
+        },
+        {
+            "name": "heading",
+            "type": "text",
+            "label": "Überschrift",
+            "ai_supported": true
+        },
+        {
+            "name": "subheading",
+            "type": "text",
+            "label": "Untertitel (kleine Kapitälchen)",
+            "ai_supported": true
+        },
+        {
+            "name": "intro",
+            "type": "textarea",
+            "label": "Einleitung",
+            "ai_supported": true
+        },
+        {
+            "name": "groups",
+            "type": "repeater",
+            "label": "Kategorien (Preise)",
+            "fields": [
+                {
+                    "name": "caption",
+                    "type": "text",
+                    "label": "Kategorien-Name (optional)"
+                },
+                {
+                    "name": "rows",
+                    "type": "repeater",
+                    "label": "Preiszeilen",
+                    "fields": [
+                        {
+                            "name": "name",
+                            "type": "text",
+                            "label": "Behandlung"
+                        },
+                        {
+                            "name": "price",
+                            "type": "text",
+                            "label": "Preis (z. B. „€ 95,- / 90 min“)"
+                        },
+                        {
+                            "name": "description",
+                            "type": "textarea",
+                            "label": "Beschreibung (optional)"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "notes",
+            "type": "textarea",
+            "label": "Fußnoten (z. B. Zahlungshinweis, Etikette)",
+            "hint": "Unterstützt **Fett** und Zeilenumbrüche als Absätze.",
+            "ai_supported": true
+        }
+    ]
+}
