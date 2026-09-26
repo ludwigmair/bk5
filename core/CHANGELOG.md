@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.3.8 – 2026-09-26
+
+MANUAL.md nachgezogen: Bildgalerie = Kategorie-Karussell mit Lightbox (Beschreibung war noch auf das reine Bildraster aus 1.2.3–1.2.5 kalibriert). Kein Code-Change.
+
 ## 2.3.7 – 2026-09-26
 
 Pool-Vorrang beim Regions-Rendering: die konfigurierte Pool-Variante rendert, sobald ihr Ordner existiert – Theme-Kopien sind nur noch Fallback für schlanke Exports. Export, Sync und Projekt-Paket nehmen den verwendeten Pool-Datensatz immer mit; Formularfelder (layoutSchemaFor) und Rendering kommen damit aus derselben Quelle.

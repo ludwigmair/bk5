@@ -1,5 +1,9 @@
 # Changelog – Components
 
+## 1.2.6 – 2026-09-26
+
+image-gallery: Lightbox-Galerie wiederhergestellt – Kategorie-Karussell (Cover + Name), Klick öffnet die Lightbox mit den Bildern der Kategorie und Thumbnails zum Umschalten. needs_swiper wieder im Schema, leere/ inaktive Bild-Einträge werden gefiltert, Kategorien ohne Bilder zeigen ihr Cover. Ersetzt das seit 1.2.3 reine Bildraster.
+
 ## 1.2.5 – 2026-09-26
 
 CHANGELOG-H1 normalisiert: der Titel steht jetzt oben, das Admin-Panel („Was ist neu“) zeigt den neuesten Eintrag zuerst. Keine weiteren Inhaltsänderungen seit 1.2.4.

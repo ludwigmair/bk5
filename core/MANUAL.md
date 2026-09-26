@@ -128,7 +128,7 @@ Feldliste steht in `docs/COMPONENTS.md`:
 | **Content-Block** | Vielseitigster Baustein: 1–3 Spalten Text, Bild neben/unter Text, oder Bild als Hintergrund mit Text darüber. |
 | **News-Raster** | Kacheln mit Datum/Titel/Teaser, Link pro Kachel entweder zu einem anderen Abschnitt oder als Popup mit eigenem, längerem Text. |
 | **Google-Reviews** | Bewertungs-Karussell. Ohne Google-API-Zugang werden die hier eingetragenen "Fallback-Bewertungen" gezeigt. |
-| **Bildgalerie** | Bilder direkt nebeneinander im Raster, keine Galerie/Karussell. |
+| **Bildgalerie** | Kategorie-Kacheln als Karussell (Cover mit Namen); Klick öffnet eine Lightbox mit den Bildern der Kategorie. |
 | **FAQ** | Aufklappbare Frage/Antwort-Liste. |
 | **Kontaktformular** | Formular + automatisch aus Betrieb/Kontaktdaten befüllte Infokarte (Adresse, Telefon, E-Mail, Öffnungszeiten, Karte). |
 | **Cards** | Karten-Raster, pro Karte wahlweise Bild (oben, volle Breite) oder Icon (oben, links/mittig/rechts ausrichtbar), darunter Titel/Untertitel/Text. |

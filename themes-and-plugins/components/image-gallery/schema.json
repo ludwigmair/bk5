@@ -2,6 +2,7 @@
     "type": "image-gallery",
     "label": "Bildgalerie",
     "requires_core": "2.2.2",
+    "needs_swiper": true,
     "fields": [
         {
             "name": "kicker",
@@ -11,7 +12,7 @@
         {
             "name": "heading",
             "type": "text",
-            "label": "Überschrift",
+            "label": "\u00dcberschrift",
             "ai_supported": true
         },
         {
