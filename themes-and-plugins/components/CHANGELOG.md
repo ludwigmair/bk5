@@ -1,5 +1,9 @@
 # Changelog – Components
 
+## 1.2.5 – 2026-09-26
+
+CHANGELOG-H1 normalisiert: der Titel steht jetzt oben, das Admin-Panel („Was ist neu“) zeigt den neuesten Eintrag zuerst. Keine weiteren Inhaltsänderungen seit 1.2.4.
+
 ## 1.2.4 – 2026-09-24
 
 content-block: Layout-Fix für die Person-Card – md:grid-cols-[1fr_320px] lag unmittelbar am Twig-Tag, der Tailwind-Scanner übersprang die Klasse und das statische CSS fehlte (Card lief vollbreit unter den Text). Klasse jetzt in {% set %} als String-Literal; tailwind.css aller Themes neu gebaut.

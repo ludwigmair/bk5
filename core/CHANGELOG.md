@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.3.7 – 2026-09-26
+
+Pool-Vorrang beim Regions-Rendering: die konfigurierte Pool-Variante rendert, sobald ihr Ordner existiert – Theme-Kopien sind nur noch Fallback für schlanke Exports. Export, Sync und Projekt-Paket nehmen den verwendeten Pool-Datensatz immer mit; Formularfelder (layoutSchemaFor) und Rendering kommen damit aus derselben Quelle.
+
 ## 2.3.6 – 2026-09-24
 
 Core-Update-Release, automatisch erstellt mit dev/build-release.php.
