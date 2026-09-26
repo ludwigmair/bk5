@@ -1913,11 +1913,9 @@ final class Admin
             );
         }
         foreach (['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] as $region) {
-            // Eigene Kopie der Region im Theme-Ordner hat Vorrang (siehe
-            // CMS::renderRegion()) - dann muss der gemeinsame Pool dafür nicht mit.
-            if ($theme !== '' && is_dir($root . "/themes-and-plugins/themes/{$theme}/{$region}")) {
-                continue;
-            }
+            // Der gemeinsame Pool wird IMMER mitgenommen – er ist die alleinige
+            // Quelle (CMS::renderRegion() rendert ihn bevorzugt); die eigene
+            // Theme-Kopie im mitkopierten Theme-Ordner bleibt als Fallback dabei.
             $variant = $this->resolveRegionVariant($config, $region);
             if ($variant === null) {
                 continue;
@@ -2056,9 +2054,6 @@ final class Admin
             );
         }
         foreach (['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] as $region) {
-            if ($theme !== '' && is_dir($root . "/themes-and-plugins/themes/{$theme}/{$region}")) {
-                continue;
-            }
             $variant = $this->resolveRegionVariant($config, $region);
             if ($variant === null) {
                 continue;
@@ -2156,9 +2151,6 @@ final class Admin
             $this->addDirToZip($zip, $root . "/themes-and-plugins/themes/{$theme}", 'themes-and-plugins/themes/' . $theme);
         }
         foreach (['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] as $region) {
-            if ($theme !== '' && is_dir($root . "/themes-and-plugins/themes/{$theme}/{$region}")) {
-                continue;
-            }
             $variant = $this->resolveRegionVariant($cleanConfig, $region);
             if ($variant === null) {
                 continue;
@@ -2583,13 +2575,12 @@ final class Admin
             $seen[$slug] = true;
         }
 
-        // Ein Export nimmt bei einem Theme mit eigener Region-Kopie
-        // (themes-and-plugins/themes/<theme>/<region>/) bewusst NICHT den
-        // kompletten gemeinsamen Pool mit (siehe exportProjectInstance()) -
-        // auf so einer schlanken Instanz wäre der Picker oben sonst leer,
-        // und die aktuell verwendete Variante würde fälschlich als
-        // "— Keine —" erscheinen, obwohl CMS::renderRegion() sie (die
-        // Theme-eigene Kopie hat ohnehin Vorrang) tatsächlich rendert.
+        // Auf einer schlanken Instanz (Theme-Kopie ohne mitgelieferten Pool,
+        // siehe exportProjectInstance()) stünde die aktuell verwendete Variante
+        // sonst nicht zur Auswahl: Der Picker wäre leer und der Slug fälschlich
+        // als "— Keine —" markiert, obwohl CMS::renderRegion() die Theme-Kopie
+        // als Fallback tatsächlich rendert. Liegt die Variante im Pool (der
+        // Vorrang hat), greift der glob oben ohnehin.
         $config = $this->cms->config();
         $theme = (string) ($config['theme'] ?? '');
         $currentSlug = $this->resolveRegionVariant($config, $region);
@@ -3141,8 +3132,9 @@ final class Admin
             $dstDir = "{$themeDir}/{$region}";
             if ($variant === '') {
                 // "— Keine —" gewählt: eine evtl. vorhandene eigene Kopie aus
-                // einem früheren Speichern muss weg, sonst würde renderRegion()
-                // sie weiter bevorzugt rendern und "Keine" hätte keine Wirkung.
+                // einem früheren Speichern muss weg, sonst rendert renderRegion()
+                // sie als Fallback (der Pool-Pfad ist leer) und "Keine" hätte
+                // keine Wirkung.
                 if (is_dir($dstDir)) {
                     $this->rrmdir($dstDir);
                 }

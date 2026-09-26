@@ -858,29 +858,32 @@ final class CMS
 
     /**
      * Rendert eine Layout-Region (Header/Footer/Topbar/Sticky-Bar/Cookie-Banner).
-     * Ein aktives Theme kann eine eigene, portable Kopie einer Region mitbringen
-     * (themes-and-plugins/themes/<theme>/<region>/template.twig, siehe
-     * Admin::buildTheme()) – die hat Vorrang vor dem gemeinsamen Pool
-     * (themes-and-plugins/<region>s/<variant>/), damit ein Theme-Ordner
-     * eigenständig portierbar bleibt, ohne dass CMS::boot() dafür etwas
-     * Besonderes wissen muss. Kein Theme oder keine eigene Kopie → ganz normal
-     * aus dem Pool, wie vorher. Leerer $variant ("— Keine —" im Theme-Builder)
-     * → Region rendert nichts, statt einen nicht existierenden Pool-Pfad zu laden.
+     * Der gemeinsame Pool (themes-and-plugins/<region>s/<variant>/) ist die
+     * alleinige Quelle: Solange die konfigurierte Variante dort liegt, rendert
+     * sie – auch wenn das aktive Theme zusätzlich eine eigene Kopie mitbringt
+     * (themes-and-plugins/themes/<theme>/<region>/, siehe Admin::buildTheme()).
+     * So erreicht ein Fix im Pool jede Instanz, ohne dass eine eingefrorene
+     * Theme-Kopie ihn überschattet. Die Theme-Kopie bleibt ausschließlich
+     * Fallback für Varianten ohne Pool-Ordner (schlanke Exports, siehe
+     * Admin::exportProjectInstance()), damit ein Theme-Ordner auch allein
+     * portierbar bleibt. Leerer $variant ("— Keine —" im Theme-Builder) →
+     * erst die Theme-Kopie als Fallback, sonst rendert die Region nichts;
+     * einen nicht existierenden Pool-Pfad lädt diese Funktion nie.
      *
      * @param array<string, mixed> $vars
      */
     private function renderRegion(string $region, string $poolFolder, string $variant, array $vars): string
     {
+        if ($variant !== '' && is_file($this->root . "/themes-and-plugins/{$poolFolder}/{$variant}/template.twig")) {
+            return $this->twig->render("{$poolFolder}/{$variant}/template.twig", $vars);
+        }
+
         $theme = (string) ($this->config['theme'] ?? '');
         if ($theme !== '' && is_file($this->root . "/themes-and-plugins/themes/{$theme}/{$region}/template.twig")) {
             return $this->twig->render("themes/{$theme}/{$region}/template.twig", $vars);
         }
 
-        if ($variant === '') {
-            return '';
-        }
-
-        return $this->twig->render("{$poolFolder}/{$variant}/template.twig", $vars);
+        return '';
     }
 
     /**
@@ -1262,20 +1265,20 @@ final class CMS
         return hash('sha1', implode('|', $signature));
     }
 
-    /** Root-relativer Pfad des Region-Templates; Theme-eigene Kopie hat Vorrang (wie renderRegion()). */
+    /** Root-relativer Pfad des Region-Templates – Pool zuerst, Theme-Kopie nur Fallback (wie renderRegion()). */
     private function regionTemplate(string $theme, string $region, string $variant): ?string
     {
+        if ($variant !== '' && is_file($this->root . "/themes-and-plugins/{$region}s/{$variant}/template.twig")) {
+            return "/themes-and-plugins/{$region}s/{$variant}/template.twig";
+        }
         if ($theme !== '') {
             $themed = "/themes-and-plugins/themes/{$theme}/{$region}/template.twig";
             if (is_file($this->root . $themed)) {
                 return $themed;
             }
         }
-        if ($variant === '') {
-            return null;
-        }
 
-        return "/themes-and-plugins/{$region}s/{$variant}/template.twig";
+        return null;
     }
 
     private function writePageCache(string $path, string $html): void
