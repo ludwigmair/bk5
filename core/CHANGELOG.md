@@ -1,3 +1,5 @@
+# Changelog – Core
+
 ## 2.3.6 – 2026-09-24
 
 Core-Update-Release, automatisch erstellt mit dev/build-release.php.
@@ -17,8 +19,6 @@ Changelog „Was ist neu“ jetzt im Änderungen-Panel der Inhaltsseite (Body) s
 ## 2.3.2 – 2026-09-23
 
 Admin-Übersetzungen-Panel komplettiert: Changelog „Was ist neu“ (CHANGELOG.md je Release im Update-Paket + Notes im Manifest), Übersetzungen-Export/Import pro Sprache. Sprachen-Verwaltung im Themes-Panel: eigene Sprachen anlegen/entfernen (config.languages_allowed), Basis-Satz bleibt fix.
-
-# Changelog – Core
 
 ## 2.3.1 – 2026-09-23
 

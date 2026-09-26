@@ -1,11 +1,12 @@
 # Benutzerhandbuch: Inhalte pflegen
 
 Anleitung für alle, die die Website im Admin-Bereich mit Inhalten füllen – ohne
-Programmierkenntnisse. Technische/Entwickler-Doku liegt separat:
-[`ARCHITECTURE.md`](ARCHITECTURE.md) (Aufbau), [`COMPONENTS.md`](COMPONENTS.md)
-(Bausteine im Detail), [`ADMIN-USERS.md`](ADMIN-USERS.md) (Zugänge/Rollen),
-[`UPDATE-CORE.md`](UPDATE-CORE.md) (Core-Updates),
-[`UPDATE-COMPONENTS.md`](UPDATE-COMPONENTS.md) (Components-Updates).
+Programmierkenntnisse. Technische/Entwickler-Doku liegt separat im
+Generator-Repositorium (gehört nicht zu einer installierten Instanz):
+`docs/ARCHITECTURE.md` (Aufbau), `docs/COMPONENTS.md`
+(Bausteine im Detail), `docs/ADMIN-USERS.md` (Zugänge/Rollen),
+`docs/UPDATE-CORE.md` (Core-Updates),
+`docs/UPDATE-COMPONENTS.md` (Components-Updates).
 
 ## Einloggen
 
@@ -24,12 +25,12 @@ Die Seitenleiste ist in Gruppen sortiert:
   SEO/Meta-Daten, Impressum, Datenschutz, Bildverwaltung.
 - **Admin** – nur für Accounts mit Admin-Rolle: Navigation, Beschriftungen, Themes,
   Sicherung, Benutzer verwalten. Wer diese Rolle hat, verwaltet
-  [`ADMIN-USERS.md`](ADMIN-USERS.md).
+  `docs/ADMIN-USERS.md`.
 - **Projekte** (Admin-Rolle) – Projekt-Instanz erstellen, Projekt-Import (lokal,
   nur sichtbar wenn vorhanden).
 - **System-Updates** (Admin-Rolle) – Update prüfen/Core aktualisieren und
-  Components prüfen/aktualisieren, siehe [`UPDATE-CORE.md`](UPDATE-CORE.md) und
-  [`UPDATE-COMPONENTS.md`](UPDATE-COMPONENTS.md).
+  Components prüfen/aktualisieren, siehe `docs/UPDATE-CORE.md` und
+  `docs/UPDATE-COMPONENTS.md`.
 
 Änderungen werden erst gespeichert, wenn unten auf **„Änderungen speichern"**
 geklickt wird – "Verwerfen" lädt die Seite ohne Speichern neu.
@@ -117,12 +118,13 @@ mit der Überschrift "SECTIONS".
 ### Die verfügbaren Bausteine
 
 Kurzbeschreibung, was jeder Typ ist und wofür er sich eignet – die vollständige
-Feldliste steht in [`COMPONENTS.md`](COMPONENTS.md):
+Feldliste steht in `docs/COMPONENTS.md`:
 
 | Baustein | Wofür |
 | --- | --- |
 | **Hero-Slider** | Aufmacher ganz oben. Drei Layouts wählbar: vollflächiges Bild mit Text darüber, Bildkarussell oben mit Text darunter, oder Text/Bild nebeneinander. |
 | **Aktuelles** | Schmaler Hinweis-Streifen direkt unter dem Hero, z. B. für eine aktuelle Ankündigung mit Anruf-Button. |
+| **Kurzfakten** | Schmaler Streifen mit zwei bis vier Fakten (Titel + kleine Zeile darunter), z. B. Jahre Erfahrung oder Qualitäts-Merkmale. |
 | **Content-Block** | Vielseitigster Baustein: 1–3 Spalten Text, Bild neben/unter Text, oder Bild als Hintergrund mit Text darüber. |
 | **News-Raster** | Kacheln mit Datum/Titel/Teaser, Link pro Kachel entweder zu einem anderen Abschnitt oder als Popup mit eigenem, längerem Text. |
 | **Google-Reviews** | Bewertungs-Karussell. Ohne Google-API-Zugang werden die hier eingetragenen "Fallback-Bewertungen" gezeigt. |
@@ -130,6 +132,7 @@ Feldliste steht in [`COMPONENTS.md`](COMPONENTS.md):
 | **FAQ** | Aufklappbare Frage/Antwort-Liste. |
 | **Kontaktformular** | Formular + automatisch aus Betrieb/Kontaktdaten befüllte Infokarte (Adresse, Telefon, E-Mail, Öffnungszeiten, Karte). |
 | **Cards** | Karten-Raster, pro Karte wahlweise Bild (oben, volle Breite) oder Icon (oben, links/mittig/rechts ausrichtbar), darunter Titel/Untertitel/Text. |
+| **Preisliste** | Übersichtliche Preisliste mit Kategorien und Einträgen, der Preis steht rechts mit gepunkteter Führungslinie; unten eine Notiz-Karte (z. B. Zahlungshinweise, Etikette). |
 | **Vorher-Nachher-Galerie** | Karten-Raster mit Vorher-/Nachher-Bildpaaren, z. B. für Restaurierungen. Karte antippen zum Vergrößern, im Vergrößert-Modus per Pfeil zwischen Vorher/Nachher wechseln. |
 
 Jeder Baustein kann mehrere Einträge/Bilder/Fragen enthalten (siehe "Listen mit
@@ -278,7 +281,7 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
 - **Sicherung**: frühere Bearbeitungsstände der Textfelder wiederherstellen (Bilder
   bleiben unangetastet) – jeder Speichervorgang legt automatisch einen Eintrag an.
 - **Benutzer verwalten**: Accounts anlegen/Passwort ändern/entfernen, Admin-Rolle
-  vergeben. Details: [`ADMIN-USERS.md`](ADMIN-USERS.md).
+  vergeben. Details: `docs/ADMIN-USERS.md`.
 - **Übersetzungen**: Text-Bestand einer Sprache als flache JSON-Datei
   exportieren (eine Zeile je Feld, leere Werte = noch nicht übersetzt), extern
   übersetzen und wieder importieren – es werden nur die Felder der gewählten
@@ -312,10 +315,10 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
 ## System-Updates (nur mit Admin-Rolle)
 
 - **Core**: "Update prüfen" / "Core aktualisieren" ersetzt den generischen
-  CMS-Motor (nie Inhalte/Bilder) – siehe [`UPDATE-CORE.md`](UPDATE-CORE.md).
+  CMS-Motor (nie Inhalte/Bilder) – siehe `docs/UPDATE-CORE.md`.
 - **Components**: "Components prüfen" / "Components aktualisieren" macht
   dasselbe für den gemeinsamen Bausteine-Pool (Cards, FAQ, Kontaktformular, …) –
-  siehe [`UPDATE-COMPONENTS.md`](UPDATE-COMPONENTS.md).
+  siehe `docs/UPDATE-COMPONENTS.md`.
 - Beide Bereiche zeigen oben im Admin-Kopf die aktuell installierte Version; ein
   roter "… verändert"-Hinweis daneben bedeutet: der lokale Stand weicht vom
   zuletzt gebauten Update-Paket ab (Entwickler-Hinweis, kein Fehler).

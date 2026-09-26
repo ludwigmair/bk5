@@ -13,7 +13,7 @@
                 </p>
                 {% endif %}
                 {% if content.business.phone %}
-                <p class="mt-2">{{ content.labels.footer_phone_label|default('Tel.') }} <a class="hover:text-secondary" href="tel:{{ content.business.phone|replace({' ': ''}) }}">{{ content.business.phone }}</a></p>
+                <p class="mt-2">{{ content.footer.phone_label|default('Tel.') }} <a class="hover:text-secondary" href="tel:{{ content.business.phone|replace({' ': ''}) }}">{{ content.business.phone }}</a></p>
                 {% endif %}
                 {% if content.business.email %}
                 <p><a class="hover:text-secondary" href="mailto:{{ content.business.email }}" data-mail-template data-mail-address="{{ content.business.email }}" data-mail-subject="{{ content.labels.mail_subject|default('') }}" data-mail-body="{{ content.labels.mail_body|default('') }}">{{ content.business.email }}</a></p>
@@ -24,7 +24,7 @@
         <ul class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
             {% for item in nav %}
                 {% if item.active is not defined or item.active %}
-                <li><a class="text-ash/80 hover:text-secondary" href="{{ item.href starts with '#' ? '/' ~ item.href : item.href }}">{{ item.label }}</a></li>
+                <li><a class="text-ash/80 hover:text-secondary" href="{{ item.href starts with '#' ? locale_prefix ~ '/' ~ item.href : item.href }}">{{ item.label }}</a></li>
                 {% endif %}
             {% endfor %}
         </ul>
