@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.5.1 – 2026-10-08
+
+Neue Projekt-Instanzen starten mit „Von Suchmaschinen ausschließen“ (noindex). Instanz angleichen (sync) behält die noindex-Einstellung der Ziel-Instanz.
+
 ## 2.5.0 – 2026-10-08
 
 Sicherheit: Session-Cookie gehärtet, Login-Sperre nach 5 Fehlversuchen, SVG-Uploads nur für Admins und gesäubert, Update-Pakete werden per Prüfsumme verifiziert. Stabilität: Speicher-Konflikte werden erkannt statt still zu überschreiben, Updates leeren den Twig-Cache selbst und räumen alte Backups auf.
