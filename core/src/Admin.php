@@ -473,6 +473,10 @@ final class Admin
             'flash' => $flash,
             'flash_command' => $flashCommand,
             'flash_after' => $flashAfter,
+            // > 0 nur nach dem Content-Speichern (siehe redirectToEdited()):
+            // das Flash-Notification schwebt dann über der Save-Leiste, statt
+            // oben unterm Scroll zu verschwinden.
+            'restore_scroll' => max(0, min(200000, (int) ($_GET['focus_scroll'] ?? 0))),
             'csrf' => $_SESSION['csrf'] ?? '',
             'users' => $this->usersList(),
             'current_user' => $this->currentUsername(),
@@ -1069,7 +1073,51 @@ final class Admin
         if ($renameErrors !== []) {
             $message .= ' Anker nicht umbenannt: ' . implode(', ', $renameErrors) . '.';
         }
-        $this->redirect($message);
+        $this->redirectToEdited($message, $this->focusPanel($idMap));
+    }
+
+    /**
+     * Panel, das das Content-Formular beim Speichern als "hier war ich" meldet
+     * (hidden focus_panel, per JS aus dem sichtbaren Panel gefüllt). Geprüft wird
+     * nur das Format – der Wert landet unverändert im Location-Fragment; eine
+     * Abfrage gegen eine feste Panel-Liste müsste jedes neue Panel dauerhaft
+     * mitführen. Eine Anker-Umbenennung im selben Durchgang zieht $idMap mit,
+     * sonst wäre der Sprung genau nach dem Umbenennen ins Leere gerichtet;
+     * unbekannte Werte bleiben folgenlos (admin.twig fällt auf panel-site zurück).
+     *
+     * @param array<string, string> $idMap
+     */
+    private function focusPanel(array $idMap): string
+    {
+        $raw = trim((string) ($_POST['focus_panel'] ?? ''));
+        if (!preg_match('/^panel-[a-z][a-z0-9-]{0,59}$/', $raw)) {
+            return '';
+        }
+        $slug = substr($raw, strlen('panel-'));
+
+        return 'panel-' . ($idMap[$slug] ?? $slug);
+    }
+
+    /**
+     * Nach dem Content-Speichern zurück zur bearbeiteten Stelle: Fragment für
+     * das zuletzt offene Panel (ein Redirect ohne Fragment lässt den Browser je
+     * nach Version am alten hängen oder fällt auf panel-site zurück) und
+     * focus_scroll mit der Scroll-Position, das admin.twig nach dem Reload
+     * wiederherstellt.
+     */
+    private function redirectToEdited(string $message, string $panel): void
+    {
+        $_SESSION['flash'] = $message;
+        $scroll = max(0, min(200000, (int) ($_POST['focus_scroll'] ?? 0)));
+        $url = '?admin=1';
+        if ($scroll > 0) {
+            $url .= '&focus_scroll=' . $scroll;
+        }
+        if ($panel !== '') {
+            $url .= '#' . $panel;
+        }
+        header('Location: ' . $url);
+        exit;
     }
 
     private function addSection(): void
@@ -3674,13 +3722,23 @@ final class Admin
         // "Aktiv"-Badge.
         $configPath = $this->cms->root() . '/data/config.json';
         $configSrc = $sourceDir . '/config.json';
-        $config = is_file($configSrc) ? CMS::readJson($configSrc) : CMS::readJson($configPath);
+        $current = CMS::readJson($configPath);
+        $config = is_file($configSrc) ? CMS::readJson($configSrc) : $current;
         $config['dev_import'] = $slug;
         // Die Update-Manifest-URLs sind Deploy-Infrastruktur des Generators und
         // kein Projekt-Inhalt: beim Projekt-Wechsel nie überschreiben, sonst
         // sind die Update-Buttons in dieser (und jeder danach exportierten)
         // Instanz ohne Grund ausgegraut (bl01-Fall).
-        $config['update'] = CMS::readJson($configPath)['update'] ?? [];
+        $config['update'] = $current['update'] ?? [];
+        // Admin-Logins gehören ebenfalls zum Generator, nicht zum Projekt: sonst
+        // bringt jedes dev-imports/<slug>/config.json seinen alten Passwort-Stand
+        // mit und ein Wechsel sperrt einen ohne Vorwarnung aus (wie beim
+        // Paket-Import). Nur wenn der Generator selbst (noch) keine hat, gelten
+        // die des Projekts.
+        $currentUsers = $current['admin']['users'] ?? [];
+        if (is_array($currentUsers) && $currentUsers !== []) {
+            $config['admin']['users'] = array_values($currentUsers);
+        }
         CMS::writeJson($configPath, $config);
 
         $uploadsSrc = $sourceDir . '/uploads';

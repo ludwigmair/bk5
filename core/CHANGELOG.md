@@ -1,5 +1,21 @@
 # Changelog – Core
 
+## 2.4.2 – 2026-10-08
+
+Projekt-Wechsel (Generator) behält die Admin-Logins statt sie aus dev-imports/<slug>/config.json zu übernehmen.
+
+## 2.4.1 – 2026-10-08
+
+Content speichern repariert: verschachteltes Toggle-Formular (Topbar etc.) schloss das Content-Formular vorzeitig, Änderungen an Sections/SEO/Rechtliches wurden verworfen.
+
+## 2.4.0 – 2026-10-07
+
+Core-Update-Release, automatisch erstellt mit dev/build-release.php.
+
+## 2.3.9 – 2026-10-07
+
+Core-Update-Release, automatisch erstellt mit dev/build-release.php.
+
 ## 2.3.8 – 2026-09-26
 
 MANUAL.md nachgezogen: Bildgalerie = Kategorie-Karussell mit Lightbox (Beschreibung war noch auf das reine Bildraster aus 1.2.3–1.2.5 kalibriert). Kein Code-Change.
