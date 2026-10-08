@@ -67,6 +67,7 @@ final class Admin
                 'build-theme' => $this->buildTheme(),
                 'delete-theme' => $this->deleteTheme(),
                 'toggle-topbar' => $this->toggleTopbar(),
+                'mail-test' => $this->sendTestMail(),
                 'image-upload' => $this->uploadImage(),
                 'image-delete' => $this->deleteImage(),
                 'image-delete-many' => $this->deleteImagesMany(),
@@ -176,7 +177,7 @@ final class Admin
     private const ADMIN_ONLY_ACTIONS = [
         'check-update', 'update', 'check-components-update', 'components-update',
         'user-add', 'user-remove', 'user-setpw',
-        'apply-theme', 'build-theme', 'delete-theme', 'toggle-topbar',
+        'apply-theme', 'build-theme', 'delete-theme', 'toggle-topbar', 'mail-test',
         'add', 'delete', 'reorder-sections',
         'switch-project', 'export-import', 'restore-import', 'restore-history',
         'build-update-package', 'download-update-package', 'delete-update-package',
@@ -282,6 +283,7 @@ final class Admin
             'current_user' => $this->currentUsername(),
             'current_is_admin' => $this->currentIsAdmin(),
             'content_rev' => $this->contentRevision(),
+            'mail_from' => Mail::fromAddress($this->cms->config(), $this->cms->content()),
             'uploads' => $this->listUploads(),
             'active_languages' => CMS::activeLanguages($this->cms->config()),
             'available_languages' => $this->availableLanguages(),
@@ -640,7 +642,36 @@ final class Admin
         $this->redirectToEdited($message, $this->focusPanel($idMap));
     }
 
+    /**
+     * "Testmail senden" (Betrieb / Kontaktdaten): derselbe Versandweg wie das
+     * Kontaktformular (Core\Mail), an die gespeicherte Betriebs-E-Mail. Ein
+     * true von mail() heißt nur "vom Server angenommen" – ob sie ankommt, zeigt
+     * erst das Postfach (Spam-Ordner!), deshalb der Hinweis im Flash.
+     */
+    private function sendTestMail(): void
+    {
+        $content = $this->cms->content();
+        $to = Mail::businessEmail($content);
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            $this->redirectToPanel('Keine gültige E-Mail unter Betrieb / Kontaktdaten gespeichert – Testmail nicht gesendet.', 'panel-business');
+        }
+        $from = Mail::fromAddress($this->cms->config(), $content);
+        $ok = Mail::send(
+            $this->cms->config(),
+            $content,
+            $to,
+            'Testmail von ' . ($_SERVER['HTTP_HOST'] ?? 'der Website'),
+            "Diese Testmail wurde über „Testmail senden“ im Admin verschickt (" . date('d.m.Y H:i') . ").\n\n"
+                . "Kommt sie an, funktioniert auch der Versand des Kontaktformulars.\n"
+                . "Absender: {$from}\n"
+        );
+        $this->redirectToPanel($ok
+            ? "Testmail an {$to} vom Server angenommen (Absender {$from}). Bitte Postfach prüfen – auch den Spam-Ordner. Landet sie dort oder gar nicht, in data/config.json \"mail\": {\"from\": \"…\"} auf eine Adresse der Webhoster-Domain setzen."
+            : "Der Server hat die Testmail an {$to} abgelehnt (mail() fehlgeschlagen) – beim Webhoster prüfen, ob PHP-mail() aktiviert ist.", 'panel-business');
+    }
+
     /** Prüfsumme von data/content.json – wechselt mit jedem Speichern, egal von wem. */
+
     private function contentRevision(): string
     {
         $hash = @hash_file('sha256', $this->cms->root() . '/data/content.json');

@@ -238,7 +238,10 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   zweite Nummer, erscheint zusätzlich in Topbar/Footer), E-Mail, USt-IdNr.,
   Handelsregister, Öffnungszeiten, abweichender Kartensuchbegriff. Wird für
   Kontaktformular-Infokarte, Footer, JSON-LD (Suchmaschinen), Telefon-/Mail-Buttons
-  und `{business.*}`-Platzhalter verwendet.
+  und `{business.*}`-Platzhalter verwendet. Die E-Mail ist zugleich Empfänger der
+  Kontaktformular-Anfragen. **„Testmail senden"** (Admin-Rolle) prüft, ob der Server
+  Mails verschickt – kommt nichts an (auch Spam-Ordner prüfen), siehe
+  `docs/COMPONENTS.md` → „contact-form: Mailversand".
 - **SEO / Meta-Daten**: Seitentitel/-beschreibung, OG-Titel/-Beschreibung (für
   Vorschaubilder bei WhatsApp/Facebook/Linkedin usw.), OG-Bild, Favicon,
   "Von Suchmaschinen ausschließen". Basis-URL steht nur informativ (kommt aus

@@ -383,6 +383,12 @@
                         </div>
                         {% include 'admin-field.twig' with {field: {name: 'hours', type: 'text', label: 'Öffnungszeiten', hint: 'z. B. Mo–Fr 8–17 Uhr, Termine nach Vereinbarung'}, value: content.business.hours|default(''), prefix: 'business'} %}
                         {% include 'admin-field.twig' with {field: {name: 'maps_query', type: 'text', label: 'Karten-Suchbegriff (optional)', hint: 'Steuert, wo die Google-Maps-Karte im Kontaktformular hinzeigt. Leer lassen, um automatisch aus Name + Adresse oben zu suchen.'}, value: content.business.maps_query|default(''), prefix: 'business'} %}
+                        {% if current_is_admin %}
+                        <div class="flex flex-wrap items-center gap-3 border-t border-[#241E18]/10 pt-3">
+                            <button type="submit" form="mail-test" class="h-9 cursor-pointer rounded-lg border border-[#241E18]/15 px-4 text-sm font-medium text-[#241E18]/70 transition hover:bg-[#241E18]/5">Testmail senden</button>
+                            <p class="text-xs text-[#241E18]/40">Prüft, ob dieser Server Mails verschickt (wie das Kontaktformular): geht an die gespeicherte E-Mail oben, Absender {{ mail_from }}. Kommt nichts an, auch im Spam-Ordner nachsehen.</p>
+                        </div>
+                        {% endif %}
                     </section>
 
                     <section id="panel-seo" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-seo" hidden>
@@ -630,11 +636,17 @@
                     {% endfor %}
                 </form>
 
-                {# Toggle-Formulare der Regions bewusst AUSSERHALB von #content-form: ein
+                {# Toggle-/Testmail-Formulare bewusst AUSSERHALB von #content-form: ein
                    verschachteltes <form> ist kein gültiges HTML – der Parser ignoriert das
                    innere <form>, dessen </form> schließt aber das äußere, und alle Felder
                    dahinter (Sections, SEO, Rechtliches) gehen beim Speichern verloren. Die
                    Buttons im Panel "Seite" hängen per form="toggle-…" daran. #}
+                {% if current_is_admin %}
+                <form id="mail-test" method="post" class="hidden">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <input type="hidden" name="do" value="mail-test">
+                </form>
+                {% endif %}
                 {% for region in ['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] %}
                     {% if attribute(layoutSchemas, region).has_toggle|default(false) %}
                 <form id="toggle-{{ region }}" method="post" class="hidden">
