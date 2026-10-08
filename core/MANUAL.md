@@ -308,7 +308,9 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   Generator fertig" zu "beim Kunden live". Nur beim ersten Export sinnvoll bzw.
   wenn bewusst der komplette Stand (inkl. aktueller Inhalte) übernommen werden
   soll – ein erneuter Export auf eine bereits laufende Instanz würde dort
-  zwischenzeitlich geänderte Inhalte/Bilder überschreiben.
+  zwischenzeitlich geänderte Inhalte/Bilder überschreiben. Die neue Instanz startet
+  immer mit **„Von Suchmaschinen ausschließen“** (noindex, `robots.txt` sperrt alles) –
+  für den Livegang dort unter SEO den Haken entfernen.
 - **Projekt-Import (lokal)**: nur sichtbar, wenn lokale Test-/Kundenprojekte
   vorbereitet sind – Entwickler-Werkzeug, nicht für den täglichen Redaktionsbetrieb.
 - **Theme & Daten als Paket exportieren**: legt `cache/projekt-<zeitstempel>.zip`

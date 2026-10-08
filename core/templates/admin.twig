@@ -940,9 +940,9 @@
                 <section id="panel-export-instance" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-export-instance" hidden>
                     <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">{{ has_dev_tools ? 'Projekt-Instanz erstellen' : 'Projekt-Instanz-Snapshot erstellen' }}</h2>
                     {% if has_dev_tools %}
-                    <p class="text-xs text-[#241E18]/40">Exportiert den aktuellen Stand (Inhalte, Bilder, aktives Theme <strong>{{ active_theme|default('–') }}</strong>) als eigenständigen, deploybaren Ordner unter <code>project-instances/</code> – nur core/ plus die tatsächlich genutzten Theme-/Component-Dateien, nicht der komplette gemeinsame Pool.</p>
+                    <p class="text-xs text-[#241E18]/40">Exportiert den aktuellen Stand (Inhalte, Bilder, aktives Theme <strong>{{ active_theme|default('–') }}</strong>) als eigenständigen, deploybaren Ordner unter <code>project-instances/</code> – nur core/ plus die tatsächlich genutzten Theme-/Component-Dateien, nicht der komplette gemeinsame Pool. Die neue Instanz startet mit <strong>„Von Suchmaschinen ausschließen“</strong> (noindex) – für den Livegang dort unter SEO ausschalten.</p>
                     {% else %}
-                    <p class="text-xs text-[#241E18]/40">Zieht einen Snapshot des aktuellen Live-Stands dieser Instanz (Inhalte, Bilder, Theme <strong>{{ active_theme|default('–') }}</strong>) als eigenständigen Ordner unter <code>project-instances/</code> – z. B. vor einer riskanten Änderung, zum Klonen oder als Vorlage für ein ähnliches neues Projekt.</p>
+                    <p class="text-xs text-[#241E18]/40">Zieht einen Snapshot des aktuellen Live-Stands dieser Instanz (Inhalte, Bilder, Theme <strong>{{ active_theme|default('–') }}</strong>) als eigenständigen Ordner unter <code>project-instances/</code> – z. B. vor einer riskanten Änderung, zum Klonen oder als Vorlage für ein ähnliches neues Projekt. Der Snapshot startet mit <strong>„Von Suchmaschinen ausschließen“</strong> (noindex).</p>
                     {% endif %}
 
                     <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">

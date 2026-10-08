@@ -52,14 +52,15 @@ trait ProjectInstanceActions
         // Daten: aktueller Stand, aber ohne den dev-imports-Marker (rein lokal/nicht
         // deployt) - siehe Admin::switchProject().
         mkdir($dest . '/data', 0775, true);
-        copy($root . '/data/content.json', $dest . '/data/content.json');
-        // Einmalige Kopie für CMS::ensureSeeded(): content.json selbst ist im
-        // Git-Repo-Export (siehe setUpGitWorkflow()) vom Deploy-Workflow
-        // ausgeschlossen, damit spätere Live-Bearbeitungen nicht überschrieben
-        // werden - beim allerersten Deploy käme dadurch aber nie ein Inhalt
-        // an. content.seed.json trägt denselben Ursprungsstand, wird vom
+        // content.seed.json: Einmalige Kopie für CMS::ensureSeeded(): content.json
+        // selbst ist im Git-Repo-Export (siehe setUpGitWorkflow()) vom
+        // Deploy-Workflow ausgeschlossen, damit spätere Live-Bearbeitungen nicht
+        // überschrieben werden - beim allerersten Deploy käme dadurch aber nie ein
+        // Inhalt an. content.seed.json trägt denselben Ursprungsstand, wird vom
         // Workflow NICHT ausgeschlossen (anderer Dateiname).
-        copy($root . '/data/content.json', $dest . '/data/content.seed.json');
+        // Neue Instanzen starten immer mit noindex (Staging/Baustelle soll nicht
+        // in den Suchindex) - für den Livegang im Admin unter SEO ausschalten.
+        $this->writeInstanceContent($dest, true);
         $config = $this->cms->config();
         unset($config['dev_import']);
         CMS::writeJson($dest . '/data/config.json', $config);
@@ -217,8 +218,10 @@ trait ProjectInstanceActions
         $root = $this->cms->root();
         mkdir($dest . '/data', 0775, true);
 
-        copy($root . '/data/content.json', $dest . '/data/content.json');
-        copy($root . '/data/content.json', $dest . '/data/content.seed.json');
+        // Die noindex-Einstellung gehört zur Ziel-Instanz (Staging soll nicht durch
+        // einen Sync plötzlich indexierbar werden) - nur sie bleibt erhalten.
+        $targetNoindex = CMS::readJson($dest . '/data/content.json')['seo']['robots_noindex'] ?? null;
+        $this->writeInstanceContent($dest, $targetNoindex === null ? null : (bool) $targetNoindex);
         $config = $this->cms->config();
         unset($config['dev_import']);
         CMS::writeJson($dest . '/data/config.json', $config);
@@ -615,6 +618,21 @@ trait ProjectInstanceActions
         }
 
         return '';
+    }
+
+    /**
+     * Schreibt den aktuellen Generator-Inhalt als content.json + content.seed.json
+     * in eine Instanz. $noindex: true/false setzt seo.robots_noindex fest
+     * ("Von Suchmaschinen ausschließen"), null übernimmt den Wert des Generators.
+     */
+    private function writeInstanceContent(string $dest, ?bool $noindex): void
+    {
+        $content = CMS::readJson($this->cms->root() . '/data/content.json');
+        if ($noindex !== null) {
+            $content['seo']['robots_noindex'] = $noindex;
+        }
+        CMS::writeJson($dest . '/data/content.json', $content);
+        CMS::writeJson($dest . '/data/content.seed.json', $content);
     }
 
     /** Region-Varianten-Name aus config.json → layout, wie CMS::renderShell() es liest (Topbar verschachtelt, Rest flach). */
