@@ -306,6 +306,8 @@
                 <form method="post" enctype="multipart/form-data" id="content-form" novalidate>
                     <input type="hidden" name="csrf" value="{{ csrf }}">
                     <input type="hidden" name="do" value="save">
+                    {# Stand beim Laden – saveContent() erkennt daran, ob inzwischen jemand anders gespeichert hat. #}
+                    <input type="hidden" name="content_rev" value="{{ content_rev|default('') }}">
                     {# Beides füllt das Submit-Script unten – der Server schickt Panel-Fragment
                        und Scroll-Position zurück, damit nach dem Speichern an derselben
                        Stelle weitergearbeitet wird (siehe saveContent()). #}
@@ -1261,7 +1263,7 @@
                         <label id="image-dropzone" class="flex h-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#241E18]/15 bg-[#241E18]/[0.015] text-center transition">
                             <span data-dropzone-text class="text-sm text-[#241E18]/60">Bild hierher ziehen oder klicken zum Auswählen</span>
                             <span class="text-[11px] text-[#241E18]/35">jpg, png, webp, gif, svg</span>
-                            <input class="sr-only" type="file" name="image" accept=".jpg,.jpeg,.png,.webp,.gif,.svg" required>
+                            <input class="sr-only" type="file" name="image" accept=".jpg,.jpeg,.png,.webp,.gif{{ current_is_admin|default(false) ? ",.svg" : "" }}" required>
                         </label>
                     </form>
 
@@ -1727,7 +1729,13 @@
         body.append('csrf', '{{ csrf }}');
         body.append('do', 'reorder-sections');
         ids.forEach(function (id) { body.append('order[]', id); });
-        fetch('?admin=1', { method: 'POST', body: body }).catch(function () {});
+        fetch('?admin=1', { method: 'POST', body: body })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var rev = document.querySelector('#content-form input[name="content_rev"]');
+            if (rev && data && data.content_rev) rev.value = data.content_rev;
+          })
+          .catch(function () {});
       }
 
       // Pfeil-Buttons: attrName steuert Richtung ('up'/'down'), itemSelector begrenzt auf die passende Liste.

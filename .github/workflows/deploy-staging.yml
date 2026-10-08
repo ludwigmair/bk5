@@ -133,6 +133,9 @@ jobs:
           # und cache/ sind auf dem Server live (über den Admin-Bereich
           # dieser CMS-Instanz gepflegt) - ein Deploy darf sie nie
           # überschreiben oder löschen, siehe docs/DEPLOY.md.
+          # Muster laufen über Pythons fnmatch, dort passt "*" auch auf "/":
+          # deshalb KEIN "*.md" - das würde core/MANUAL.md und die
+          # CHANGELOG.md-Dateien treffen, die der Admin anzeigt.
           exclude: |
             .git,
             .git/**,
@@ -141,7 +144,7 @@ jobs:
             .env,
             .env.*,
             .my-credentials,
-            *.md,
+            README.md,
             .DS_Store,
             composer.json,
             composer.lock,

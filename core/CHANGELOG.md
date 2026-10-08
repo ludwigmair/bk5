@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.5.0 – 2026-10-08
+
+Sicherheit: Session-Cookie gehärtet, Login-Sperre nach 5 Fehlversuchen, SVG-Uploads nur für Admins und gesäubert, Update-Pakete werden per Prüfsumme verifiziert. Stabilität: Speicher-Konflikte werden erkannt statt still zu überschreiben, Updates leeren den Twig-Cache selbst und räumen alte Backups auf.
+
 ## 2.4.2 – 2026-10-08
 
 Projekt-Wechsel (Generator) behält die Admin-Logins statt sie aus dev-imports/<slug>/config.json zu übernehmen.

@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-session_start();
-
 $root = __DIR__;
 require $root . '/vendor/autoload.php';
+
+// Sichere Cookie-Flags (HttpOnly/SameSite/Secure auf HTTPS) – Fallback für
+// einen älteren Core ohne startSession().
+method_exists(Core\CMS::class, 'startSession') ? Core\CMS::startSession() : session_start();
 
 if (empty($_SESSION['csrf'])) {
     $_SESSION['csrf'] = bin2hex(random_bytes(16));

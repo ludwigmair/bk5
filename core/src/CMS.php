@@ -1321,6 +1321,52 @@ final class CMS
         }
     }
 
+    /**
+     * Session-Cookie nur per HTTP (kein JS-Zugriff), SameSite=Lax und auf HTTPS
+     * zusätzlich Secure. Lokal (php -S, http://) bleibt Secure aus, sonst
+     * schickt der Browser den Cookie nie zurück und kein Login klappt.
+     *
+     * @return array{lifetime: int, path: string, secure: bool, httponly: bool, samesite: string}
+     */
+    public static function sessionCookieOptions(): array
+    {
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+
+        return ['lifetime' => 0, 'path' => '/', 'secure' => $https, 'httponly' => true, 'samesite' => 'Lax'];
+    }
+
+    /** Für index.php: Session mit den Cookie-Optionen oben starten. */
+    public static function startSession(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            return;
+        }
+        session_set_cookie_params(self::sessionCookieOptions());
+        session_start(['use_strict_mode' => 1]);
+    }
+
+    /**
+     * Für Instanzen, deren index.php (liegt außerhalb von core/, kommt also mit
+     * keinem Core-Update mit) noch ein nacktes session_start() macht: den
+     * Session-Cookie mit denselben Flags erneut setzen, der Browser ersetzt den
+     * alten damit.
+     */
+    public static function hardenSessionCookie(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE || headers_sent()) {
+            return;
+        }
+        $opts = self::sessionCookieOptions();
+        setcookie(session_name(), (string) session_id(), [
+            'expires' => 0,
+            'path' => $opts['path'],
+            'secure' => $opts['secure'],
+            'httponly' => true,
+            'samesite' => $opts['samesite'],
+        ]);
+    }
+
     public static function readJson(string $path): array
     {
         if (!is_file($path)) {
