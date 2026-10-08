@@ -32,6 +32,54 @@ final class Image
      * geschrieben wurde. Ohne GD, bei SVG/GIF oder unlesbaren Dateien: false
      * (kein Fehler – der Aufrufer liefert dann einfach das Original aus).
      */
+    /**
+     * Entfernt aus einer hochgeladenen SVG alles, was Code ausführen kann:
+     * <script>, <foreignObject> (eingebettetes HTML), on*-Event-Attribute und
+     * javascript:/data:-Links (außer eingebetteten Rasterbildern). Eine SVG wird beim direkten Aufruf als eigene
+     * Seite auf der Domain der Website gerendert – ohne diese Säuberung könnte
+     * sie dort Skripte im Namen eines eingeloggten Admins ausführen.
+     * Fail-closed: ohne DOM-Extension oder bei kaputtem XML false (Datei
+     * verwerfen), nie ungeprüft durchlassen.
+     */
+    public static function sanitizeSvg(string $file): bool
+    {
+        if (!class_exists(\DOMDocument::class)) {
+            return false;
+        }
+        $raw = @file_get_contents($file);
+        if ($raw === false || $raw === '' || stripos($raw, '<!ENTITY') !== false) {
+            return false; // XML-Entities: XXE/Billion-Laughs gar nicht erst parsen
+        }
+        $doc = new \DOMDocument();
+        if (!@$doc->loadXML($raw, LIBXML_NONET) || $doc->documentElement === null
+            || strtolower($doc->documentElement->localName) !== 'svg') {
+            return false;
+        }
+
+        $xpath = new \DOMXPath($doc);
+        foreach (iterator_to_array($xpath->query('//*')) as $el) {
+            if (!$el instanceof \DOMElement) {
+                continue;
+            }
+            if (in_array(strtolower($el->localName), ['script', 'foreignobject', 'iframe', 'embed', 'object'], true)) {
+                $el->parentNode?->removeChild($el);
+                continue;
+            }
+            foreach (iterator_to_array($el->attributes) as $attr) {
+                $name = strtolower($attr->localName);
+                $value = strtolower(preg_replace('/[\s\x00-\x1f]+/', '', $attr->value) ?? '');
+                if (str_starts_with($name, 'on')
+                    || (($name === 'href' || $name === 'src') && (preg_match('/^(javascript|vbscript):/', $value)
+                        || (str_starts_with($value, 'data:') && !preg_match('#^data:image/(png|jpe?g|gif|webp)[;,]#', $value))))
+                ) {
+                    $el->removeAttributeNode($attr);
+                }
+            }
+        }
+
+        return file_put_contents($file, $doc->saveXML($doc->documentElement)) !== false;
+    }
+
     public static function generateVariants(string $file): bool
     {
         if (!is_file($file) || !function_exists('imagecreatetruecolor')) {

@@ -123,7 +123,7 @@
       <img class="h-10 w-10 shrink-0 rounded-lg border border-[#241E18]/10 object-cover {% if not value %}hidden{% endif %}" data-value-preview src="{{ value ? (value starts with 'http' ? value : '/' ~ value) : '' }}" alt="" loading="lazy">
       <span class="min-w-0 flex-1 truncate text-sm text-[#241E18]/70" data-value-name>{{ value ? value|split('/')|last : 'Kein Bild ausgewählt' }}</span>
       <input type="hidden" name="{{ name }}" value="{{ value }}" data-url-input>
-      <input type="file" class="hidden" accept=".jpg,.jpeg,.png,.webp,.gif,.svg" data-image-file>
+      <input type="file" class="hidden" accept=".jpg,.jpeg,.png,.webp,.gif{{ current_is_admin|default(false) ? ",.svg" : "" }}" data-image-file>
       <button class="h-8 shrink-0 cursor-pointer rounded-lg border border-[#241E18]/25 bg-[#E7E1D3] px-2.5 text-xs font-medium text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-image-upload>Hochladen</button>
       <button class="h-8 shrink-0 cursor-pointer rounded-lg border border-[#241E18]/25 bg-[#E7E1D3] px-2.5 text-xs font-medium text-[#241E18]/70 shadow-sm transition hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 hover:text-[#355E4B]" type="button" data-image-pick>Auswählen…</button>
       <button class="h-8 shrink-0 cursor-pointer rounded-lg border border-[#241E18]/25 bg-[#E7E1D3] px-2.5 text-xs font-medium text-[#241E18]/70 shadow-sm transition hover:border-red-800/40 hover:bg-red-50 hover:text-red-700" type="button" data-image-clear>✕ Entfernen</button>

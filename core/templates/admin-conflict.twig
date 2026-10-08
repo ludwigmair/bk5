@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Speicher-Konflikt · {{ site_name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-[radial-gradient(circle_at_top,_#f2f0e9,_#E7E4DC_55%)] font-['IBM_Plex_Sans',sans-serif] text-[#241E18] antialiased">
+    <main class="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-[#B87333]">Werkstatt-CMS</p>
+        <h1 class="mt-2 font-['Commissioner',sans-serif] text-3xl font-semibold tracking-tight">Inzwischen wurde gespeichert</h1>
+        <div class="mt-6 space-y-4 rounded-2xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] p-7 shadow-xl shadow-[#241E18]/[0.06] text-[15px] leading-relaxed">
+            <p>Während Sie bearbeitet haben, hat jemand anderes (oder ein anderer Tab) den Inhalt gespeichert. Ihre Änderungen sind <strong>noch nicht</strong> gespeichert – und auch nicht verloren.</p>
+            <ul class="list-disc space-y-1 pl-5 text-sm text-[#241E18]/75">
+                <li><strong>Trotzdem speichern</strong> übernimmt Ihren Stand und überschreibt die zwischenzeitlichen Änderungen.</li>
+                <li><strong>Verwerfen</strong> lädt den aktuellen Stand neu; Ihre Eingaben gehen dabei verloren.</li>
+            </ul>
+            {% if had_files %}
+            <p class="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Neu ausgewählte Bilder konnten nicht übernommen werden – bitte nach dem Speichern erneut hochladen.</p>
+            {% endif %}
+            <form method="post" action="?admin=1" class="flex flex-wrap gap-3 pt-2">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <input type="hidden" name="content_rev" value="{{ content_rev }}">
+                {% for field in fields %}
+                <input type="hidden" name="{{ field.name }}" value="{{ field.value }}">
+                {% endfor %}
+                <button class="h-11 cursor-pointer rounded-lg bg-[#355E4B] px-5 text-sm font-semibold text-white shadow-md shadow-[#355E4B]/20 transition hover:bg-[#2c4f40]" type="submit">Trotzdem speichern</button>
+                <a class="inline-flex h-11 items-center rounded-lg border border-[#241E18]/15 px-5 text-sm font-medium text-[#241E18]/70 transition hover:bg-[#241E18]/5" href="?admin=1">Verwerfen</a>
+            </form>
+        </div>
+    </main>
+</body>
+</html>

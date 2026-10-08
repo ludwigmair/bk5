@@ -9,6 +9,14 @@ RedirectMatch 404 /core/src(/|$)
 RedirectMatch 404 /cache(/|$)
 RedirectMatch 404 /data(/|$)
 
+# SVGs (Uploads, Icons) direkt aufgerufen: kein Skript ausführen, auch falls
+# einmal eine ungesäuberte Datei hochkommt (siehe Image::sanitizeSvg()).
+<IfModule mod_headers.c>
+    <FilesMatch "\.svg$">
+        Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"
+    </FilesMatch>
+</IfModule>
+
 RewriteEngine On
 RewriteRule ^admin/?$ index.php?admin=1 [L,QSA]
 RewriteCond %{REQUEST_FILENAME} !-f

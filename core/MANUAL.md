@@ -35,6 +35,16 @@ Die Seitenleiste ist in Gruppen sortiert:
 Änderungen werden erst gespeichert, wenn unten auf **„Änderungen speichern"**
 geklickt wird – "Verwerfen" lädt die Seite ohne Speichern neu.
 
+Hat zwischendurch jemand anderes (oder ein zweiter Browser-Tab) gespeichert,
+erscheint statt des Speicherns die Seite **„Inzwischen wurde gespeichert"**: Die
+eigenen Eingaben sind dann weder gespeichert noch verloren. **„Trotzdem speichern"**
+übernimmt den eigenen Stand (und überschreibt den zwischenzeitlichen), **„Verwerfen"**
+lädt den aktuellen Stand neu. Gerade neu ausgewählte Bilder müssen danach erneut
+hochgeladen werden.
+
+Nach fünf falschen Passwort-Eingaben ist die Anmeldung von diesem Anschluss aus
+für zehn Minuten gesperrt.
+
 ## Mehrsprachige Inhalte
 
 Ist die Website mehrsprachig eingerichtet, erscheint oben rechts im Admin
@@ -168,7 +178,9 @@ Vorschläge sind Anregungen, jeder kann einzeln übernommen oder verworfen werde
 
 Bild-Felder zeigen ein kleines Vorschaubild plus drei Buttons:
 
-- **Hochladen** – neue Bilddatei vom Rechner auswählen.
+- **Hochladen** – neue Bilddatei vom Rechner auswählen (JPG, PNG, WebP, GIF; SVG
+  nur mit Admin-Rolle – SVG-Dateien können Programmcode enthalten und werden beim
+  Hochladen automatisch davon bereinigt).
 - **Auswählen…** – aus bereits hochgeladenen Bildern wählen (öffnet eine Übersicht).
 - **✕ Entfernen** – Auswahl im Feld leeren (löscht die Datei nicht).
 
