@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.6.0 – 2026-10-08
+
+Mailversand: Core\Mail mit UTF-8-Headern und optionalem Absender (config mail.from), Admin-Button „Testmail senden“ unter Betrieb / Kontaktdaten.
+
 ## 2.5.1 – 2026-10-08
 
 Neue Projekt-Instanzen starten mit „Von Suchmaschinen ausschließen“ (noindex). Instanz angleichen (sync) behält die noindex-Einstellung der Ziel-Instanz.

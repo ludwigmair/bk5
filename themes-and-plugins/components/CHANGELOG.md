@@ -1,5 +1,9 @@
 # Changelog – Components
 
+## 1.2.7 – 2026-10-08
+
+Kontaktformular: gewähltes Anliegen kommt in der Mail an, Umlaute korrekt, Versandstatus pro Anfrage, Anfragen bleiben in data/inquiries.json erhalten (lagen in cache/ und gingen bei jedem Deploy verloren).
+
 ## 1.2.6 – 2026-09-26
 
 image-gallery: Lightbox-Galerie wiederhergestellt – Kategorie-Karussell (Cover + Name), Klick öffnet die Lightbox mit den Bildern der Kategorie und Thumbnails zum Umschalten. needs_swiper wieder im Schema, leere/ inaktive Bild-Einträge werden gefiltert, Kategorien ohne Bilder zeigen ihr Cover. Ersetzt das seit 1.2.3 reine Bildraster.

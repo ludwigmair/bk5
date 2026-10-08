@@ -15,7 +15,8 @@ jobs:
     # Keine Credentials irgendwo im Repo: alles kommt aus GitHub-Secrets
     # (einstellbar unter Settings → Secrets and variables → Actions):
     # FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, FTP_TARGET_DIR,
-    # BACKUP_URL, BACKUP_TOKEN.
+    # BACKUP_URL, BACKUP_TOKEN – optional ADMIN_USERS (nur für den Erst-Deploy,
+    # siehe Schritt ".env auf dem Server anlegen").
     env:
       FTP_SERVER: ${{ secrets.FTP_SERVER }}
       FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
@@ -23,6 +24,7 @@ jobs:
       FTP_TARGET_DIR: ${{ secrets.FTP_TARGET_DIR }}
       BACKUP_URL: ${{ secrets.BACKUP_URL }}
       BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
+      ADMIN_USERS: ${{ secrets.ADMIN_USERS }}
     steps:
       - name: Checkout staging
         uses: actions/checkout@v4
@@ -85,6 +87,37 @@ jobs:
           lftp -u "$FTP_USERNAME,$FTP_PASSWORD" -e "set sftp:auto-confirm yes; set net:max-retries 3; rm -rf \"$TARGET/cache\"; bye" "sftp://$FTP_SERVER" || true
         shell: bash
 
+      - name: .env auf dem Server anlegen (nur wenn noch keine existiert)
+        if: steps.check-merge.outputs.deployed == 'true'
+        run: |
+          # .env ist gitignored und vom Upload ausgeschlossen – ohne sie gibt es
+          # nach dem Erst-Deploy keinen Admin-Login (CMS::ensureSeeded() legt
+          # Benutzer nur aus ADMIN_USERS/ADMIN_USERNAME an) und der
+          # Backup-Endpunkt bleibt deaktiviert. Deshalb hier einmalig aus den
+          # Secrets anlegen. Eine vorhandene .env wird NIE angefasst (dort
+          # gepflegte Werte/Logins haben Vorrang).
+          TARGET="$(printf '%s' "$FTP_TARGET_DIR" | tr -d '[:space:]')"
+          if lftp -u "$FTP_USERNAME,$FTP_PASSWORD" -e "set sftp:auto-confirm yes; set net:max-retries 3; cls -1 \"$TARGET/.env\"; bye" "sftp://$FTP_SERVER" >/dev/null 2>&1; then
+            echo ".env existiert bereits auf dem Server – unverändert gelassen."
+            exit 0
+          fi
+          umask 077
+          ENVFILE="$(mktemp)"
+          {
+            echo "# Automatisch beim Erst-Deploy aus GitHub-Secrets angelegt (deploy-staging.yml)."
+            echo "BACKUP_TOKEN=$(printf '%s' "$BACKUP_TOKEN" | tr -d '[:space:]')"
+            if [ -n "$ADMIN_USERS" ]; then
+              echo "ADMIN_USERS=$ADMIN_USERS"
+            fi
+          } > "$ENVFILE"
+          if [ -z "$ADMIN_USERS" ]; then
+            echo "::warning::Secret ADMIN_USERS fehlt – .env enthält nur BACKUP_TOKEN. Ohne Admin-Benutzer in data/config.json ist der Admin nach dem Erst-Deploy nicht erreichbar (ADMIN_USERS setzen oder .env auf dem Server ergänzen)."
+          fi
+          lftp -u "$FTP_USERNAME,$FTP_PASSWORD" -e "set sftp:auto-confirm yes; set net:max-retries 3; put \"$ENVFILE\" -o \"$TARGET/.env\"; chmod 600 \"$TARGET/.env\"; bye" "sftp://$FTP_SERVER"
+          rm -f "$ENVFILE"
+          echo ".env auf dem Server angelegt."
+        shell: bash
+
       - name: Sicherung auf dem Server anlegen (vor dem Deploy)
         if: steps.check-merge.outputs.deployed == 'true'
         run: |
@@ -100,6 +133,11 @@ jobs:
           RESPONSE="$(cat /tmp/backup-response.txt 2>/dev/null || true)"
           if [ "$HTTP_CODE" = "200" ]; then
             echo "Backup ok. Antwort: ${RESPONSE}"
+          elif [ "$HTTP_CODE" = "404" ] && printf '%s' "$RESPONSE" | grep -q "not configured"; then
+            # Code ist da, aber BACKUP_TOKEN fehlt in der .env des Servers –
+            # früher lief das als "erster Deploy" durch und es gab bei JEDEM
+            # Deploy still kein Backup.
+            echo "::warning::Backup NICHT erstellt: auf dem Server fehlt BACKUP_TOKEN in der .env (Backup-Endpunkt deaktiviert). .env ergänzen – Wert identisch zum Secret BACKUP_TOKEN."
           elif [ "$HTTP_CODE" = "404" ]; then
             # Allererster Deploy: auf dem Server liegt noch kein Code, der
             # Backup-Endpunkt existiert dort schlicht noch nicht - nichts zum
@@ -150,6 +188,7 @@ jobs:
             composer.lock,
             data/config.json,
             data/content.json,
+            data/inquiries.json,
             data/.history/**,
             uploads/**,
             cache/**
