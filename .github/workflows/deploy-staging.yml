@@ -153,6 +153,49 @@ jobs:
           fi
         shell: bash
 
+      - name: Sicherung als Offsite-Kopie holen (verschlüsselt)
+        id: offsite
+        if: steps.check-merge.outputs.deployed == 'true'
+        run: |
+          # Die Sicherung von eben liegt nur auf demselben Server wie die Seite -
+          # fällt der Host aus, ist sie mit weg. Deshalb hier herunterladen und
+          # als GitHub-Artefakt ablegen (90 Tage). Verschlüsselt mit BACKUP_TOKEN,
+          # weil Artefakte öffentlicher Repos für jeden lesbar sind und das Backup
+          # personenbezogene Daten (Anfragen) und Admin-Logins enthält.
+          # Entschlüsseln/Wiederherstellen: docs/DEPLOY.md -> "Offsite-Kopie".
+          # Ein Fehler hier blockiert den Deploy nicht (Warnung statt Abbruch).
+          FILE="$(jq -r '.file // empty' /tmp/backup-response.txt 2>/dev/null || true)"
+          if ! printf '%s' "$FILE" | grep -Eq '^backup-[0-9]{8}-[0-9]{6}\.zip$'; then
+            echo "Keine neue Sicherung auf dem Server (siehe Schritt davor) – Offsite-Kopie übersprungen."
+            exit 0
+          fi
+          TARGET="$(printf '%s' "$FTP_TARGET_DIR" | tr -d '[:space:]')"
+          KEY="$(printf '%s' "$BACKUP_TOKEN" | tr -d '[:space:]')"
+          export KEY
+          mkdir -p /tmp/offsite-raw /tmp/offsite
+          if ! lftp -u "$FTP_USERNAME,$FTP_PASSWORD" -e "set sftp:auto-confirm yes; set net:max-retries 3; get \"$TARGET/data/backups/$FILE\" -o /tmp/offsite-raw/$FILE; bye" "sftp://$FTP_SERVER" \
+             || ! unzip -tq "/tmp/offsite-raw/$FILE" >/dev/null; then
+            echo "::warning::Offsite-Kopie fehlgeschlagen: $FILE konnte nicht (vollständig) heruntergeladen werden. Die Sicherung auf dem Server ist davon unberührt."
+            exit 0
+          fi
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:KEY \
+            -in "/tmp/offsite-raw/$FILE" -out "/tmp/offsite/$FILE.enc"
+          rm -rf /tmp/offsite-raw
+          echo "file=$FILE.enc" >> "$GITHUB_OUTPUT"
+          echo "Offsite-Kopie verschlüsselt: $FILE.enc ($(wc -c < "/tmp/offsite/$FILE.enc" | tr -d ' ') Bytes)"
+        shell: bash
+
+      - name: Offsite-Kopie als Artefakt ablegen
+        if: steps.offsite.outputs.file != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.offsite.outputs.file }}
+          path: /tmp/offsite/${{ steps.offsite.outputs.file }}
+          retention-days: 90
+          # schon verschlüsselt + gezippt - nochmal komprimieren bringt nichts
+          compression-level: 0
+          if-no-files-found: warn
+
       - name: Veraltete Dateien auf dem Server entfernen (nur Core/Layout/Components)
         if: steps.check-merge.outputs.deployed == 'true'
         run: |

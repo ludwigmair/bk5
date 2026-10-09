@@ -130,6 +130,11 @@ final class Admin
             return;
         }
 
+        if ($action === 'doc') {
+            $this->renderDevDoc((string) ($_GET['file'] ?? ''));
+            return;
+        }
+
         if ($action === 'download-update-package') {
             if (!$this->currentIsAdmin()) {
                 $this->redirect('Keine Berechtigung.');
@@ -175,6 +180,68 @@ final class Admin
             'site_name' => $this->displayString($content['site']['title'] ?? '', 'CMS'),
             'html' => Markdown::render($markdown),
             'toc' => Markdown::headings($markdown),
+            'current_user' => $this->currentUsername(),
+        ]);
+    }
+
+    /**
+     * Entwickler-Dokus (docs/*.md neben web/) – nur im Generator: docs/ liegt
+     * außerhalb des Docroots und geht nie mit einem Deploy/Export mit, eine
+     * Instanz hat also schlicht keine. Datei + Titel (erste #-Überschrift) für
+     * das Menü „Dokus“.
+     *
+     * @return list<array{file: string, title: string}>
+     */
+    private function devDocs(): array
+    {
+        if (!$this->hasDevTools()) {
+            return [];
+        }
+        $out = [];
+        foreach (glob(dirname($this->cms->root()) . '/docs/*.md') ?: [] as $path) {
+            $title = basename($path, '.md');
+            if (preg_match('/^#\s+(.+)$/m', (string) file_get_contents($path), $m) === 1) {
+                $title = trim($m[1]);
+            }
+            $out[] = ['file' => basename($path), 'title' => $title];
+        }
+        usort($out, static fn (array $a, array $b): int => strcasecmp($a['title'], $b['title']));
+
+        return $out;
+    }
+
+    /**
+     * Eine Doku aus docs/ lesbar gerendert (gleiche Seite wie das Handbuch,
+     * öffnet im Admin in einem neuen Fenster). Nur Dateien aus devDocs() –
+     * kein freier Pfad. Der generierte TOC-Block (dev/build-toc.php, GitHub-
+     * Anker) wird weggelassen, die Sprungnavigation baut die Seite selbst;
+     * Links auf andere Dokus zeigen wieder auf diese Ansicht.
+     */
+    private function renderDevDoc(string $file): void
+    {
+        $docs = $this->devDocs();
+        $files = array_column($docs, 'file');
+        if (!in_array($file, $files, true)) {
+            http_response_code(404);
+            echo 'Doku nicht gefunden.';
+            return;
+        }
+        $markdown = (string) file_get_contents(dirname($this->cms->root()) . '/docs/' . $file);
+        $markdown = preg_replace('/<!-- TOC-START.*?TOC-END -->\n?/s', '', $markdown) ?? $markdown;
+        $html = preg_replace_callback('/href="(?:\.\.\/|docs\/)*([A-Za-z0-9_-]+\.md)(#[^"]*)?"/', static function (array $m) use ($files): string {
+            return in_array($m[1], $files, true)
+                ? 'href="?admin=1&amp;do=doc&amp;file=' . rawurlencode($m[1]) . '"'
+                : $m[0];
+        }, Markdown::render($markdown)) ?? '';
+        $title = $docs[array_search($file, $files, true)]['title'];
+
+        echo $this->cms->twig()->render('admin-manual.twig', [
+            'site_name' => $title,
+            'kicker' => 'Doku · docs/' . $file,
+            'html' => $html,
+            'toc' => Markdown::headings($markdown),
+            'docs' => $docs,
+            'current_file' => $file,
             'current_user' => $this->currentUsername(),
         ]);
     }
@@ -319,6 +386,7 @@ final class Admin
             'components_modified' => $this->componentsModifiedSincePackage(),
             'components_update_info' => $componentsUpdateInfo,
             'has_dev_tools' => $hasDevTools,
+            'dev_docs' => $this->devDocs(),
             'dev_instances' => $hasDevTools ? $this->devInstances() : [],
             'project_packages' => $this->projectPackages(),
             'seo_schemas' => $this->detectSeoSchemas(),
