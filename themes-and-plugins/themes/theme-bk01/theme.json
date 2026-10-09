@@ -19,7 +19,7 @@
     "layout": {
         "header": "header-bk01",
         "footer": "footer-bk01",
-        "topbar": "topbar-bk01",
+        "topbar": "topbar-bl01",
         "stickybar": "stickybar-bk01",
         "cookiebanner": "cookiebanner-bk01"
     }

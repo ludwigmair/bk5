@@ -1,0 +1,8 @@
+{
+    "type": "topbar-bl01",
+    "label": "Kontakt-Leiste oben (Termine, Telefon, Adresse, E-Mail)",
+    "has_toggle": true,
+    "requires_core": "2.2.2",
+    "help": "Alle Angaben werden automatisch aus Betrieb / Kontaktdaten übernommen – inklusive einer zweiten Telefonnummer (Feld „Mobiltelefon“). Eigene Textfelder sind hier nicht nötig.",
+    "fields": []
+}

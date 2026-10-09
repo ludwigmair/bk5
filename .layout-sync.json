@@ -1,13 +1,13 @@
 {
     "note": "Vom Generator verwaltet (dev/sync-instance.php) – Core, Layout und Components nur im Generator ändern.",
-    "synced_at": "2026-10-09T11:50:40+00:00",
-    "generator_commit": "7faf2dd",
+    "synced_at": "2026-10-09T12:06:45+00:00",
+    "generator_commit": "41c8a73",
     "theme": "theme-bk01",
     "site_title": "Raumausstattung Kurzeder",
     "regions": [
         "headers/header-bk01",
         "footers/footer-bk01",
-        "topbars/topbar-bk01",
+        "topbars/topbar-bl01",
         "stickybars/stickybar-bk01",
         "cookiebanners/cookiebanner-bk01"
     ],
@@ -87,8 +87,8 @@
         "themes-and-plugins/stickybars/stickybar-bk01/template.twig": "b1bfa91687e828ec60594fba7c26b352e9dc6416146d1483e64d04adbe286044",
         "themes-and-plugins/themes/theme-bk01/tailwind.css": "5ed99db7f89934e05708c44e955e69705aaf9463288b9dfc63a0fbde0cf98395",
         "themes-and-plugins/themes/theme-bk01/theme.css": "84cc3341ad0708260ae6f051286f243a10298e6ed021a434d56ba25fb3cc943c",
-        "themes-and-plugins/themes/theme-bk01/theme.json": "967af42a5ec71bbddd8484e71bdaee9402116523ab91326df1804a92e641ba16",
-        "themes-and-plugins/topbars/topbar-bk01/schema.json": "61a7d932af2d529522fc01b06e110db30abd6f385fd5ea12e336150adbab75e9",
-        "themes-and-plugins/topbars/topbar-bk01/template.twig": "0ee8bcb680cb37bb8faa71f168d30d893d4da80387a922c8e9f5bb3f97a24577"
+        "themes-and-plugins/themes/theme-bk01/theme.json": "63cd094f636b38ffbf7d15ba660d6af7cb8610ac1e755a71fa47201bb3e4f4b5",
+        "themes-and-plugins/topbars/topbar-bl01/schema.json": "6b3206977f7b9959f5a7501dbf643cca403f792c3fcf4be384062745bc7b98a2",
+        "themes-and-plugins/topbars/topbar-bl01/template.twig": "87179f8e3d27a4e996b4cd413781a80e004e44823df5db7d21e14bed7c05875c"
     }
 }
