@@ -176,8 +176,8 @@ trait ProjectInstanceActions
             if ($line === '' || $line[0] === '#') {
                 continue;
             }
-            // Optionale 4. Spalte = gehostete URL (nur für dev/check-live.sh).
-            if (!preg_match('/^([a-z0-9][a-z0-9-]*)\s+(\d+)\s+(\S+)(?:\s+(\S+))?\s*$/', $line, $m)) {
+            // Optionale 4./5. Spalte = Staging-/Live-URL (check-live, „Live-Stand holen“).
+            if (!preg_match('/^([a-z0-9][a-z0-9-]*)\s+(\d+)\s+(\S+)(?:\s+(\S+))?(?:\s+(\S+))?\s*$/', $line, $m)) {
                 continue;
             }
             // Der Generator selbst (docroot = web/ = this->cms->root() synced sich
@@ -194,6 +194,7 @@ trait ProjectInstanceActions
                 'path' => $path,
                 'exists' => is_dir($path),
                 'url' => (string) ($m[4] ?? ''),
+                'live_url' => (string) ($m[5] ?? ''),
             ];
         }
         return $instances;
@@ -230,6 +231,20 @@ trait ProjectInstanceActions
         if (!is_dir($dest . '/data') || !is_file($dest . '/data/content.json')) {
             $this->redirectToPanel("„{$name}“ ({$dest}) sieht nicht wie eine Instanz aus (data/content.json fehlt).", 'panel-export-instance');
             return;
+        }
+        // Nie Inhalt eines Projekts in die Instanz eines ANDEREN Projekts schreiben
+        // (so wurde dorothee-staging einmal mit dem sf01-Inhalt überschrieben):
+        // Gehört die Ziel-Instanz zu einem Projekt, muss genau das geladen sein –
+        // und ein geladenes Projekt mit eigener Instanz darf nur in diese.
+        $loaded = (string) ($this->cms->config()['dev_import'] ?? '');
+        foreach ($this->scanDevImports() as $project) {
+            $ownsTarget = $project['instance'] === $name && $project['slug'] !== $loaded;
+            $loadedElsewhere = $project['slug'] === $loaded && $project['instance'] !== '' && $project['instance'] !== $name;
+            if ($ownsTarget || $loadedElsewhere) {
+                $this->redirectToPanel($ownsTarget
+                    ? "„{$name}“ gehört zum Projekt „{$project['label']}“, geladen ist „{$loaded}“ – erst das passende Projekt laden (Projekte), sonst würde fremder Inhalt in die Instanz geschrieben."
+                    : "Das geladene Projekt „{$project['label']}“ gehört zur Instanz „{$project['instance']}“, nicht zu „{$name}“ – Abbruch.", 'panel-export-instance');
+            }
         }
 
         $root = $this->cms->root();
