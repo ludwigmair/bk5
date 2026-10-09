@@ -1450,6 +1450,24 @@
         </div>
     </div>
 
+    <div id="session-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-[#241E18]/40 p-4 backdrop-blur-sm">
+        <form class="w-full max-w-sm rounded-2xl border border-[#241E18]/5 bg-[#FBF8F2] p-6 shadow-2xl" data-session-form>
+            <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold">Sitzung abgelaufen</h2>
+            <p class="mt-2 text-sm text-[#241E18]/60">Bitte erneut anmelden – deine Eingaben bleiben erhalten und werden danach abgeschickt.</p>
+            <label class="mt-4 block text-xs font-medium text-[#241E18]/60">Benutzername
+                <input class="mt-1 block h-10 w-full rounded-lg border border-[#241E18]/15 bg-white px-3 text-sm" name="username" autocomplete="username" value="{{ current_user|default('') }}" required>
+            </label>
+            <label class="mt-3 block text-xs font-medium text-[#241E18]/60">Passwort
+                <input class="mt-1 block h-10 w-full rounded-lg border border-[#241E18]/15 bg-white px-3 text-sm" name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <p class="mt-3 hidden rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" data-session-error></p>
+            <div class="mt-5 flex justify-end gap-3">
+                <button type="button" class="h-9 cursor-pointer rounded-lg border border-[#241E18]/15 px-4 text-sm font-medium transition hover:bg-[#241E18]/5" data-session-cancel>Abbrechen</button>
+                <button type="submit" class="h-9 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2c4f40]">Anmelden &amp; fortfahren</button>
+            </div>
+        </form>
+    </div>
+
     <div id="discard-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-[#241E18]/40 p-4 backdrop-blur-sm" data-modal-backdrop>
         <div class="w-full max-w-sm rounded-2xl border border-[#241E18]/5 bg-[#FBF8F2] p-6 shadow-2xl">
             <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold">Änderungen verwerfen?</h2>
@@ -2436,6 +2454,87 @@
         document.addEventListener('keydown', function (e) {
           if (e.key === 'Escape' && !modal.classList.contains('hidden')) close();
         });
+      })();
+
+      // Abgelaufene Sitzung: vor jedem Absenden kurz den Status prüfen. Ist die
+      // Sitzung weg, Anmelde-Dialog über der Seite statt Fehlerseite – das
+      // Formular (mit allen Eingaben) bleibt im Browser und wird nach dem Login
+      // abgeschickt. Läuft nach dem Lösch-Bestätigungsdialog (beide capture).
+      (function () {
+        var modal = document.getElementById('session-modal');
+        if (!modal) return;
+        var loginForm = modal.querySelector('[data-session-form]');
+        var errorEl = modal.querySelector('[data-session-error]');
+        var pending = null;
+        var loginCsrf = '';
+
+        function status() {
+          return fetch('?admin=1&do=session-status', { credentials: 'same-origin', cache: 'no-store' })
+            .then(function (r) { return r.json(); });
+        }
+        function setCsrf(token) {
+          if (!token) return;
+          document.querySelectorAll('input[name="csrf"]').forEach(function (i) { i.value = token; });
+        }
+        function resubmit(p) {
+          p.form.dataset.sessionOk = '1';
+          if (p.form.hasAttribute('data-confirm')) p.form.dataset.confirmed = '1';
+          if (p.submitter && p.submitter.form === p.form) p.form.requestSubmit(p.submitter);
+          else p.form.requestSubmit();
+        }
+        function close() {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
+
+        document.addEventListener('submit', function (e) {
+          var form = e.target;
+          if (e.defaultPrevented || form === loginForm) return;
+          if ((form.getAttribute('method') || '').toLowerCase() !== 'post' || !form.querySelector('input[name="csrf"]')) return;
+          if (form.dataset.sessionOk === '1') { delete form.dataset.sessionOk; return; }
+          e.preventDefault();
+          var p = { form: form, submitter: e.submitter };
+          status().then(function (s) {
+            if (s.logged_in) { setCsrf(s.csrf); resubmit(p); return; }
+            pending = p;
+            loginCsrf = s.csrf;
+            errorEl.classList.add('hidden');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            loginForm.querySelector('input[name="password"]').focus();
+          }).catch(function () { resubmit(p); }); // Status nicht erreichbar: normal absenden
+        }, true);
+
+        loginForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var body = new URLSearchParams(new FormData(loginForm));
+          body.set('csrf', loginCsrf);
+          body.set('ajax', '1');
+          fetch('?admin=1', { method: 'POST', body: body, credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+              if (!res.ok) {
+                errorEl.textContent = res.error || 'Anmeldung fehlgeschlagen.';
+                errorEl.classList.remove('hidden');
+                return;
+              }
+              setCsrf(res.csrf);
+              loginForm.querySelector('input[name="password"]').value = '';
+              close();
+              if (pending) resubmit(pending);
+              pending = null;
+            })
+            .catch(function () {
+              errorEl.textContent = 'Anmeldung fehlgeschlagen – bitte die Seite neu laden.';
+              errorEl.classList.remove('hidden');
+            });
+        });
+        modal.querySelector('[data-session-cancel]').addEventListener('click', function () { pending = null; close(); });
+
+        // Solange der Admin offen ist, Sitzung wachhalten (und ein erneuertes Token übernehmen).
+        setInterval(function () {
+          status().then(function (s) { if (s.logged_in) setCsrf(s.csrf); }).catch(function () {});
+        }, 5 * 60 * 1000);
       })();
 
       (function () {
