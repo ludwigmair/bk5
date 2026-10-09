@@ -1,7 +1,7 @@
 {
     "note": "Vom Generator verwaltet (dev/sync-instance.php) – Core, Layout und Components nur im Generator ändern.",
-    "synced_at": "2026-10-09T12:06:45+00:00",
-    "generator_commit": "41c8a73",
+    "synced_at": "2026-10-09T12:20:15+00:00",
+    "generator_commit": "52f066c",
     "theme": "theme-bk01",
     "site_title": "Raumausstattung Kurzeder",
     "regions": [
@@ -23,7 +23,7 @@
         "contact-form"
     ],
     "files": {
-        "core/CHANGELOG.md": "18e26b2b4c733dff8c55df1ba41181c953501ffc04713166a86c643a71f102d1",
+        "core/CHANGELOG.md": "33c12aa9553bb7225efb2442cb6524093f9a9d88925bb7c229862bac53ee7747",
         "core/MANUAL.md": "79719eb6668d20656be5ad69ed670c1c8177d6c8f9415fe864641a9a54129d9a",
         "core/assets/admin.css": "49acc44c5afe72947352f98b9ad96cf2ecfbab39f9bc9e557246081e1ca34800",
         "core/assets/style.css": "00a0523b2713b3f39617cbbbeb2c4fee8b1a994bcd695d7a34345c97b42a343e",
@@ -42,7 +42,7 @@
         "core/src/Inquiries.php": "bff09d8e08590be38b648e3c679d792ddbd088c979e0a9f467efb53df3563e68",
         "core/src/Mail.php": "ad9c6f72fbcae8ab46b196d0da941097ec6ead8e2176400f7b1388f061c65b37",
         "core/src/Markdown.php": "8d148498ed84919ae89a0a8c32405f9b0b63416d34d062299f8a835381fa960f",
-        "core/src/Obfuscate.php": "0768d0add1b7fae04710b19c829ed316c79e101655bb8a990883ac897a50dd9d",
+        "core/src/Obfuscate.php": "cc2d848d5248149aee522f1d6f174caf75b3a48bd0e191f9889354e4ddf40b3a",
         "core/src/RichText.php": "f0fae757ed9dd587f0993f03c3b9165bfa04774a2dfe1d236f1ad42f6c19fd32",
         "core/templates/admin-conflict.twig": "17ad328630f6bd04cdb58802c8d107f0020bde3ebd5f354c3e2f183f35d616ec",
         "core/templates/admin-field.twig": "d61be8822deb519585485fac9f6756e59cd45c6586235d5726013c29a084dd36",
@@ -51,7 +51,7 @@
         "core/templates/admin.twig": "75ea85ef150a6f6e7ca5168bfd9c6494c704408004b94037cdef49530d0327df",
         "core/templates/layout.twig": "775005b1df8727959e36c3c351f45094bb745fbb6b6b5a96a2dcf5a41702ba9f",
         "core/templates/legal.twig": "979ea23fe2a8191a8d57e2b2fedfe6a0603f816bf7f3b783bf7c4ed5dd38a07c",
-        "core/version.json": "d4941d519827597d5d4477c113f6fa82b7cc3eaf852bb9ea1170f11a8af1ed52",
+        "core/version.json": "c254a6ae7d49a7ac40da8845541c9c636a0ba7539f3b5694cac1df815f2fbf8d",
         "themes-and-plugins/components/CHANGELOG.md": "8dbd69ec52e48aedcb4022ece7ba639db76403046c75698168f422200af14972",
         "themes-and-plugins/components/aktuelles/schema.json": "782e5be75af1c6fc8c8596538f69ef97d2fd86da1c6442ac4b30eaa520584ec6",
         "themes-and-plugins/components/aktuelles/template.twig": "499637767012d77efdab13e80c495492659545f01151f8494ae9ac51f16422c6",
