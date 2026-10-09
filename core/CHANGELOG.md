@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.9.4 – 2026-10-09
+
+Sitzung abgelaufen beim Speichern: Statt Fehlerseite erscheint ein Anmelde-Dialog über der Seite – nach dem Anmelden wird mit allen Eingaben gespeichert, nichts geht verloren. Bei offenem Admin wird die Sitzung automatisch verlängert.
+
 ## 2.9.3 – 2026-10-09
 
 Abgelaufene Sitzung (Admin lange offen, dann z. B. „Core aktualisieren“) zeigt keine nackte Fehlerseite „Ungültige Sitzung.“ mehr, sondern führt mit Hinweis zum Login bzw. Dashboard zurück. Admin-Sitzung hält jetzt 8 Stunden statt 24 Minuten.

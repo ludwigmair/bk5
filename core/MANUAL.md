@@ -42,6 +42,11 @@ eigenen Eingaben sind dann weder gespeichert noch verloren. **„Trotzdem speich
 lädt den aktuellen Stand neu. Gerade neu ausgewählte Bilder müssen danach erneut
 hochgeladen werden.
 
+**Sitzung abgelaufen:** Die Anmeldung hält 8 Stunden (bei offenem Admin wird sie
+automatisch verlängert). Ist sie beim Speichern trotzdem abgelaufen, erscheint ein
+Anmelde-Dialog über der Seite – nach dem Anmelden wird mit allen Eingaben
+gespeichert, nichts geht verloren.
+
 Nach fünf falschen Passwort-Eingaben ist die Anmeldung von diesem Anschluss aus
 für zehn Minuten gesperrt.
 

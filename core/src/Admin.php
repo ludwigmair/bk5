@@ -30,6 +30,16 @@ final class Admin
             return;
         }
 
+        // Für den Admin-Dialog „Sitzung abgelaufen“: Status + aktuelles CSRF-Token,
+        // ohne Login-Pflicht (sonst gäbe es für eine abgelaufene Sitzung keine
+        // Antwort). Hält die Sitzung nebenbei wach. Nur same-origin lesbar.
+        if ($action === 'session-status') {
+            header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: no-store');
+            echo json_encode(['logged_in' => $this->isLoggedIn(), 'csrf' => $_SESSION['csrf'] ?? '']);
+            return;
+        }
+
         if ($action === 'logout') {
             unset($_SESSION['admin']);
             header('Location: ?admin=1');

@@ -18,6 +18,7 @@ trait UserActions
     {
         $error = (string) ($_SESSION['login_notice'] ?? '');
         unset($_SESSION['login_notice']);
+        $ajax = ($_POST['ajax'] ?? '') === '1';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->assertCsrf();
             $username = trim((string) ($_POST['username'] ?? ''));
@@ -34,11 +35,23 @@ trait UserActions
                     // (Session-Fixation) ist damit wertlos.
                     session_regenerate_id(true);
                     $_SESSION['admin'] = ['username' => $username, 'is_admin' => !empty($user['is_admin'])];
+                    if ($ajax) {
+                        // Neu-Anmeldung aus dem Admin-Dialog: die Seite schickt danach
+                        // das zurückgehaltene Formular samt Eingaben selbst ab.
+                        header('Content-Type: application/json; charset=utf-8');
+                        echo json_encode(['ok' => true, 'csrf' => $_SESSION['csrf'] ?? '']);
+                        exit;
+                    }
                     header('Location: ?admin=1');
                     exit;
                 }
                 $this->recordLoginAttempt(false);
                 $error = 'Benutzername oder Passwort stimmt nicht.';
+            }
+            if ($ajax) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['ok' => false, 'error' => $error]);
+                exit;
             }
         }
 
