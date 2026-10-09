@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.15.1 – 2026-10-09
+
+Generator: Das Feld „Seitenbreite“ (Wide/Boxed) steht im Theme-Formular jetzt bei den Bereichen neben „Cookie-Banner“.
+
 ## 2.15.0 – 2026-10-09
 
 Generator: „Als neues Projekt kopieren“ – den geladenen Stand unter neuem Namen als eigenes Projekt anlegen, z. B. um dieselben Inhalte mit einem anderen Theme auszuprobieren, ohne das Original zu ändern.
