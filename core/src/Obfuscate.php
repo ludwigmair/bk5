@@ -11,9 +11,9 @@ namespace Core;
  * Header/Footer/Topbars/Components/Rich-Text und künftige Themes.
  *
  * - mailto:/tel:/WhatsApp-Links: href wird zu "#" + data-obf-href (kodiert).
- * - E-Mail-Adressen im Text: <span data-obf> mit Ersatztext "name [at] domain.de".
- * - Telefonnummern im Text: der Text von tel:-Links und die übergebenen Nummern
- *   (Stammdaten) – Ersatztext mit leeren Kommentaren zwischen den Ziffern.
+ * - E-Mail-Adressen und Telefonnummern im Text (Text von tel:-Links und die
+ *   übergebenen Nummern aus den Stammdaten): <span data-obf>, Ersatztext ohne JS
+ *   siehe textSpan() – rückwärts, per CSS richtig herum angezeigt.
  * - E-Mails in sonstigen Attributen (meta, title, …): "[at]"-Form, ohne Rückweg.
  * Ein kleines Inline-Skript vor </body> stellt Links und Text im Browser wieder
  * her; ohne JavaScript bleibt der Ersatztext lesbar. <script>/<style>/<textarea>
@@ -73,14 +73,14 @@ final class Obfuscate
             }
 
             // Textknoten
-            $new = preg_replace_callback('/' . self::EMAIL . '/', static fn (array $m): string => '<span data-obf="' . self::encode(html_entity_decode($m[0], ENT_QUOTES | ENT_HTML5, 'UTF-8')) . '">' . self::atForm($m[0]) . '</span>', $part) ?? $part;
+            $new = preg_replace_callback('/' . self::EMAIL . '/', static fn (array $m): string => self::textSpan(html_entity_decode($m[0], ENT_QUOTES | ENT_HTML5, 'UTF-8')), $part) ?? $part;
             if ($inTel && trim($new) !== '' && preg_match('/\d{4,}/', preg_replace('/\D/', '', $new) ?? '') === 1 && !str_contains($new, 'data-obf')) {
-                $new = self::phoneSpan($new);
+                $new = self::textSpan(html_entity_decode($new, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
             } else {
                 foreach ($phones as $phone) {
                     $needle = htmlspecialchars($phone, ENT_QUOTES, 'UTF-8');
                     if (str_contains($new, $needle)) {
-                        $new = str_replace($needle, self::phoneSpan($needle), $new);
+                        $new = str_replace($needle, self::textSpan($phone), $new);
                     }
                 }
             }
@@ -99,7 +99,7 @@ final class Obfuscate
             . 'document.querySelectorAll("[data-obf-href],[data-obf],[data-obf-mail]").forEach(function(e){var h=e.getAttribute("data-obf-href");'
             . 'if(h!==null){e.setAttribute("href",d(h));e.removeAttribute("data-obf-href")}'
             . 'var m=e.getAttribute("data-obf-mail");if(m!==null){e.setAttribute("data-mail-address",d(m));e.removeAttribute("data-obf-mail")}'
-            . 'var t=e.getAttribute("data-obf");if(t!==null){e.textContent=d(t);e.removeAttribute("data-obf")}})})();</script>';
+            . 'var t=e.getAttribute("data-obf");if(t!==null){e.textContent=d(t);e.removeAttribute("data-obf");e.removeAttribute("style")}})})();</script>';
         $pos = strripos($out, '</body>');
 
         return $pos === false ? $out . $script : substr($out, 0, $pos) . $script . substr($out, $pos);
@@ -116,12 +116,18 @@ final class Obfuscate
         return str_replace('@', ' [at] ', $email);
     }
 
-    /** $escaped ist bereits HTML-escaped (Textknoten). */
-    private static function phoneSpan(string $escaped): string
+    /**
+     * Ersatztext für Besucher ohne JavaScript: Zeichen rückwärts und durch leere
+     * Kommentare getrennt im Quelltext, per bidi-override trotzdem richtig herum
+     * angezeigt. Im Rohtext steht so weder die Adresse noch eine „[at]“-Form, und
+     * auch ohne Kommentare ergibt sich nur die rückwärts geschriebene Fassung
+     * (keine gültige Adresse). Das Skript ersetzt den Text und entfernt den Stil.
+     */
+    private static function textSpan(string $plain): string
     {
-        $plain = html_entity_decode($escaped, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $fallback = implode('<!---->', array_map(static fn (string $c): string => htmlspecialchars($c, ENT_QUOTES, 'UTF-8'), mb_str_split($plain, 1, 'UTF-8')));
+        $chars = array_reverse(mb_str_split($plain, 1, 'UTF-8'));
+        $fallback = implode('<!---->', array_map(static fn (string $c): string => htmlspecialchars($c, ENT_QUOTES, 'UTF-8'), $chars));
 
-        return '<span data-obf="' . self::encode($plain) . '">' . $fallback . '</span>';
+        return '<span data-obf="' . self::encode($plain) . '" style="unicode-bidi:bidi-override;direction:rtl">' . $fallback . '</span>';
     }
 }

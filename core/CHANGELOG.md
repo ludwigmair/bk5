@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.10.1 – 2026-10-09
+
+Spam-Schutz verstärkt: Im Quelltext steht auch keine „name [at] domain“-Form der E-Mail-Adresse mehr (die viele Sammler auflösen). Besucher sehen Adresse und Telefonnummer weiterhin normal, auch ohne JavaScript.
+
 ## 2.10.0 – 2026-10-09
 
 Spam-Schutz: E-Mail-Adressen und Telefonnummern stehen verschlüsselt im Quelltext und werden erst im Browser lesbar gemacht – Besucher sehen und klicken sie normal, einfache Adress-Sammler finden sie nicht. Gilt automatisch für alle Bereiche und Textfelder. Die E-Mail steht nicht mehr in den Daten für Suchmaschinen (Telefon bleibt).
