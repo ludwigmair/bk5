@@ -1092,8 +1092,10 @@
                     <p class="text-xs text-[#241E18]/50">Holt die aktuellen <strong class="font-medium text-[#241E18]/70">Inhalte</strong> eines gehosteten Projekts zurück in den Generator – wichtig, wenn dort online gepflegt wird (der Server ist dann neuer als die lokale Instanz). Übernommen werden Texte, Bilder, Topbar an/aus und Sprachen; Theme, Header/Footer & Co. und Components bleiben die des Generators.</p>
                     <ol class="list-decimal space-y-1 pl-5 text-xs text-[#241E18]/70">
                         <li>Im Generator das passende Projekt laden (unter „Projekte“) – geladen ist: <strong>{{ active_dev_import|default('kein Projekt') }}</strong>.</li>
-                        <li>Im Admin des Servers „Live-Stand exportieren“ → „Paket erstellen“ → ZIP herunterladen.{% set hosted = dev_instances|filter(i => i.url) %}{% if hosted|length %} Direkt zu:
-                            {% for i in hosted %}<a class="font-semibold text-[#355E4B] underline-offset-2 hover:underline" href="{{ i.url|trim('/', 'right') }}/?admin=1#panel-export-instance" target="_blank" rel="noopener">{{ i.name }}</a>{{ not loop.last ? ' · ' }}{% endfor %}{% endif %}</li>
+                        <li>Im Admin des Servers „Live-Stand exportieren“ → „Paket erstellen“ → ZIP herunterladen. <strong class="font-medium">Die Quelle wählst du über den Server:</strong> vor dem Livegang Staging, danach Live (dort pflegt der Kunde).
+                            {% set hosted = dev_instances|filter(i => i.url or i.live_url) %}{% if hosted|length %}
+                            <span class="mt-1 block">{% for i in hosted %}{{ i.name }}: {% if i.url %}<a class="font-semibold text-[#355E4B] underline-offset-2 hover:underline" href="{{ i.url|trim('/', 'right') }}/?admin=1#panel-export-instance" target="_blank" rel="noopener">Staging</a>{% endif %}{% if i.url and i.live_url %} / {% endif %}{% if i.live_url %}<a class="font-semibold text-[#B87333] underline-offset-2 hover:underline" href="{{ i.live_url|trim('/', 'right') }}/?admin=1#panel-export-instance" target="_blank" rel="noopener">Live</a>{% else %} <span class="text-[#241E18]/40">(noch kein Live-Server)</span>{% endif %}{{ not loop.last ? ' · ' }}{% endfor %}</span>
+                            {% endif %}</li>
                         <li>Hier hochladen. Danach „Stand sichern“ (Projekte) bzw. „Instanz angleichen“, damit auch die lokale Instanz den Live-Stand hat.</li>
                     </ol>
                     <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">

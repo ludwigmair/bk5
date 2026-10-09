@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.9.1 – 2026-10-09
+
+Instanz angleichen nur noch in die Instanz des geladenen Projekts. Live-Stand holen: Links zu Staging und Live.
+
 ## 2.9.0 – 2026-10-09
 
 „Live-Stand holen“: online gepflegte Inhalte per Paket vom Server in den Generator holen (nur Inhalte, Layout bleibt). In Instanzen nur noch Export („Live-Stand exportieren“). Menü „Projekte“ im Generator.

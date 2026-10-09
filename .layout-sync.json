@@ -1,8 +1,9 @@
 {
     "note": "Vom Generator verwaltet (dev/sync-instance.php) – Core, Layout und Components nur im Generator ändern.",
-    "synced_at": "2026-10-09T08:39:37+00:00",
-    "generator_commit": "fda3c20",
+    "synced_at": "2026-10-09T08:56:28+00:00",
+    "generator_commit": "b033b53",
     "theme": "theme-bk01",
+    "site_title": "Raumausstattung Kurzeder",
     "regions": [
         "headers/header-bk01",
         "footers/footer-bk01",
@@ -22,7 +23,7 @@
         "contact-form"
     ],
     "files": {
-        "core/CHANGELOG.md": "744d19983e0b60ad67d6f472a37302b393f649f2738941a2d24c92962e6a0f07",
+        "core/CHANGELOG.md": "5aadea97d65ec9f51009deb2c3c3de6ecc29e38ce5225cd4a6c4b09205e2787b",
         "core/MANUAL.md": "39f510eca7236f5ea372c3cfac2ced659a5bef3e8ebdf67e60d0ba723cf88517",
         "core/assets/admin.css": "49acc44c5afe72947352f98b9ad96cf2ecfbab39f9bc9e557246081e1ca34800",
         "core/assets/style.css": "00a0523b2713b3f39617cbbbeb2c4fee8b1a994bcd695d7a34345c97b42a343e",
@@ -30,7 +31,7 @@
         "core/src/AdminParts/DevImportActions.php": "4bc9143c92ca3cc1ed13368d4047b07ef2408cd360d176bc131cdb9437f86192",
         "core/src/AdminParts/ImageActions.php": "35409dd3717e17be03dafc41f45bffcfa4b999b7ffe599ec39b038ba62f2d5e0",
         "core/src/AdminParts/LanguageActions.php": "df75d216d473e593f43b9cabb27ac372d86fa0df9d27472594d2d18f8c5efd48",
-        "core/src/AdminParts/ProjectInstanceActions.php": "e90b85a06125f8aa2ad6e5f7907069dfa139823c1c88a99e847a1c1c7fe8a023",
+        "core/src/AdminParts/ProjectInstanceActions.php": "1e013d964c8ecfb04afc13294fa282b7436dccc1b95d73170dcf281725f1f780",
         "core/src/AdminParts/UpdateActions.php": "9290875fb4de9a871ebc4b7d759ea6430773e8921a305b37e6bfd56cc3fa9dc7",
         "core/src/AdminParts/UserActions.php": "d028765acb617aa3d15e6e5c046c94ed92abe2111d250fe1faf69355fdd242c8",
         "core/src/Ai.php": "347d4645f597c7e94c1bc260a8468875e7287c30dd6c8448d6e20334f86745a2",
@@ -46,10 +47,10 @@
         "core/templates/admin-field.twig": "d61be8822deb519585485fac9f6756e59cd45c6586235d5726013c29a084dd36",
         "core/templates/admin-login.twig": "171bae997a70e1782359d3be6c5750b48cd2869e3f3330eb5ff63353072317f5",
         "core/templates/admin-manual.twig": "9f349043b79bd2e1d073d51bbe0a16e6b5cc4e2b1ced10b4959fc2f96d5fbd45",
-        "core/templates/admin.twig": "de826b9223a10735deedc5784180d15ed523e476a9a8a57aa19a8e3e662c72c5",
+        "core/templates/admin.twig": "c17a15a3a5d07d66701dcb75625528532313d0941bf135ae54efeff3d46a421c",
         "core/templates/layout.twig": "775005b1df8727959e36c3c351f45094bb745fbb6b6b5a96a2dcf5a41702ba9f",
         "core/templates/legal.twig": "979ea23fe2a8191a8d57e2b2fedfe6a0603f816bf7f3b783bf7c4ed5dd38a07c",
-        "core/version.json": "5de86ca45ed9d38808094416d234e56d7cc318c6561abc3b778634c0ac1c2e9d",
+        "core/version.json": "76862961aaf409895cd992fd20daf8139f67400b3ead71f8e3e9044557400825",
         "themes-and-plugins/components/CHANGELOG.md": "8dbd69ec52e48aedcb4022ece7ba639db76403046c75698168f422200af14972",
         "themes-and-plugins/components/aktuelles/schema.json": "782e5be75af1c6fc8c8596538f69ef97d2fd86da1c6442ac4b30eaa520584ec6",
         "themes-and-plugins/components/aktuelles/template.twig": "499637767012d77efdab13e80c495492659545f01151f8494ae9ac51f16422c6",
