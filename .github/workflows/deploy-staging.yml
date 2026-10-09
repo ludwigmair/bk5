@@ -153,6 +153,68 @@ jobs:
           fi
         shell: bash
 
+      - name: Veraltete Dateien auf dem Server entfernen (nur Core/Layout/Components)
+        if: steps.check-merge.outputs.deployed == 'true'
+        run: |
+          # Der Upload lädt nur hoch, löscht aber nie – Dateien, die im Generator
+          # bzw. in der Instanz entfernt wurden (ungenutzte Components/Varianten,
+          # umbenannte Core-Dateien), blieben sonst ewig auf dem Server liegen.
+          # Gelöscht wird AUSSCHLIESSLICH in den vom Generator verwalteten Bereichen
+          # und nur, was dort nicht (mehr) im Repo ist. data/, uploads/, cache/,
+          # vendor/ und .env werden nie angefasst.
+          set -euo pipefail
+          TARGET="$(printf '%s' "$FTP_TARGET_DIR" | tr -d '[:space:]')"
+          MANAGED='^(core|themes-and-plugins/(components|headers|footers|topbars|stickybars|cookiebanners|themes))/'
+          LFTP="set sftp:auto-confirm yes; set net:max-retries 3; set cmd:fail-exit no"
+
+          git ls-files | grep -E "$MANAGED" | sort -u > /tmp/local.txt || true
+          if [ ! -s /tmp/local.txt ] || ! grep -q '^core/' /tmp/local.txt; then
+            echo "::warning::Lokale Dateiliste leer/unvollständig – Aufräumen übersprungen."
+            exit 0
+          fi
+
+          # Remote-Liste (Pfade relativ zum Docroot; Ordner enden auf /)
+          lftp -u "$FTP_USERNAME,$FTP_PASSWORD" -e "$LFTP; cd \"$TARGET\"; find core; find themes-and-plugins; bye" "sftp://$FTP_SERVER" 2>/dev/null \
+            | sed 's#^\./##' | grep -E "$MANAGED" | sort -u > /tmp/remote.txt || true
+
+          grep -v '/$' /tmp/remote.txt | comm -23 - /tmp/local.txt > /tmp/stale-files.txt || true
+          # Ordner, unter denen lokal gar nichts mehr liegt -> komplett entfernen
+          : > /tmp/stale-dirs.txt
+          grep '/$' /tmp/remote.txt | while read -r d; do
+            awk -v p="$d" 'index($0, p) == 1 { found = 1; exit } END { exit !found }' /tmp/local.txt || echo "$d" >> /tmp/stale-dirs.txt
+          done
+          # nur oberste veraltete Ordner behalten, Dateien darin nicht einzeln löschen
+          sort /tmp/stale-dirs.txt | awk 'NR == 1 || index($0, prev) != 1 { print; prev = $0 }' > /tmp/stale-top.txt
+          awk 'NR == FNR { top[NR] = $0; n = NR; next }
+               { for (i = 1; i <= n; i++) if (index($0, top[i]) == 1) next; print }' /tmp/stale-top.txt /tmp/stale-files.txt > /tmp/stale-loose.txt
+
+          n_dirs=$(wc -l < /tmp/stale-top.txt | tr -d ' ')
+          n_files=$(wc -l < /tmp/stale-loose.txt | tr -d ' ')
+          if [ "$n_dirs" -eq 0 ] && [ "$n_files" -eq 0 ]; then
+            echo "Nichts zu entfernen – Server entspricht dem Repo."
+            exit 0
+          fi
+          if [ $(( n_dirs + n_files )) -gt 400 ]; then
+            echo "::error::Ungewöhnlich viel zu löschen ($n_dirs Ordner, $n_files Dateien) – Abbruch zur Sicherheit, bitte prüfen."
+            sed 's/^/  /' /tmp/stale-top.txt /tmp/stale-loose.txt | head -50
+            exit 1
+          fi
+          echo "Entferne $n_dirs Ordner und $n_files Dateien:"
+          sed 's/^/  - /' /tmp/stale-top.txt /tmp/stale-loose.txt
+
+          {
+            echo "$LFTP"
+            echo "cd \"$TARGET\""
+            while read -r d; do echo "rm -rf \"${d%/}\""; done < /tmp/stale-top.txt
+            while read -r f; do echo "rm \"$f\""; done < /tmp/stale-loose.txt
+            # Upload-Gedächtnis zurücksetzen: sonst würde eine gelöschte Datei, die
+            # später unverändert zurückkommt, nie wieder hochgeladen.
+            echo "rm -f .sftp_upload_action_hashes"
+            echo "bye"
+          } > /tmp/cleanup.lftp
+          lftp -u "$FTP_USERNAME,$FTP_PASSWORD" -f /tmp/cleanup.lftp "sftp://$FTP_SERVER"
+        shell: bash
+
       - name: SFTP-Deploy (nur bei develop→staging-Merge)
         if: steps.check-merge.outputs.deployed == 'true'
         uses: wangyucode/sftp-upload-action@v3
