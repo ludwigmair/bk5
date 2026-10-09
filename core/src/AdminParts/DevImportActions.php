@@ -15,35 +15,121 @@ use Core\CMS;
 trait DevImportActions
 {
     /**
-     * Lokale Projekt-Übernahme für die Entwicklung (nie im Deploy): jedes
-     * Unterverzeichnis von dev-imports/ (liegt außerhalb von web/, siehe
-     * dev-imports/README.md) mit einer content.json gilt als übernehmbares
-     * Projekt. Existiert der Ordner nicht (jede echte Installation), ist die
-     * Liste leer und admin.twig blendet den ganzen Bereich aus.
+     * Projekte für den Generator (nur mit Dev-Tools): jedes dev-imports/<slug>/
+     * plus das Beispiel-Projekt (dev/example-project/). Je Projekt die Datenquelle
+     * beim Laden – in dieser Reihenfolge: lokale Instanz (meta.json → "instance",
+     * Name aus dev/instances.conf; dort liegt der aktuellste Inhalt), sonst
+     * dev-imports/<slug>/, beim Beispiel-Projekt dessen Ordner – sowie das
+     * zugewiesene Theme (config.json der Quelle → theme, sonst meta.json → theme).
      *
-     * @return list<array{slug:string,label:string}>
+     * @return list<array{slug:string,label:string,theme:string,instance:string,source:string,source_label:string,dir:string,languages:list<string>}>
      */
     private function scanDevImports(): array
     {
-        $dir = dirname($this->cms->root()) . '/dev-imports';
-        if (!is_dir($dir)) {
-            return [];
+        $base = dirname($this->cms->root());
+        $instances = [];
+        foreach ($this->devInstances() as $inst) {
+            $instances[$inst['name']] = $inst;
+        }
+
+        $candidates = [];
+        if (is_dir($base . '/dev-imports')) {
+            foreach (scandir($base . '/dev-imports') ?: [] as $entry) {
+                $dir = $base . '/dev-imports/' . $entry;
+                if ($entry !== '.' && $entry !== '..' && is_dir($dir) && is_file($dir . '/content.json')) {
+                    $candidates[$entry] = $dir;
+                }
+            }
+        }
+        if (is_file($base . '/dev/example-project/content.json')) {
+            $candidates[self::EXAMPLE_PROJECT] = $base . '/dev/example-project';
         }
 
         $out = [];
-        foreach (scandir($dir) ?: [] as $entry) {
-            $projectDir = $dir . '/' . $entry;
-            if ($entry === '.' || $entry === '..' || !is_dir($projectDir) || !is_file($projectDir . '/content.json')) {
-                continue;
+        foreach ($candidates as $slug => $dir) {
+            $meta = CMS::readJson($dir . '/meta.json');
+            $instanceName = trim((string) ($meta['instance'] ?? ''));
+            $instance = $instances[$instanceName] ?? null;
+            if ($instance !== null && $instance['exists'] && is_file($instance['path'] . '/data/content.json')) {
+                $source = 'instanz';
+                $sourceLabel = 'lokale Instanz ' . $instanceName;
+                $dataDir = $instance['path'] . '/data';
+                $uploadsDir = $instance['path'] . '/uploads';
+            } else {
+                $source = $slug === self::EXAMPLE_PROJECT ? 'beispiel' : 'dev-imports';
+                $sourceLabel = $source === 'beispiel' ? 'Beispiel-Datensatz' : 'dev-imports/' . $slug;
+                $dataDir = $dir;
+                $uploadsDir = $dir . '/uploads';
             }
-            $metaPath = $projectDir . '/meta.json';
-            $label = is_file($metaPath) ? trim((string) (CMS::readJson($metaPath)['label'] ?? '')) : '';
-            $out[] = ['slug' => $entry, 'label' => $label !== '' ? $label : $entry];
+            $config = CMS::readJson($dataDir . '/config.json');
+            $label = trim((string) ($meta['label'] ?? ''));
+            $out[] = [
+                'slug' => $slug,
+                'label' => $label !== '' ? $label : $slug,
+                'theme' => (string) ($config['theme'] ?? ($meta['theme'] ?? '')),
+                'instance' => $instance !== null ? $instanceName : '',
+                'source' => $source,
+                'source_label' => $sourceLabel,
+                'dir' => $dir,
+                'data_dir' => $dataDir,
+                'uploads_dir' => $uploadsDir,
+                'languages' => array_values(array_map('strval', (array) ($config['languages'] ?? ['de']))),
+            ];
         }
+        // Beispiel-Projekt ans Ende
+        usort($out, static fn ($a, $b) => [$a['slug'] === self::EXAMPLE_PROJECT, $a['label']] <=> [$b['slug'] === self::EXAMPLE_PROJECT, $b['label']]);
 
         return $out;
     }
 
+    /** Prüfsumme des aktuellen Generator-Inhalts – Grundlage für "ungesicherte Änderungen?" beim Projektwechsel. */
+    private function generatorContentRev(): string
+    {
+        return (string) @hash_file('sha256', $this->cms->root() . '/data/content.json');
+    }
+
+    /** Hat sich der Generator-Inhalt seit dem Laden des aktiven Projekts verändert? */
+    private function generatorIsDirty(): bool
+    {
+        $loadedRev = (string) (CMS::readJson($this->cms->root() . '/data/config.json')['dev_import_rev'] ?? '');
+
+        return $loadedRev !== '' && !hash_equals($loadedRev, $this->generatorContentRev());
+    }
+
+    /**
+     * Sichert den aktuellen Generator-Stand (content.json, config.json ohne lokale
+     * Marker, uploads/ ohne .optim) in den Ordner des aktiven Projekts:
+     * dev-imports/<slug>/ bzw. dev/example-project/. Bewusst nicht in eine lokale
+     * Instanz – dorthin geht Inhalt nur ausdrücklich per „Instanz angleichen“.
+     */
+    private function saveGeneratorToProject(string $slug): string
+    {
+        $base = dirname($this->cms->root());
+        $dest = $slug === self::EXAMPLE_PROJECT ? $base . '/dev/example-project' : $base . '/dev-imports/' . $slug;
+        if (!preg_match('/^[a-z0-9][a-z0-9_-]*$/', $slug)) {
+            return '';
+        }
+        if (!is_dir($dest)) {
+            mkdir($dest, 0775, true);
+        }
+        copy($this->cms->root() . '/data/content.json', $dest . '/content.json');
+        $config = CMS::readJson($this->cms->root() . '/data/config.json');
+        unset($config['dev_import'], $config['dev_import_rev'], $config['dev_import_source'], $config['admin'], $config['update']);
+        CMS::writeJson($dest . '/config.json', $config);
+        $uploadsDst = $dest . '/uploads';
+        if (is_dir($uploadsDst)) {
+            $this->rrmdir($uploadsDst);
+        }
+        mkdir($uploadsDst, 0775, true);
+        foreach (scandir($this->cms->root() . '/uploads') ?: [] as $entry) {
+            $src = $this->cms->root() . '/uploads/' . $entry;
+            if ($entry[0] !== '.' && is_file($src)) {
+                copy($src, $uploadsDst . '/' . $entry);
+            }
+        }
+
+        return substr($dest, strlen($base) + 1);
+    }
     /**
      * Kopiert content.json/config.json/uploads/ eines dev-imports/-Projekts
      * 1:1 in dieses CMS: vollständige Übernahme, kein Merge. Enthält der
@@ -79,38 +165,35 @@ trait DevImportActions
             $this->redirectToPanel('Projekt nicht gefunden – lokaler Export nur in bestehende dev-imports/-Einträge.', 'panel-dev-import');
         }
 
-        $dest = dirname($this->cms->root()) . '/dev-imports/' . $slug;
-        mkdir($dest, 0775, true);
-
-        copy($this->cms->root() . '/data/content.json', $dest . '/content.json');
-
-        $config = $this->cms->config();
-        unset($config['dev_import']);
-        CMS::writeJson($dest . '/config.json', $config);
-
-        $uploadsDst = $dest . '/uploads';
-        if (is_dir($uploadsDst)) {
-            $this->rrmdir($uploadsDst);
+        $saved = $this->saveGeneratorToProject($slug);
+        // Gehört der Stand zum aktiven Projekt, gilt er jetzt als gesichert.
+        $configPath = $this->cms->root() . '/data/config.json';
+        $config = CMS::readJson($configPath);
+        if (($config['dev_import'] ?? '') === $slug) {
+            $config['dev_import_rev'] = $this->generatorContentRev();
+            CMS::writeJson($configPath, $config);
         }
-        mkdir($uploadsDst, 0775, true);
-        foreach (scandir($this->cms->root() . '/uploads') ?: [] as $entry) {
-            $srcFile = $this->cms->root() . '/uploads/' . $entry;
-            if ($entry === '.' || $entry === '..' || $entry === '.optim' || $entry[0] === '.' || !is_file($srcFile)) {
-                continue;
-            }
-            copy($srcFile, $uploadsDst . '/' . $entry);
+        $metaPath = $project['dir'] . '/meta.json';
+        $meta = CMS::readJson($metaPath);
+        if (trim((string) ($meta['label'] ?? '')) === '') {
+            $siteTitle = $this->displayString($this->cms->content()['site']['title'] ?? '');
+            $meta['label'] = $siteTitle !== '' ? $siteTitle : $slug;
+            CMS::writeJson($metaPath, $meta);
         }
 
-        $metaPath = $dest . '/meta.json';
-        $meta = is_file($metaPath) ? CMS::readJson($metaPath) : [];
-        $existingLabel = trim((string) ($meta['label'] ?? ''));
-        $siteTitle = $this->displayString($this->cms->content()['site']['title'] ?? '');
-        $meta['label'] = $existingLabel !== '' ? $existingLabel : ($siteTitle !== '' ? $siteTitle : $slug);
-        CMS::writeJson($metaPath, $meta);
-
-        $this->redirectToPanel('Aktueller Stand als dev-imports/' . $slug . '/ exportiert – „Übernehmen“/„Neu einspielen“ zieht ihn nun wieder ein.', 'panel-dev-import');
+        $this->redirectToPanel('Aktueller Stand gesichert nach ' . $saved . '/.', 'panel-dev-import');
     }
 
+    /**
+     * Projekt laden = Daten + zugewiesenes Theme. Quelle siehe scanDevImports()
+     * (lokale Instanz → dev-imports → Beispiel). Ungesicherte Änderungen am
+     * Generator-Stand werden nie still überschrieben: ohne Entscheidung
+     * (dirty_action = save|discard) gibt es eine Rückfrage im Panel.
+     *
+     * Aus der Generator-Config bleiben erhalten: Admin-Logins und Update-URLs
+     * (Infrastruktur des Generators, kein Projekt-Inhalt). Die Marker dev_import,
+     * dev_import_source und dev_import_rev sind rein lokal.
+     */
     private function switchProject(): void
     {
         $slug = trim((string) ($_POST['project'] ?? ''));
@@ -125,45 +208,47 @@ trait DevImportActions
             $this->redirectToPanel('Projekt nicht gefunden.', 'panel-dev-import');
         }
 
-        $sourceDir = dirname($this->cms->root()) . '/dev-imports/' . $slug;
-        copy($sourceDir . '/content.json', $this->cms->root() . '/data/content.json');
-
-        // Merkt sich, welches dev-imports/-Projekt zuletzt übernommen wurde,
-        // rein informativ für die "Aktiv"-Anzeige im Projekt-Import-Panel -
-        // keine Laufzeit-Bedeutung sonst, CMS::boot() liest config.json wie
-        // gewohnt unverändert. Läuft unabhängig davon, ob das Projekt eine
-        // eigene config.json mitbringt (die ist laut Spezifikation optional) -
-        // sonst bekäme ein Projekt ohne eigene config.json nie den
-        // "Aktiv"-Badge.
         $configPath = $this->cms->root() . '/data/config.json';
-        $configSrc = $sourceDir . '/config.json';
         $current = CMS::readJson($configPath);
-        $config = is_file($configSrc) ? CMS::readJson($configSrc) : $current;
-        $config['dev_import'] = $slug;
-        // Die Update-Manifest-URLs sind Deploy-Infrastruktur des Generators und
-        // kein Projekt-Inhalt: beim Projekt-Wechsel nie überschreiben, sonst
-        // sind die Update-Buttons in dieser (und jeder danach exportierten)
-        // Instanz ohne Grund ausgegraut (bl01-Fall).
+        $currentSlug = (string) ($current['dev_import'] ?? '');
+        $action = (string) ($_POST['dirty_action'] ?? '');
+        $saved = '';
+        if ($this->generatorIsDirty()) {
+            if ($action === 'save' && $currentSlug !== '') {
+                $saved = $this->saveGeneratorToProject($currentSlug);
+            } elseif ($action !== 'discard') {
+                $_SESSION['pending_project_switch'] = $slug;
+                $this->redirectToPanel('Der aktuelle Stand von „' . $currentSlug . '“ wurde seit dem Laden geändert – sichern oder verwerfen?', 'panel-dev-import');
+            }
+        }
+        unset($_SESSION['pending_project_switch'], $_SESSION['theme_preview']);
+
+        $dataDir = $project['data_dir'];
+        copy($dataDir . '/content.json', $this->cms->root() . '/data/content.json');
+
+        $config = is_file($dataDir . '/config.json') ? CMS::readJson($dataDir . '/config.json') : $current;
+        // Das Theme des Projekts gilt immer (aus dessen config.json, sonst meta.json) –
+        // auch wenn die Quelle keine eigene config.json hat und die aktuelle
+        // Generator-Config als Basis dient.
+        if ($project['theme'] !== '') {
+            $config['theme'] = $project['theme'];
+        }
         $config['update'] = $current['update'] ?? [];
-        // Admin-Logins gehören ebenfalls zum Generator, nicht zum Projekt: sonst
-        // bringt jedes dev-imports/<slug>/config.json seinen alten Passwort-Stand
-        // mit und ein Wechsel sperrt einen ohne Vorwarnung aus (wie beim
-        // Paket-Import). Nur wenn der Generator selbst (noch) keine hat, gelten
-        // die des Projekts.
         $currentUsers = $current['admin']['users'] ?? [];
         if (is_array($currentUsers) && $currentUsers !== []) {
             $config['admin']['users'] = array_values($currentUsers);
         }
+        $config['dev_import'] = $slug;
+        $config['dev_import_source'] = $project['source'];
+        $config['dev_import_rev'] = $this->generatorContentRev();
         CMS::writeJson($configPath, $config);
 
-        $uploadsSrc = $sourceDir . '/uploads';
+        // uploads/ nur ersetzen, wenn die Quelle Bilder mitbringt (web/uploads/ ist
+        // nicht versioniert – ein Leeren ohne Ersatz wäre endgültig).
+        $uploadsSrc = $project['uploads_dir'];
         $sourceFiles = is_dir($uploadsSrc)
-            ? array_values(array_filter(scandir($uploadsSrc) ?: [], fn ($entry) => is_file($uploadsSrc . '/' . $entry)))
+            ? array_values(array_filter(scandir($uploadsSrc) ?: [], fn ($e) => $e[0] !== '.' && is_file($uploadsSrc . '/' . $e)))
             : [];
-        // Nur ersetzen, wenn im Projekt tatsächlich Bilder liegen – sonst
-        // würde ein leerer/fehlender uploads/-Ordner web/uploads/ komplett
-        // leeren, ohne etwas an dessen Stelle zu setzen (web/uploads/ ist
-        // nicht Git-versioniert, ein solcher Datenverlust wäre endgültig).
         if ($sourceFiles !== []) {
             $uploadsDst = $this->cms->root() . '/uploads';
             $this->rrmdir($uploadsDst);
@@ -172,10 +257,11 @@ trait DevImportActions
                 copy($uploadsSrc . '/' . $entry, $uploadsDst . '/' . $entry);
             }
         }
+        $this->rrmdir($this->cms->root() . '/cache/pages');
 
-        $this->redirectToPanel('Projekt „' . $project['label'] . '“ übernommen.', 'panel-dev-import');
+        $this->redirectToPanel('Projekt „' . $project['label'] . '“ geladen (Daten aus ' . $project['source_label']
+            . ', Theme ' . ($config['theme'] ?? '–') . ').' . ($saved !== '' ? ' Vorheriger Stand gesichert nach ' . $saved . '/.' : ''), 'panel-dev-import');
     }
-
     private function historyDir(): string
     {
         return $this->cms->root() . '/data/.history';
@@ -309,7 +395,12 @@ trait DevImportActions
     private function restoreImportBaseline(): void
     {
         $slug = trim((string) ($this->cms->config()['dev_import'] ?? ''));
-        $path = $slug !== '' ? dirname($this->cms->root()) . '/dev-imports/' . $slug . '/content.json' : '';
+        $path = '';
+        foreach ($this->scanDevImports() as $candidate) {
+            if ($candidate['slug'] === $slug) {
+                $path = $candidate['data_dir'] . '/content.json';
+            }
+        }
         if ($slug === '' || !is_file($path)) {
             $this->redirectToPanel('Kein aktives Import-Projekt gefunden.', 'panel-history');
         }

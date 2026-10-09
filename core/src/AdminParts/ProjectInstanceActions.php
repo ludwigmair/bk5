@@ -62,7 +62,7 @@ trait ProjectInstanceActions
         // in den Suchindex) - für den Livegang im Admin unter SEO ausschalten.
         $this->writeInstanceContent($dest, true);
         $config = $this->cms->config();
-        unset($config['dev_import']);
+        unset($config['dev_import'], $config['dev_import_rev'], $config['dev_import_source']);
         CMS::writeJson($dest . '/data/config.json', $config);
         // Einmalige Kopie für CMS::ensureSeeded(): config.json selbst ist im
         // Git-Repo-Export (siehe setUpGitWorkflow()) vom Deploy-Workflow
@@ -135,7 +135,22 @@ trait ProjectInstanceActions
             $gitError = $this->setUpGitWorkflow($dest);
             $message .= $gitError !== ''
                 ? ' Git-Setup fehlgeschlagen: ' . $gitError
-                : ' Git-Repo mit main/develop/staging angelegt (auf develop), FTP-Deploy-Workflow liegt unter .github/workflows/deploy-staging.yml bereit - im Ziel-Repo noch die GitHub-Secrets FTP_SERVER/FTP_USERNAME/FTP_PASSWORD/FTP_TARGET_DIR/BACKUP_URL/BACKUP_TOKEN setzen.';
+                : ' Git-Repo mit main/develop/staging angelegt (auf develop), FTP-Deploy-Workflow liegt unter .github/workflows/deploy-staging.yml bereit - im Ziel-Repo noch die GitHub-Secrets FTP_SERVER/FTP_USERNAME/FTP_PASSWORD/FTP_TARGET_DIR/BACKUP_URL/BACKUP_TOKEN (+ ADMIN_USERS) setzen.';
+        }
+        // Projekt ↔ Instanz verknüpfen: das geladene dev-imports-Projekt lädt künftig
+        // aus dieser Instanz (aktuellster Stand), sobald sie per
+        // dev/register-instance.sh <slug> registriert ist. Bestehende Verknüpfung bleibt.
+        $project = (string) ($this->cms->config()['dev_import'] ?? '');
+        if ($this->hasDevTools() && $project !== '' && $project !== self::EXAMPLE_PROJECT && preg_match('/^[a-z0-9][a-z0-9_-]*$/', $project)) {
+            $metaPath = dirname($root) . '/dev-imports/' . $project . '/meta.json';
+            if (is_dir(dirname($metaPath))) {
+                $meta = CMS::readJson($metaPath);
+                if (trim((string) ($meta['instance'] ?? '')) === '') {
+                    $meta['instance'] = $slug;
+                    CMS::writeJson($metaPath, $meta);
+                    $message .= " Projekt „{$project}“ ist jetzt mit der Instanz verknüpft – nach dev/register-instance.sh {$slug} lädt der Generator es von dort.";
+                }
+            }
         }
         $this->redirectToPanel($message, 'panel-export-instance');
     }
@@ -224,7 +239,7 @@ trait ProjectInstanceActions
         $targetNoindex = CMS::readJson($dest . '/data/content.json')['seo']['robots_noindex'] ?? null;
         $this->writeInstanceContent($dest, $targetNoindex === null ? null : (bool) $targetNoindex);
         $config = $this->cms->config();
-        unset($config['dev_import']);
+        unset($config['dev_import'], $config['dev_import_rev'], $config['dev_import_source']);
         CMS::writeJson($dest . '/data/config.json', $config);
         $seedConfig = $config;
         $seedConfig['admin']['users'] = [];
@@ -327,7 +342,7 @@ trait ProjectInstanceActions
 
         $zip->addFile($root . '/data/content.json', 'data/content.json');
         $cleanConfig = $this->cms->config();
-        unset($cleanConfig['dev_import']);
+        unset($cleanConfig['dev_import'], $cleanConfig['dev_import_rev'], $cleanConfig['dev_import_source']);
         $zip->addFromString('data/config.json', (string) json_encode($cleanConfig, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
         if (is_dir($root . '/uploads')) {

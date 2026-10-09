@@ -49,7 +49,7 @@ final class Admin
             // Layout-Sperre: Themes (und damit Header/Footer/…-Varianten) werden nur im
             // Generator entwickelt und per Sync/Deploy übernommen – in einer Instanz
             // würde eine Änderung beim nächsten Sync überschrieben (bzw. ihn blockieren).
-            if (in_array($action, ['apply-theme', 'build-theme', 'delete-theme'], true) && !$this->hasDevTools()) {
+            if (in_array($action, ['apply-theme', 'build-theme', 'delete-theme', 'theme-preview', 'theme-preview-end'], true) && !$this->hasDevTools()) {
                 $this->redirectToPanel('Themes werden nur im Generator bearbeitet – dort ändern und per Sync/Deploy übernehmen.', 'panel-theme');
             }
             if ($action === 'check-update') {
@@ -74,6 +74,8 @@ final class Admin
                 'delete-theme' => $this->deleteTheme(),
                 'toggle-topbar' => $this->toggleTopbar(),
                 'mail-test' => $this->sendTestMail(),
+                'theme-preview' => $this->startThemePreview(),
+                'theme-preview-end' => $this->endThemePreview(),
                 'image-upload' => $this->uploadImage(),
                 'image-delete' => $this->deleteImage(),
                 'image-delete-many' => $this->deleteImagesMany(),
@@ -185,7 +187,7 @@ final class Admin
     private const ADMIN_ONLY_ACTIONS = [
         'check-update', 'update', 'check-components-update', 'components-update',
         'user-add', 'user-remove', 'user-setpw',
-        'apply-theme', 'build-theme', 'delete-theme', 'toggle-topbar', 'mail-test',
+        'apply-theme', 'build-theme', 'delete-theme', 'toggle-topbar', 'mail-test', 'theme-preview', 'theme-preview-end',
         'add', 'delete', 'reorder-sections',
         'switch-project', 'export-import', 'restore-import', 'restore-history',
         'build-update-package', 'download-update-package', 'delete-update-package',
@@ -297,7 +299,10 @@ final class Admin
             'inquiries_retention_days' => Inquiries::retentionDays($this->cms->config()),
             'active_languages' => CMS::activeLanguages($this->cms->config()),
             'available_languages' => $this->availableLanguages(),
-            'dev_imports' => $this->scanDevImports(),
+            'dev_imports' => $hasDevTools ? $this->scanDevImports() : [],
+            'theme_preview' => $hasDevTools ? (string) ($_SESSION['theme_preview'] ?? '') : '',
+            'pending_project_switch' => (string) ($_SESSION['pending_project_switch'] ?? ''),
+            'dev_import_source' => (string) ($this->cms->config()['dev_import_source'] ?? ''),
             'active_dev_import' => $this->cms->config()['dev_import'] ?? null,
             'content_history' => $this->listHistory(),
             'update_packages' => $this->listUpdatePackages(),
@@ -896,6 +901,8 @@ final class Admin
     }
 
     private const KEEP_CODE_BACKUPS = 3;
+    /** Slug des Beispiel-Projekts (dev/example-project/) im Projekt-Import. */
+    private const EXAMPLE_PROJECT = 'beispiel';
 
     private function rrmdir(string $dir): void
     {
@@ -1240,7 +1247,10 @@ final class Admin
         if (isset($themeLayout['topbar'])) {
             $config['layout']['topbar']['theme'] = $themeLayout['topbar'];
         }
-        if (isset($theme['languages'])) {
+        // Sprachen gehören zum Projekt: ist ein Projekt geladen (dev_import), bleiben
+        // dessen Sprachen unangetastet (z. B. doro01 de/en/fr trotz Theme de/en/fr/lb).
+        // Nur ohne geladenes Projekt bestimmt das Theme den Sprachsatz.
+        if (isset($theme['languages']) && trim((string) ($config['dev_import'] ?? '')) === '') {
             $themeLangs = array_values(array_filter(
                 array_map('strval', $theme['languages']),
                 static fn (string $l): bool => $l !== ''
@@ -1259,7 +1269,74 @@ final class Admin
         $config['theme'] = $name;
 
         CMS::writeJson($path, $config);
-        $this->redirectToPanel('Theme „' . ($theme['label'] ?? $name) . '“ angewendet.', 'panel-theme');
+        unset($_SESSION['theme_preview']);
+        $this->rrmdir($this->cms->root() . '/cache/pages');
+
+        $target = $this->assignThemeToProject($config, $name);
+        $this->redirectToPanel('Theme „' . ($theme['label'] ?? $name) . '“ '
+            . ($target !== '' ? 'dem Projekt zugewiesen – eingetragen in ' . $target . '.' : 'angewendet.'), 'panel-theme');
+    }
+
+    /**
+     * Schreibt eine Theme-Zuweisung in die Daten des geladenen Projekts: lokale
+     * Instanz (data/config.json), sonst dev-imports/<slug>/config.json bzw. das
+     * Beispiel-Projekt – damit ein späteres Laden (und bei Instanzen der nächste
+     * Sync/Deploy) das neue Theme mitbringt. Gesetzt werden nur theme, brand und
+     * die Varianten; topbar.enabled (Inhalt), Sprachen und alles andere bleiben.
+     *
+     * @return string Ziel für die Meldung, '' wenn kein Projekt geladen ist
+     */
+    private function assignThemeToProject(array $generatorConfig, string $themeName): string
+    {
+        $slug = trim((string) ($generatorConfig['dev_import'] ?? ''));
+        if ($slug === '' || !$this->hasDevTools()) {
+            return '';
+        }
+        foreach ($this->scanDevImports() as $project) {
+            if ($project['slug'] !== $slug) {
+                continue;
+            }
+            $file = $project['data_dir'] . '/config.json';
+            $target = CMS::readJson($file);
+            $target['theme'] = $themeName;
+            $target['brand'] = $generatorConfig['brand'] ?? [];
+            foreach (['header', 'footer', 'stickybar', 'cookiebanner'] as $region) {
+                if (isset($generatorConfig['layout'][$region])) {
+                    $target['layout'][$region] = $generatorConfig['layout'][$region];
+                }
+            }
+            $topbarTheme = $generatorConfig['layout']['topbar']['theme'] ?? null;
+            if ($topbarTheme !== null) {
+                $enabled = (bool) ($target['layout']['topbar']['enabled'] ?? ($generatorConfig['layout']['topbar']['enabled'] ?? false));
+                $target['layout']['topbar'] = ['enabled' => $enabled, 'theme' => (string) $topbarTheme];
+            }
+            CMS::writeJson($file, $target);
+
+            return $project['source'] === 'instanz'
+                ? $project['source_label'] . ' (Varianten/Theme-Dateien kommen mit dev/deploy-instances.sh nach)'
+                : $project['source_label'];
+        }
+
+        return '';
+    }
+
+    /** Theme-Vorschau (nur Generator): die öffentliche Seite zeigt das Theme in dieser Sitzung – nichts wird gespeichert. */
+    private function startThemePreview(): void
+    {
+        $name = trim((string) ($_POST['theme'] ?? ''));
+        foreach ($this->scanThemes() as $candidate) {
+            if (($candidate['name'] ?? '') === $name) {
+                $_SESSION['theme_preview'] = $name;
+                $this->redirectToPanel('Vorschau aktiv: „' . ($candidate['label'] ?? $name) . '“ – unter „Seite“ ansehen. Gespeichert wird nichts.', 'panel-theme');
+            }
+        }
+        $this->redirectToPanel('Theme nicht gefunden.', 'panel-theme');
+    }
+
+    private function endThemePreview(): void
+    {
+        unset($_SESSION['theme_preview']);
+        $this->redirectToPanel('Vorschau beendet – die Seite zeigt wieder das zugewiesene Theme.', 'panel-theme');
     }
 
     /**
