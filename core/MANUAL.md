@@ -355,6 +355,9 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
 - **Projekte**: nur im Generator – „Laden" holt die Daten eines Projekts
   samt zugewiesenem Theme (aus der lokalen Instanz, sonst aus dev-imports, sonst das
   Beispiel-Projekt); „Stand sichern" schreibt den aktuellen Stand zurück.
+  „Als neues Projekt kopieren" legt den geladenen Stand (auch ungesicherte
+  Änderungen) unter neuem Namen als eigenes Projekt an und lädt es – praktisch, um
+  dieselben Inhalte mit einem anderen Theme auszuprobieren, ohne das Original zu ändern.
   Entwickler-Werkzeug, nicht für den täglichen Redaktionsbetrieb.
 - **Live-Stand exportieren** (auf der ausgelieferten Website): „Paket erstellen“ legt ein
   ZIP mit den aktuellen Inhalten und Bildern an (Liste mit Download/Löschen). Es dient

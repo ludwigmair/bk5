@@ -1436,6 +1436,18 @@
                         <p class="text-xs">„Sichern“ schreibt den aktuellen Stand nach dev-imports/{{ active_dev_import }}/ (bzw. ins Beispiel-Projekt) – nicht in die lokale Instanz; dorthin per „Instanz angleichen“.</p>
                     </div>
                     {% endif %}
+                    {% if active_dev_import|default('') %}
+                    <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
+                        <h3 class="font-['Commissioner',sans-serif] text-base font-semibold tracking-tight">Als neues Projekt kopieren</h3>
+                        <p class="mt-1 text-xs text-[#241E18]/40">Kopiert den aktuell geladenen Stand (inkl. ungesicherter Änderungen) nach dev-imports/ und lädt die Kopie – das Original bleibt unverändert. Danach unter Themes ein Theme wählen und zuweisen.</p>
+                        <form method="post" class="mt-3 flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="copy-project">
+                            <input class="h-9 min-w-0 flex-1 rounded-lg border border-[#241E18]/15 px-3 text-sm" name="project_label" maxlength="60" required placeholder="Name des neuen Projekts, z. B. Kurzeder – Variante Salbei">
+                            <button class="h-9 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">Kopie anlegen</button>
+                        </form>
+                    </div>
+                    {% endif %}
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         {% for project in dev_imports %}
                         {% set isActive = active_dev_import|default('') == project.slug %}
