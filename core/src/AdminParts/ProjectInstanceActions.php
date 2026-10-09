@@ -96,6 +96,7 @@ trait ProjectInstanceActions
                 $root . "/themes-and-plugins/themes/{$theme}",
                 $dest . "/themes-and-plugins/themes/{$theme}"
             );
+            $this->copyThemePalettes($root, $dest, $theme);
         }
         foreach (['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] as $region) {
             // Der gemeinsame Pool wird IMMER mitgenommen – er ist die alleinige
@@ -271,6 +272,7 @@ trait ProjectInstanceActions
                 $root . "/themes-and-plugins/themes/{$theme}",
                 $dest . "/themes-and-plugins/themes/{$theme}"
             );
+            $this->copyThemePalettes($root, $dest, $theme);
         }
         foreach (['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] as $region) {
             $variant = $this->resolveRegionVariant($config, $region);
@@ -601,6 +603,12 @@ trait ProjectInstanceActions
             if (isset($pkgConfig['layout']['topbar']['enabled'])) {
                 $config['layout']['topbar']['enabled'] = (bool) $pkgConfig['layout']['topbar']['enabled'];
             }
+            // Gewähltes Farbset ist wie die Topbar ein Inhaltsschalter
+            if (is_string($pkgConfig['palette'] ?? null) && $pkgConfig['palette'] !== '') {
+                $config['palette'] = $pkgConfig['palette'];
+            } else {
+                unset($config['palette']);
+            }
             foreach (['languages', 'languages_allowed', 'languages_disabled'] as $key) {
                 if (array_key_exists($key, $pkgConfig)) {
                     $config[$key] = $pkgConfig[$key];
@@ -713,6 +721,21 @@ trait ProjectInstanceActions
             }
         }
         return array_keys($types);
+    }
+
+    /** Farbsets der Bibliothek, die das Theme anbietet (theme.json → palette_refs), mitkopieren. */
+    private function copyThemePalettes(string $root, string $dest, string $theme): void
+    {
+        $refs = (array) (CMS::readJson($root . "/themes-and-plugins/themes/{$theme}/theme.json")['palette_refs'] ?? []);
+        foreach ($refs as $ref) {
+            $src = $root . CMS::PALETTE_DIR . '/' . basename((string) $ref) . '.json';
+            if (is_file($src)) {
+                if (!is_dir($dest . CMS::PALETTE_DIR)) {
+                    mkdir($dest . CMS::PALETTE_DIR, 0775, true);
+                }
+                copy($src, $dest . CMS::PALETTE_DIR . '/' . basename($src));
+            }
+        }
     }
 
     private function copyDir(string $src, string $dest): void

@@ -207,7 +207,7 @@ jobs:
           # vendor/ und .env werden nie angefasst.
           set -euo pipefail
           TARGET="$(printf '%s' "$FTP_TARGET_DIR" | tr -d '[:space:]')"
-          MANAGED='^(core|themes-and-plugins/(components|headers|footers|topbars|stickybars|cookiebanners|themes))/'
+          MANAGED='^(core|themes-and-plugins/(components|headers|footers|topbars|stickybars|cookiebanners|themes|palettes))/'
           LFTP="set sftp:auto-confirm yes; set net:max-retries 3; set cmd:fail-exit no"
 
           git ls-files | grep -E "$MANAGED" | sort -u > /tmp/local.txt || true

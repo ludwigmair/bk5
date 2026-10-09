@@ -250,6 +250,9 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
 - **Seite**: Titel/Unterzeile/Logo-Text, Kontakt-Leiste oben (Ankündigungstext +
   Link-Beschriftung). Der „Aktiv"/„Inaktiv"-Schalter daneben schaltet die
   Leiste komplett ein oder aus, unabhängig vom Text.
+  Bietet das Theme mehrere Farbsets an, steht oben im Bereich „Farbvariante“: ein
+  Klick auf ein Set (z. B. „Standard“, „Salbei“) stellt die Farben der Website um –
+  Texte, Schriften und Aufbau bleiben gleich (Admin-Rolle nötig).
 - **Betrieb / Kontaktdaten**: Name, Inhaber, Adresse, Telefon, Mobiltelefon (optional,
   zweite Nummer, erscheint zusätzlich in Topbar/Footer), E-Mail, USt-IdNr.,
   Handelsregister, Öffnungszeiten, abweichender Kartensuchbegriff. Wird für
@@ -313,7 +316,12 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   Schriften (Name einer Google-Font) und der Eckenradius (z. B. `0.375rem`). Sie gelten
   für jedes Projekt mit diesem Theme; soll nur eines anders aussehen, unter neuem
   Namen speichern und zuweisen. Das Logo gehört nicht zum Theme, sondern zu den
-  Inhalten (Stammdaten → „Seite“). Im selben
+  Inhalten (Stammdaten → „Seite“). Darunter lassen sich **weitere Farbsets** anbieten:
+  eigene nur für dieses Theme (Name + vier Farben) und/oder per Häkchen Sets aus der
+  **Farbset-Bibliothek** (eigener Kasten im Themes-Bereich: Sets einmal anlegen, in
+  beliebig vielen Themes anbieten; eine Änderung dort gilt für alle Themes, die das Set
+  anbieten; ein noch angebotenes Set lässt sich nicht löschen). Welches Set auf der
+  Website gilt, wählt der Admin der Website unter „Seite“ → „Farbvariante“. Im selben
   Formular werden auch die Sprachen für dieses Theme angehakt (Deutsch ist
   immer aktiv) – siehe „Mehrsprachige Inhalte" oben. Beim Anwenden oder
   Speichern eines Themes gilt sein Sprachsatz vollständig: Basis-Sprachen,

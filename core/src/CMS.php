@@ -1254,6 +1254,7 @@ final class CMS
             '/core/assets/style.css',
         ];
         if ($theme !== '') {
+            $deps[] = "/themes-and-plugins/themes/{$theme}/theme.json";
             $deps[] = "/themes-and-plugins/themes/{$theme}/theme.css";
             $deps[] = "/themes-and-plugins/themes/{$theme}/tailwind.css";
         }
@@ -1354,6 +1355,64 @@ final class CMS
      * (oder ohne config.theme) gilt die Config unverändert. Nur im Speicher – die
      * Datei wird nicht umgeschrieben.
      */
+    /** Farben, die ein Farbset (theme.json → palettes) überschreibt. */
+    public const PALETTE_COLORS = ['primary', 'secondary', 'ash', 'walnut'];
+
+    /** Zentrale Farbset-Bibliothek (eine JSON-Datei je Set, nur im Generator gepflegt). */
+    public const PALETTE_DIR = '/themes-and-plugins/palettes';
+
+    /**
+     * Alle Sets der Bibliothek: slug => {label, primary, secondary, ash, walnut}.
+     * In einer Instanz liegen hier nur die Sets, die ihr Theme anbietet (Sync).
+     *
+     * @return array<string, array<string, string>>
+     */
+    public static function poolPalettes(string $root): array
+    {
+        $out = [];
+        foreach (glob($root . self::PALETTE_DIR . '/*.json') ?: [] as $file) {
+            $slug = basename($file, '.json');
+            $set = self::readJson($file);
+            if (preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug) === 1 && $set !== []) {
+                $out[$slug] = $set;
+            }
+        }
+        ksort($out);
+
+        return $out;
+    }
+
+    /**
+     * Farbsets, die ein Theme anbietet: eigene (theme.json → palettes) plus die aus
+     * der Bibliothek angebotenen (theme.json → palette_refs). Bei gleichem Namen
+     * gewinnt das eigene Set; fehlende Bibliotheks-Sets werden übersprungen.
+     *
+     * @return array<string, array<string, string>>
+     */
+    public static function themePalettes(string $root, array $theme): array
+    {
+        $own = is_array($theme['palettes'] ?? null) ? $theme['palettes'] : [];
+        $refs = is_array($theme['palette_refs'] ?? null) ? $theme['palette_refs'] : [];
+        $out = [];
+        foreach ($refs as $slug) {
+            $slug = (string) $slug;
+            if (preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug) !== 1) {
+                continue;
+            }
+            $set = self::readJson($root . self::PALETTE_DIR . '/' . $slug . '.json');
+            if ($set !== []) {
+                $out[$slug] = $set + ['shared' => true];
+            }
+        }
+        foreach ($own as $slug => $set) {
+            if (is_array($set)) {
+                $out[(string) $slug] = $set;
+            }
+        }
+
+        return $out;
+    }
+
     public static function applyThemeToConfig(string $root, array $config): array
     {
         $name = (string) ($config['theme'] ?? '');
@@ -1366,6 +1425,17 @@ final class CMS
         }
         if (is_array($theme['brand'] ?? null)) {
             $config['brand'] = array_replace(is_array($config['brand'] ?? null) ? $config['brand'] : [], $theme['brand']);
+        }
+        // Gewähltes Farbset (Inhaltsschalter config.palette, im Admin der Website
+        // wählbar): nur die vier Farben über brand legen. Unbekanntes Set – etwa nach
+        // einem Theme-Wechsel – oder ungültige Werte: es bleibt beim Standard.
+        $palette = self::themePalettes($root, $theme)[(string) ($config['palette'] ?? '')] ?? null;
+        if (is_array($palette)) {
+            foreach (self::PALETTE_COLORS as $key) {
+                if (preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($palette[$key] ?? '')) === 1) {
+                    $config['brand'][$key] = (string) $palette[$key];
+                }
+            }
         }
         if (is_array($theme['layout'] ?? null)) {
             foreach (['header', 'footer', 'stickybar', 'cookiebanner'] as $region) {
