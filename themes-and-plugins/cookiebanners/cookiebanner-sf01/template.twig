@@ -1,0 +1,10 @@
+<div class="fixed inset-x-4 bottom-4 z-50 mx-auto hidden max-w-xl rounded-[10px] border border-walnut/10 bg-white p-5 shadow-2xl sm:p-6" data-cookie-banner>
+    <p class="text-sm text-walnut/75">
+        {{ content.labels.cookie_text|default('Diese Website verwendet nur technisch notwendige Cookies.') }}
+        <a class="ml-1 text-primary underline hover:text-secondary" href="/datenschutz">{{ content.labels.cookie_privacy_link|default('Datenschutzerklärung') }}</a>
+    </p>
+    <div class="mt-4 flex flex-wrap gap-3">
+        <button type="button" class="h-[54px] cursor-pointer rounded-[10px] border-2 border-primary bg-primary px-6 text-sm font-semibold text-white transition hover:brightness-110" data-cookie-accept>{{ content.labels.cookie_accept|default('Alle akzeptieren') }}</button>
+        <button type="button" class="h-[54px] cursor-pointer rounded-[10px] border-2 border-primary bg-white px-6 text-sm font-semibold text-primary transition hover:bg-primary/5" data-cookie-necessary>{{ content.labels.cookie_necessary|default('Nur notwendige') }}</button>
+    </div>
+</div>

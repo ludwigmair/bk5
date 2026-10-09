@@ -1570,6 +1570,7 @@ final class Admin
             'ash' => '/^#[0-9a-fA-F]{6}$/', 'walnut' => '/^#[0-9a-fA-F]{6}$/',
             'font_display' => '/^[A-Za-z0-9 ]{1,40}$/', 'font_body' => '/^[A-Za-z0-9 ]{1,40}$/',
             'radius' => '/^(0|\d+(\.\d+)?(rem|px|em))$/',
+            'page_width' => '/^(wide|boxed)$/',
         ];
         $brandOverrides = [];
         $postedBrand = is_array($_POST['brand'] ?? null) ? $_POST['brand'] : [];

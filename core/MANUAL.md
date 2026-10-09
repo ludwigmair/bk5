@@ -313,7 +313,9 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   Cookie-Banner einzeln aus dem vorhandenen Pool wählen, speichern. Unter „Farben &
   Schriften“ stehen die vier Farben des Themes (Hauptfarbe, Akzentfarbe, Hintergrund,
   Text & Footer – per Farbwähler oder als Hex-Wert wie `#8F2B32`), die beiden
-  Schriften (Name einer Google-Font) und der Eckenradius (z. B. `0.375rem`). Sie gelten
+  Schriften (Name einer Google-Font), der Eckenradius (z. B. `0.375rem`) und die
+  **Seitenbreite**: „Wide“ (Abschnitte über die volle Fensterbreite, Standard) oder
+  „Boxed“ (die ganze Seite als mittiger Kasten, außen ein ruhiger Hintergrund). Sie gelten
   für jedes Projekt mit diesem Theme; soll nur eines anders aussehen, unter neuem
   Namen speichern und zuweisen. Das Logo gehört nicht zum Theme, sondern zu den
   Inhalten (Stammdaten → „Seite“). Darunter lassen sich **weitere Farbsets** anbieten:

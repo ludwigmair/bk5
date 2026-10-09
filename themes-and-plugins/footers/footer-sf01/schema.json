@@ -1,0 +1,10 @@
+{
+    "type": "footer-sf01",
+    "label": "Footer SF01 (3 Spalten dunkel)",
+    "requires_core": "2.2.2",
+    "help": "Adresse/Telefon/E-Mail/Inhaber kommen automatisch aus Betrieb / Kontaktdaten.",
+    "fields": [
+        { "name": "owner_label", "type": "text", "label": "Bezeichnung vor dem Inhaber-Namen" },
+        { "name": "phone_label", "type": "text", "label": "Telefon-Präfix" }
+    ]
+}

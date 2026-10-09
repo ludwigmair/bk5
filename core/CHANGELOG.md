@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.13.0 – 2026-10-09
+
+Der schmale dunkle Streifen am linken Bildschirmrand ist entfernt – Seiten gehen jetzt über die volle Breite. Neu im Theme: Seitenbreite „Wide“ (wie bisher) oder „Boxed“ (ganze Seite als mittiger Kasten).
+
 ## 2.12.0 – 2026-10-09
 
 Farbsets: Ein Theme kann mehrere benannte Farbsets anbieten – eigene oder aus der neuen Farbset-Bibliothek, die für alle Themes gilt (beides im Generator gepflegt). Welches Set gilt, wählt der Admin der Website unter „Seite“ → „Farbvariante“. Außerdem behoben: Buttons, die einen eigenen Wert mitschicken, verloren ihn beim Absenden.
