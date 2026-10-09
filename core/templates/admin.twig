@@ -859,7 +859,13 @@
                                 <datalist id="theme-font-list">
                                     {% for font in knownFonts|filter(f => f)|reduce((carry, f) => f in carry ? carry : carry|merge([f]), []) %}<option value="{{ font }}"></option>{% endfor %}
                                 </datalist>
-                                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                    <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Seitenbreite
+                                        <select class="mt-1 block h-11 w-full rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="brand[page_width]" data-brand-default="wide">
+                                            <option value="wide" {% if themeBrand.page_width|default('wide') == 'wide' %}selected{% endif %}>Wide – Abschnitte über die volle Breite</option>
+                                            <option value="boxed" {% if themeBrand.page_width|default('wide') == 'boxed' %}selected{% endif %}>Boxed – Seite als mittiger Kasten</option>
+                                        </select>
+                                    </label>
                                     {% for key, fieldLabel in {font_display: 'Schrift Überschriften', font_body: 'Schrift Fließtext', radius: 'Eckenradius'} %}
                                     <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">{{ fieldLabel }}
                                         <input class="mt-1 h-11 w-full rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="brand[{{ key }}]" value="{{ attribute(themeBrand, key)|default('') }}" {% if key == 'radius' %}placeholder="z. B. 0.375rem"{% else %}list="theme-font-list"{% endif %} data-brand-text>
@@ -2840,9 +2846,9 @@
           if (source) source.value = editLink.dataset.name || '';
           var brand = {};
           try { brand = JSON.parse(editLink.dataset.brand || '{}') || {}; } catch (err) { brand = {}; }
-          themeForm.querySelectorAll('input[name^="brand["]').forEach(function (input) {
+          themeForm.querySelectorAll('[name^="brand["]').forEach(function (input) {
             var key = input.name.slice(6, -1);
-            input.value = brand[key] || '';
+            input.value = brand[key] || input.dataset.brandDefault || '';
             var row = input.closest('[data-brand-color]');
             var picker = row && row.querySelector('[data-brand-picker]');
             if (picker && /^#[0-9a-fA-F]{6}$/.test(input.value)) picker.value = input.value;

@@ -22,3 +22,8 @@ html { scroll-behavior: smooth; }
 .review-nav-arrow:hover { background: color-mix(in srgb, var(--brand-walnut) 25%, transparent); }
 .review-nav-arrow--next { background: var(--brand-primary); color: #fff; }
 .review-nav-arrow--next:hover { filter: brightness(1.1); }
+/* Seitenbreite "boxed" (theme.json → brand.page_width): ganze Seite als mittiger Kasten,
+   außen ein leicht abgetönter Hintergrund. Fixe Elemente (Sticky-Leiste, Cookie-Banner)
+   bleiben am Fensterrand. */
+body.page-boxed { background-color: color-mix(in srgb, var(--brand-walnut) 12%, var(--brand-ash)); }
+body.page-boxed .site-frame { max-width: 80rem; margin: 0 auto; min-height: 100vh; background-color: var(--brand-ash); box-shadow: 0 0 48px rgba(0, 0, 0, .10); }

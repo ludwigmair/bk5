@@ -1,0 +1,6 @@
+{
+    "type": "cookiebanner-sf01",
+    "label": "Breite Karte unten (SF01)",
+    "requires_core": "2.2.2",
+    "fields": []
+}

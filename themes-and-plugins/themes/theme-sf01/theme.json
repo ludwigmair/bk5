@@ -1,0 +1,25 @@
+{
+    "name": "theme-sf01",
+    "label": "Theme SF01",
+    "description": "Blau/Gold auf Hellblau-Grau, Fira Sans – Style an bestehende Site angepasst",
+    "brand": {
+        "primary": "#5B83AE",
+        "secondary": "#D4952B",
+        "ash": "#E6EDF5",
+        "walnut": "#3D6490",
+        "hero_cta": "primary",
+        "radius": "0.375rem",
+        "font_display": "Fira Sans",
+        "font_body": "Fira Sans"
+    },
+    "languages": [
+        "de"
+    ],
+    "layout": {
+        "header": "header-logo-links-sf01",
+        "footer": "footer-sf01",
+        "topbar": "topbar-bl01",
+        "stickybar": "stickybar-sf01",
+        "cookiebanner": "cookiebanner-sf01"
+    }
+}
