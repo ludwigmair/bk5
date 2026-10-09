@@ -1014,7 +1014,11 @@ final class CMS
             }
         }
 
-        return $this->twig->render('layout.twig', [
+        $business = $this->content['business'] ?? [];
+
+        // E-Mail/Telefon vor Adress-Sammlern schützen (siehe Obfuscate) – einmal
+        // über das fertige HTML, vor dem Seiten-Cache.
+        return Obfuscate::html($this->twig->render('layout.twig', [
             'site' => $site,
             'seo' => $this->content['seo'] ?? [],
             'og_image_size' => $this->ogImageSize((string) ($this->content['seo']['og_image'] ?? '')),
@@ -1033,7 +1037,7 @@ final class CMS
             'brand_rgb' => $brandRgb,
             'business' => $this->content['business'] ?? [],
             'contact_id' => $contactId,
-        ]);
+        ]), [(string) ($business['phone'] ?? ''), (string) ($business['mobile'] ?? '')]);
     }
 
     /**
@@ -1064,9 +1068,8 @@ final class CMS
         if (($business['phone'] ?? '') !== '') {
             $data['telephone'] = $business['phone'];
         }
-        if (($business['email'] ?? '') !== '') {
-            $data['email'] = $business['email'];
-        }
+        // Bewusst KEINE E-Mail: JSON-LD lässt sich nicht verschleiern (siehe
+        // Obfuscate), Google braucht sie nicht – die Telefonnummer bleibt (lokale Suche).
         if (($business['owner'] ?? '') !== '') {
             $data['founder'] = ['@type' => 'Person', 'name' => $business['owner']];
         }
