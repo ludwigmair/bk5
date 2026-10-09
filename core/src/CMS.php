@@ -57,6 +57,14 @@ final class CMS
         // im Admin waren dann 1–2 Stunden versetzt. config.json → timezone.
         $timezone = (string) ($config['timezone'] ?? 'Europe/Berlin');
         date_default_timezone_set(in_array($timezone, \DateTimeZone::listIdentifiers(), true) ? $timezone : 'Europe/Berlin');
+        // Theme-Vorschau (Admin → Themes → „Vorschau“): nur beim Rendern der öffentlichen
+        // Seite ($locale gesetzt), nur im Generator (dev/ vorhanden) und nur in dieser
+        // Sitzung – config.json bleibt unberührt, der Admin sieht die echte Config.
+        $themePreview = '';
+        if ($locale !== null && !empty($_SESSION['theme_preview']) && basename($root) === 'web' && is_dir(dirname($root) . '/dev')) {
+            $themePreview = (string) $_SESSION['theme_preview'];
+            $config['theme'] = $themePreview;
+        }
         $config = self::applyThemeToConfig($root, $config);
         $content = self::readJson($root . '/data/content.json');
         $languages = self::activeLanguages($config);
@@ -118,6 +126,7 @@ final class CMS
         $twig->addGlobal('csrf', $_SESSION['csrf'] ?? '');
         // Statisches Admin-CSS (dev/build-css.sh --admin); ?v= gegen Browser-Cache nach Core-Updates.
         $adminCss = $root . '/core/assets/admin.css';
+        $twig->addGlobal('theme_preview', $themePreview);
         $twig->addGlobal('admin_css', is_file($adminCss) ? '/core/assets/admin.css?v=' . filemtime($adminCss) : '');
         $twig->addGlobal('icons', Icons::all());
         $twig->addGlobal('icon_categories', Icons::byCategory());

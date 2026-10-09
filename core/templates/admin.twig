@@ -78,6 +78,19 @@
     </header>
 
     <main class="mx-auto max-w-6xl space-y-8 px-4 py-8 pb-24">
+        {% if has_dev_tools and active_dev_import %}
+        {% set activeProject = dev_imports|filter(p => p.slug == active_dev_import)|first %}
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-[#241E18]/10 bg-white px-4 py-2 text-xs text-[#241E18]/70">
+            <span><span class="font-semibold text-[#241E18]">Projekt:</span> {{ activeProject.label|default(active_dev_import) }}</span>
+            <span><span class="font-semibold text-[#241E18]">Daten aus:</span> {{ activeProject.source_label|default('–') }}</span>
+            <span><span class="font-semibold text-[#241E18]">Theme:</span> {{ active_theme|default('–') }}</span>
+            {% if theme_preview %}
+            <span class="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-800">Vorschau: {{ theme_preview }}</span>
+            <form method="post" class="inline"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="do" value="theme-preview-end"><button type="submit" class="cursor-pointer font-semibold text-[#355E4B] underline-offset-2 hover:underline">Vorschau beenden</button></form>
+            {% endif %}
+            <a class="ml-auto font-semibold text-[#355E4B] underline-offset-2 hover:underline" href="#panel-dev-import">Projekt wechseln</a>
+        </div>
+        {% endif %}
         {% if flash or flash_command %}<p class="border border-[#355E4B]/30 bg-[#FBF8F2] px-4 py-3 text-sm {% if restore_scroll|default(0) > 0 %} fixed bottom-16 left-1/2 z-40 w-[min(42rem,calc(100%-2rem))] -translate-x-1/2 rounded-xl shadow-lg {% endif %}">{{ flash }}{% if flash_command %}<span class="ml-1 inline-flex items-center gap-1 rounded border border-[#355E4B]/30 bg-white px-1.5 py-0.5 align-middle" data-copy-host><code class="font-mono text-xs text-[#355E4B]" data-copy-source>{{ flash_command }}</code><button type="button" data-copy-command title="Befehl in Zwischenablage kopieren" class="inline-flex cursor-pointer items-center text-[#355E4B] transition hover:text-[#2c4f40]"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></button></span>{% endif %}{{ flash_after }}</p>{% endif %}
         {% if update_info %}
         <div class="rounded-xl border border-[#241E18]/5 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] px-4 py-3 text-sm">
@@ -691,11 +704,16 @@
                                 <div class="flex items-center gap-2">
                                     <p class="font-semibold text-[#241E18]">{{ theme.label|default(theme.name) }}</p>
                                     {% if active_theme == theme.name %}
-                                    <span class="rounded-full border border-[#355E4B] bg-[#355E4B] px-2 py-0.5 text-[10px] font-semibold text-white">Aktiv</span>
+                                    <span class="rounded-full border border-[#355E4B] bg-[#355E4B] px-2 py-0.5 text-[10px] font-semibold text-white">{{ active_dev_import ? 'Zugewiesen' : 'Aktiv' }}</span>
+                                    {% endif %}
+                                    {% if theme_preview == theme.name %}
+                                    <span class="rounded-full border border-amber-700 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800">Vorschau</span>
                                     {% endif %}
                                 </div>
                                 <p class="text-xs text-[#241E18]/50">{{ theme.description|default('') }}</p>
                                 <p class="text-[11px] uppercase tracking-wide text-[#241E18]/35">{{ theme.brand.font_display|default('') }} / {{ theme.brand.font_body|default('') }}</p>
+                                {% set usedBy = dev_imports|filter(p => p.theme == theme.name)|map(p => p.label) %}
+                                {% if usedBy|length %}<p class="text-[11px] text-[#241E18]/55"><span class="font-semibold">Projekte:</span> {{ usedBy|join(', ') }}</p>{% endif %}
                                 {# Verwendete Bereiche auf einen Blick – ein Theme ohne Header/Footer (z. B. versehentlich mit "— Keine —" gespeichert) fällt so sofort auf. #}
                                 <ul class="space-y-0.5 text-[11px] text-[#241E18]/55">
                                     {% for region, labelText in {header: 'Header', footer: 'Footer', topbar: 'Topbar', stickybar: 'Sticky-Leiste', cookiebanner: 'Cookie-Banner'} %}
@@ -721,11 +739,19 @@
                                        data-cookiebanner="{{ theme.layout.cookiebanner|default('') }}"
                                        data-languages="{{ (theme.languages|default(['de']))|join(',') }}">Bearbeiten</button>
                                     {% if active_theme != theme.name %}
+                                    {% if theme_preview != theme.name %}
                                     <form class="flex-1" method="post">
+                                        <input type="hidden" name="csrf" value="{{ csrf }}">
+                                        <input type="hidden" name="do" value="theme-preview">
+                                        <input type="hidden" name="theme" value="{{ theme.name }}">
+                                        <button class="h-9 w-full cursor-pointer rounded-lg border border-[#355E4B]/30 text-sm font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5" type="submit" title="Geladenes Projekt mit diesem Theme ansehen – nichts wird gespeichert">Vorschau</button>
+                                    </form>
+                                    {% endif %}
+                                    <form class="flex-1" method="post" data-confirm="Theme „{{ theme.label|default(theme.name) }}“ {{ active_dev_import ? 'dem Projekt „' ~ active_dev_import ~ '“ fest zuweisen? Es wird auch in dessen Daten (' ~ (dev_import_source == 'instanz' ? 'lokale Instanz' : 'dev-imports') ~ ') eingetragen.' : 'anwenden?' }}" data-confirm-title="Theme zuweisen?" data-confirm-action="Zuweisen" data-confirm-variant="primary">
                                         <input type="hidden" name="csrf" value="{{ csrf }}">
                                         <input type="hidden" name="do" value="apply-theme">
                                         <input type="hidden" name="theme" value="{{ theme.name }}">
-                                        <button class="h-9 w-full cursor-pointer rounded-lg bg-[#355E4B] text-sm font-semibold text-white transition hover:brightness-110" type="submit">Anwenden</button>
+                                        <button class="h-9 w-full cursor-pointer rounded-lg bg-[#355E4B] text-sm font-semibold text-white transition hover:brightness-110" type="submit">{{ active_dev_import ? 'Zuweisen' : 'Anwenden' }}</button>
                                     </form>
                                     <form method="post" data-confirm="Theme „{{ theme.label|default(theme.name) }}“ wirklich löschen?">
                                         <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -1160,46 +1186,54 @@
                 {% if dev_imports is not empty %}
                 <section id="panel-dev-import" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-dev-import" hidden>
                     <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Projekt-Import (lokal)</h2>
-                    <p class="text-xs text-[#241E18]/40">Nur auf dieser Maschine sichtbar – dev-imports/ liegt außerhalb von web/, ist gitignored und existiert in keinem Deploy. Jeder Eintrag ist ein komplett eigener Projekt-Stand (echter oder fiktiver Kunde); „Übernehmen“ ersetzt die aktiven Stammdaten ungemergt und vollständig; „Exportieren“ sichert den aktuell aktiven Stand (auch als aktives Projekt) in den jeweiligen dev-imports/-Eintrag:</p>
-                    <ul class="list-disc space-y-1 pl-5 text-xs text-[#241E18]/50">
-                        <li><strong class="font-medium text-[#241E18]/60">content.json + config.json</strong> werden immer durch die des Projekts ersetzt (Texte, Bilder-Referenzen, Theme, Einstellungen – inkl. der im Snapshot enthaltenen Admin-Logins).</li>
-                        <li><strong class="font-medium text-[#241E18]/60">web/uploads/</strong> wird nur komplett ersetzt, wenn das Projekt eigene Bilder mitbringt – der Bild-Pool ist nicht git-versioniert, ein Leeren ohne Ersatz wäre endgültiger Datenverlust.</li>
-                        <li>Nach der Übernahme trägt config.json den Marker <code>dev_import</code>: Grundlage für das „Aktiv“-Badge hier und für „Auf Import-Stand zurücksetzen“ im Bereich Sicherung.</li>
-                        <li>Der Marker ist rein lokal – deployed Instanzen und Projekt-Pakete werden bewusst ohne ihn exportiert.</li>
-                    </ul>
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        {% for project in dev_imports %}
-                        <div class="flex items-center justify-between gap-3 rounded-xl border border-[#241E18]/10 bg-white p-4">
-                            <div class="flex items-center gap-2">
-                                <p class="font-semibold text-[#241E18]">{{ project.label }}</p>
-                                {% if active_dev_import|default('') == project.slug %}
-                                <span class="rounded-full border border-[#355E4B] bg-[#355E4B] px-2 py-0.5 text-[10px] font-semibold text-white">Aktiv</span>
-                                {% endif %}
-                            </div>
-                            {% set confirmText = (active_dev_import|default('') == project.slug)
-                                ? 'Projekt „' ~ project.label ~ '“ neu einspielen? Aktuelle Stammdaten (content.json/config.json) und web/uploads/ werden durch den Import-Stand von dev-imports/' ~ project.slug ~ '/ ersetzt – seit der letzten Übernahme gespeicherte Änderungen gehen verloren.'
-                                : 'Projekt „' ~ project.label ~ '“ übernehmen? Aktuelle Stammdaten (content.json/config.json) und web/uploads/ werden vollständig ersetzt.' %}
-                            <div class="flex items-center gap-2">
-                            <form method="post"
-                                data-confirm="Aktuellen Stand (content.json/config.json/uploads/) in dev-imports/{{ project.slug }}/ speichern? Der dortige Snapshot wird überschrieben."
-                                data-confirm-title="Lokal exportieren?"
-                                data-confirm-action="Exportieren"
-                                data-confirm-variant="primary">
-                                <input type="hidden" name="csrf" value="{{ csrf }}">
-                                <input type="hidden" name="do" value="export-import">
-                                <input type="hidden" name="project" value="{{ project.slug }}">
-                                <button class="h-9 cursor-pointer rounded-lg border border-[#355E4B]/30 px-4 text-sm font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5" type="submit">Exportieren</button>
-                            </form>
-                            <form method="post"
-                                data-confirm="{{ confirmText }}"
-                                data-confirm-title="Projekt {{ active_dev_import|default('') == project.slug ? 'neu einspielen?' : 'übernehmen?' }}"
-                                data-confirm-action="Übernehmen"
-                                data-confirm-variant="primary">
+                    <p class="text-xs text-[#241E18]/50">Ein Projekt besteht aus seinen Daten und seinem zugewiesenen Theme. „Laden“ holt beides in den Generator – die Daten aus der lokalen Instanz (aktuellster Stand), sonst aus dev-imports/, beim Beispiel-Projekt aus dem neutralen Beispiel-Datensatz. Andere Themes für das geladene Projekt unter „Themes“ per <strong class="font-medium text-[#241E18]/70">Vorschau</strong> ausprobieren (nichts wird gespeichert) und per <strong class="font-medium text-[#241E18]/70">Zuweisen</strong> festlegen. Nur auf dieser Maschine – dev-imports/ und dev/ gehen nie in einen Deploy.</p>
+                    {% if pending_project_switch %}
+                    {% set pending = dev_imports|filter(p => p.slug == pending_project_switch)|first %}
+                    <div class="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                        <p><strong>Ungesicherte Änderungen:</strong> Der Inhalt von „{{ active_dev_import }}“ wurde seit dem Laden geändert. Vor dem Wechsel zu „{{ pending.label|default(pending_project_switch) }}“ sichern?</p>
+                        <div class="flex flex-wrap gap-2">
+                            {% for choice, labelText in {save: 'Sichern und wechseln', discard: 'Verwerfen und wechseln'} %}
+                            <form method="post">
                                 <input type="hidden" name="csrf" value="{{ csrf }}">
                                 <input type="hidden" name="do" value="switch-project">
-                                <input type="hidden" name="project" value="{{ project.slug }}">
-                                <button class="h-9 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">{{ active_dev_import|default('') == project.slug ? 'Neu einspielen' : 'Übernehmen' }}</button>
+                                <input type="hidden" name="project" value="{{ pending_project_switch }}">
+                                <input type="hidden" name="dirty_action" value="{{ choice }}">
+                                <button class="h-9 cursor-pointer rounded-lg px-4 text-sm font-semibold transition {{ choice == 'save' ? 'bg-[#355E4B] text-white hover:brightness-110' : 'border border-red-800/40 text-red-800 hover:bg-red-50' }}" type="submit">{{ labelText }}</button>
                             </form>
+                            {% endfor %}
+                            <a class="inline-flex h-9 items-center rounded-lg border border-[#241E18]/15 px-4 text-sm text-[#241E18]/70 hover:bg-[#241E18]/5" href="?admin=1#panel-dev-import">Abbrechen</a>
+                        </div>
+                        <p class="text-xs">„Sichern“ schreibt den aktuellen Stand nach dev-imports/{{ active_dev_import }}/ (bzw. ins Beispiel-Projekt) – nicht in die lokale Instanz; dorthin per „Instanz angleichen“.</p>
+                    </div>
+                    {% endif %}
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {% for project in dev_imports %}
+                        {% set isActive = active_dev_import|default('') == project.slug %}
+                        <div class="flex flex-col gap-3 rounded-xl border bg-white p-4 {{ isActive ? 'border-[#355E4B]/50' : 'border-[#241E18]/10' }}">
+                            <div class="flex items-center gap-2">
+                                <p class="font-semibold text-[#241E18]">{{ project.label }}</p>
+                                {% if isActive %}<span class="rounded-full border border-[#355E4B] bg-[#355E4B] px-2 py-0.5 text-[10px] font-semibold text-white">Geladen</span>{% endif %}
+                            </div>
+                            <ul class="space-y-0.5 text-[11px] text-[#241E18]/60">
+                                <li><span class="font-semibold">Theme:</span> {{ project.theme|default('–') }}</li>
+                                <li><span class="font-semibold">Daten aus:</span> {{ project.source_label }}</li>
+                                <li><span class="font-semibold">Sprachen:</span> {{ project.languages|join(', ') }}</li>
+                            </ul>
+                            <div class="mt-auto flex items-center gap-2">
+                                {% if isActive %}
+                                <form method="post" data-confirm="Aktuellen Stand nach {{ project.source == 'beispiel' ? 'dev/example-project/' : 'dev-imports/' ~ project.slug ~ '/' }} sichern? Der dortige Stand wird überschrieben." data-confirm-title="Stand sichern?" data-confirm-action="Sichern" data-confirm-variant="primary">
+                                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                                    <input type="hidden" name="do" value="export-import">
+                                    <input type="hidden" name="project" value="{{ project.slug }}">
+                                    <button class="h-9 cursor-pointer rounded-lg border border-[#355E4B]/30 px-4 text-sm font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5" type="submit">Stand sichern</button>
+                                </form>
+                                {% endif %}
+                                <form method="post">
+                                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                                    <input type="hidden" name="do" value="switch-project">
+                                    <input type="hidden" name="project" value="{{ project.slug }}">
+                                    <button class="h-9 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition hover:brightness-110" type="submit">{{ isActive ? 'Neu laden' : 'Laden' }}</button>
+                                </form>
                             </div>
                         </div>
                         {% endfor %}

@@ -286,9 +286,10 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   deutsche Standardbeschriftung.
 - **Themes**: fertige Theme-Vorlagen (Marken-Farben, Fonts, Header-/Footer-/
   Topbar-/Sticky-Leiste-/Cookie-Banner-Auswahl) als Karten zum Anklicken.
-  „Anwenden" wechselt das komplette Design (Farben/Fonts/Layout/Sprachen)
-  sofort – keine Vorschau vorher, aber jederzeit auf ein anderes Theme
-  zurückwechselbar. Inhalte und Bilder (Texte, Sektionen) gehören zum
+  „Vorschau" zeigt die Website mit diesem Theme nur für Sie und nur vorübergehend
+  (nichts wird gespeichert, „Vorschau beenden" oben im Admin). „Zuweisen" legt das
+  Theme für das geladene Projekt fest (Farben/Fonts/Layout; die Sprachen des Projekts
+  bleiben). Inhalte und Bilder (Texte, Sektionen) gehören zum
   **Projekt** und bleiben beim Theme-Wechsel unverändert; ein kompletter
   Wechsel inkl. Inhalten läuft über „Projekt-Import" (siehe unten). „✕
   Löschen" entfernt ein Theme dauerhaft (geht nicht für das gerade aktive).
@@ -326,8 +327,10 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   zwischenzeitlich geänderte Inhalte/Bilder überschreiben. Die neue Instanz startet
   immer mit **„Von Suchmaschinen ausschließen“** (noindex, `robots.txt` sperrt alles) –
   für den Livegang dort unter SEO den Haken entfernen.
-- **Projekt-Import (lokal)**: nur sichtbar, wenn lokale Test-/Kundenprojekte
-  vorbereitet sind – Entwickler-Werkzeug, nicht für den täglichen Redaktionsbetrieb.
+- **Projekt-Import (lokal)**: nur im Generator – „Laden" holt die Daten eines Projekts
+  samt zugewiesenem Theme (aus der lokalen Instanz, sonst aus dev-imports, sonst das
+  Beispiel-Projekt); „Stand sichern" schreibt den aktuellen Stand zurück.
+  Entwickler-Werkzeug, nicht für den täglichen Redaktionsbetrieb.
 - **Theme & Daten als Paket exportieren**: legt `cache/projekt-<zeitstempel>.zip`
   an (Liste mit Download/Löschen), das Inhalte, Bilder, aktives Theme und die
   verwendeten Bausteine enthält – bewusst **ohne** `core/` und ohne `.optim`-Bildvarianten.

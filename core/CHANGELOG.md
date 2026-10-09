@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.8.0 – 2026-10-09
+
+Generator: Projekt laden bringt Daten und zugewiesenes Theme, Theme-Vorschau ohne Speichern, Zuweisen pro Projekt, Rückfrage bei ungesicherten Änderungen. In Instanzen keine sichtbare Änderung.
+
 ## 2.7.0 – 2026-10-09
 
 Backups bleiben erhalten (data/backups statt cache/). Neues Panel „Anfragen“ mit Löschfrist, Spam-Bremse im Kontaktformular, richtige Zeitzone. Admin ohne Tailwind-CDN. Theme-Karten zeigen ihre Bereiche. Layout kommt zur Laufzeit aus dem Theme; Themes sind nur im Generator bearbeitbar.
