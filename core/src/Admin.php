@@ -1452,7 +1452,7 @@ final class Admin
     {
         $path = $this->cms->root() . '/data/config.json';
         $config = CMS::readJson($path);
-        $theme = CMS::readJson($this->cms->root() . '/themes-and-plugins/themes/' . basename((string) ($config['theme'] ?? '')) . '/theme.json');
+        $theme = CMS::readJson($this->cms->root() . '/themes-and-plugins/themes/' . basename((string) ($this->cms->config()['theme'] ?? '')) . '/theme.json');
         $palettes = CMS::themePalettes($this->cms->root(), $theme);
         $choice = trim((string) ($_POST['palette'] ?? ''));
         if ($choice !== '' && !isset($palettes[$choice])) {
