@@ -1,0 +1,227 @@
+/*
+ * Theme BK01 – Feinschliff, der über brand.* (theme.json) hinausgeht.
+ * Der Hero-CTA im hero_cta:"secondary"-Standard (kein hero_cta in diesem
+ * theme.json gesetzt) kombiniert bg-secondary mit text-walnut - für Holms
+ * helles Kupfer/dunkles Walnuss passt das, aber BK01s secondary (#8F2B32)
+ * und walnut (#5C1C21) sind beide dunkles Oxblood-Rot und praktisch
+ * unlesbar zusammen. Referenz (localhost:9030) zeigt den Button mit
+ * weißer Schrift - hier entsprechend korrigiert, ohne den generischen
+ * hero-slider für alle anderen Themes zu ändern.
+ */
+.bg-secondary.text-walnut {
+  color: #fff !important;
+}
+
+/*
+ * `%%...%%` (RichText-Hinweiszeile, Kern-CSS: .rich-note) ist core-weit eine
+ * blasse, kleine Randnotiz - für BK01 zeigt die Referenz (localhost:9030)
+ * dieselbe Textstelle stattdessen in Monospace und Akzentfarbe (kein
+ * Verblassen). Nur hier überschrieben, core-weite .rich-note-Definition
+ * bleibt für alle anderen Themes unverändert.
+ */
+.rich-note {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--brand-secondary);
+  opacity: 1;
+}
+
+/*
+ * aktuelles-Ticker: core-weit eine helle Leiste (bg-primary/5) mit gefülltem
+ * Button - die Referenz (localhost:9030, <aside class="whats-new">) zeigt
+ * stattdessen eine dunkle Walnuss-Leiste mit einer transparenten Pille
+ * (Rand statt Füllung) als Button. Nur für BK01, da diese helle Leiste für
+ * andere Themes (z. B. Holm) durchaus passt.
+ */
+#aktuelles-1 {
+  background-color: var(--brand-walnut) !important;
+  border-color: transparent !important;
+}
+#aktuelles-1 time,
+#aktuelles-1 p {
+  color: #fff !important;
+  opacity: 0.9;
+}
+#aktuelles-1 a {
+  height: auto !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+  background-color: transparent !important;
+  color: #fff !important;
+  padding: 2px 12px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+}
+#aktuelles-1 a:hover {
+  filter: none !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/*
+ * Kundenstimmen (google-reviews): core-weit eine dunkle Sektion mit
+ * Karten aus border-white/15 + bg-walnut/20 (für Holm passend) - die
+ * Referenz (bk4.typopublic.com, #rezensionen) zeigt stattdessen helle
+ * Karten (weiß, dünner Rand, kein Schatten - exakt wie die FAQ-Karten)
+ * auf der getönten Zebra-Fläche, mit dunklem Fließtext statt hellem.
+ * Sternfarbe dort ist ein gedämpftes Gold/Braun, nicht die Akzentfarbe.
+ * Nur für BK01 überschrieben.
+ */
+#reviews-1.bg-primary {
+  background-color: transparent !important;
+  color: var(--brand-walnut) !important;
+}
+#reviews-1 blockquote {
+  background-color: #fff !important;
+  border: 1px solid #DBD0BA !important;
+  border-radius: var(--brand-radius) !important;
+  padding: 26px 24px !important;
+}
+#reviews-1 blockquote p:first-of-type {
+  color: #9A7B4F !important;
+}
+#reviews-1 blockquote p:last-of-type {
+  color: var(--brand-primary) !important;
+  font-size: 16.2px !important;
+  opacity: 1;
+}
+#reviews-1 blockquote footer {
+  font-family: 'Open Sans', sans-serif !important;
+  font-weight: 700 !important;
+  color: var(--brand-secondary) !important;
+  opacity: 1;
+}
+#reviews-1 p.mt-3 > span:first-child {
+  color: rgba(154, 123, 79, 0.3) !important;
+}
+#reviews-1 p.mt-3 > span:first-child span {
+  color: #9A7B4F !important;
+}
+
+/*
+ * Hero (Split-Layout) hat core-weit ein fest codiertes bg-ash - die
+ * Referenz (localhost:9030, #start) zeigt dort dieselbe getönte Fläche wie
+ * die Zebra-"accent"-Blöcke (kein anderes Theme nutzt bisher das
+ * Split-Layout, daher unkritisch für alle anderen).
+ */
+#hero-1.bg-ash {
+  background-color: color-mix(in srgb, var(--brand-walnut) 8%, var(--brand-ash)) !important;
+}
+
+/*
+ * Kontaktformular: core-weit bg-white/50 (heller Weiß-Schleier über der
+ * Zebra-Fläche) - die Referenz (localhost:9030, #kontakt) zeigt eine
+ * flache, ungeschleierte Zebra-Fläche ohne Weiß-Anteil.
+ */
+#contact-1.bg-white\/50 {
+  background-color: transparent !important;
+}
+
+/*
+ * FAQ: core-weit eine flache Liste mit Trennlinien (divide-y/border-y) - die
+ * Referenz (bk4.typopublic.com, #faq) zeigt stattdessen einzelne weiße
+ * Karten mit dünnem Rand statt Trennlinien, dazu die Frage in Open Sans
+ * (Fließtext-Schrift) statt Fraunces (Display-Schrift). Radius und die
+ * Akzentfarbe des "+" kommen unverändert aus brand.radius/brand.secondary,
+ * die passen bereits 1:1 - nur Kartenrahmen/-abstand und die Schrift der
+ * Frage weichen vom generischen Look ab. Nur für BK01, andere Themes nutzen
+ * weiterhin die flache Trennlinien-Liste.
+ */
+#faq-1 .divide-y {
+  border-top: none !important;
+  border-bottom: none !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#faq-1 .divide-y > * {
+  border-top: none !important;
+}
+#faq-1 details {
+  background: #fff !important;
+  border: 1px solid #DBD0BA !important;
+  border-radius: var(--brand-radius) !important;
+  padding: 4px 20px !important;
+}
+#faq-1 summary {
+  padding: 14px 0 !important;
+  font-family: 'Open Sans', sans-serif !important;
+  font-size: 16.5px !important;
+  color: var(--brand-primary) !important;
+}
+#faq-1 summary span {
+  color: var(--brand-secondary) !important;
+}
+
+/*
+ * Werkstätten (cards): core-weit ein leicht getönter Kartenhintergrund
+ * (bg-ash/50) mit dünnem Walnuss-Rand (border-walnut/15) - die Referenz
+ * (bk4.typopublic.com, #leistungen) zeigt dieselben weißen Karten mit
+ * #DBD0BA-Rand wie FAQ/Rezensionen, dazu die Kartenüberschrift in
+ * brand-primary statt walnut. Nur für BK01.
+ */
+#werkstaetten-1 .overflow-hidden.border {
+  background-color: #fff !important;
+  border-color: #DBD0BA !important;
+}
+#werkstaetten-1 h3 {
+  color: var(--brand-primary) !important;
+}
+
+/*
+ * Galerie Vorher/Nachher: dieselbe Abweichung wie bei den
+ * Werkstätten-Karten (core-weit bg-ash/50 + border-walnut/15) - die
+ * Referenz (bk4.typopublic.com, #galerie) zeigt volldeckendes bg-ash
+ * mit #DBD0BA-Rand und Titel in brand-primary. Die Beschreibungsfarbe
+ * ist unten global geregelt (siehe .text-walnut\/70,\/75-Override).
+ * Nur für BK01.
+ */
+#galerie-1 .overflow-hidden.border {
+  background-color: var(--brand-ash) !important;
+  border-color: #DBD0BA !important;
+}
+#galerie-1 h3 {
+  color: var(--brand-primary) !important;
+}
+
+/*
+ * Atelier (content-block Profilkarte): core-weit border-walnut/10 +
+ * shadow-sm - die Referenz (bk4.typopublic.com, #ueber-uns) zeigt
+ * denselben #DBD0BA-Rand wie alle anderen Karten, ohne Schatten, und
+ * die Rolle ("Raumausstattermeisterin") in gedämpftem Braungrau statt
+ * secondary-Rot. Nur für BK01.
+ */
+#atelier-1 .border-walnut\/10 {
+  border-color: #DBD0BA !important;
+  box-shadow: none !important;
+}
+#atelier-1 p.text-secondary {
+  color: #6A6258 !important;
+}
+
+/*
+ * Fließtext-Farbe (Hero-Einleitung, FAQ-Antworten, Content-Block-Texte,
+ * Kurzfakten-Unterzeile, Kontaktformular-Hinweistext): core-weit
+ * text-walnut/60,/70,/75 (warmes Rotbraun) - die Referenz
+ * (bk4.typopublic.com) nutzt für allen Fließtext konsequent ein
+ * neutrales, gedämpftes Braungrau (#6A6258), geprüft an Hero-Einleitung,
+ * FAQ-Antworten, Content-Block-Absätzen (Atelier/Mobiliar/Sonnenschutz)
+ * und der Kurzfakten-Unterzeile. Site-weiter Override statt Einzelfall
+ * je Section, weil die Abweichung systematisch ist, nicht pro Section
+ * unterschiedlich. Nur für BK01.
+ */
+.text-walnut\/60,
+.text-walnut\/70,
+.text-walnut\/75 {
+  color: #6A6258 !important;
+}
+
+/*
+ * Kontaktformular: Absenden-Button core-weit inline (nur so breit wie
+ * der Text) - die Referenz (bk4.typopublic.com, .btn--block) nutzt
+ * einen Button in voller Formularbreite. Nur für BK01, da w-full im
+ * generischen contact-form-Template alle Themes beträfe.
+ */
+#contact-1 form button[type="submit"] {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}

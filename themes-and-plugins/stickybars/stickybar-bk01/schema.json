@@ -1,0 +1,6 @@
+{
+    "type": "stickybar-bk01",
+    "label": "Icon-Leiste rechts, eine Karte (BK01)",
+    "requires_core": "2.2.2",
+    "fields": []
+}

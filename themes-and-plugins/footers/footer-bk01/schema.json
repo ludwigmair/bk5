@@ -1,0 +1,9 @@
+{
+    "type": "footer-bk01",
+    "label": "Footer dunkel, schlicht (BK01)",
+    "requires_core": "2.2.2",
+    "help": "Adresse/Telefon/E-Mail kommen aus Betrieb / Kontaktdaten. Telefon-Präfix leer lassen für „Tel.“.",
+    "fields": [
+        { "name": "phone_label", "type": "text", "label": "Telefon-Präfix" }
+    ]
+}
