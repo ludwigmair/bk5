@@ -161,7 +161,8 @@ trait ProjectInstanceActions
             if ($line === '' || $line[0] === '#') {
                 continue;
             }
-            if (!preg_match('/^([a-z0-9][a-z0-9-]*)\s+(\d+)\s+(.+)$/', $line, $m)) {
+            // Optionale 4. Spalte = gehostete URL (nur für dev/check-live.sh).
+            if (!preg_match('/^([a-z0-9][a-z0-9-]*)\s+(\d+)\s+(\S+)(?:\s+\S+)?\s*$/', $line, $m)) {
                 continue;
             }
             // Der Generator selbst (docroot = web/ = this->cms->root() synced sich

@@ -6,7 +6,8 @@
     <title>Anmelden · {{ site_name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    {# Statisches Admin-CSS (dev/build-css.sh --admin), sonst Laufzeit-CDN als Fallback. #}
+    {% if admin_css|default('') %}<link rel="stylesheet" href="{{ admin_css }}">{% else %}<script src="https://cdn.tailwindcss.com"></script>{% endif %}
 </head>
 <body class="min-h-screen bg-[radial-gradient(circle_at_top,_#f2f0e9,_#E7E4DC_55%)] font-['IBM_Plex_Sans',sans-serif] text-[#241E18] antialiased">
     <main class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">

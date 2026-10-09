@@ -1,6 +1,6 @@
 <header class="sticky top-0 z-40 border-b border-[#DBD0BA] bg-ash/95 backdrop-blur">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3 md:px-8">
-        <a href="/#top" class="flex items-center text-xl font-semibold tracking-tight text-walnut">
+        <a href="{{ locale_prefix }}/#top" class="flex items-center text-xl font-semibold tracking-tight text-walnut">
             {% if site.logo_image|default('') %}
             <img class="h-13 w-auto" src="{{ site.logo_image starts with 'http' ? site.logo_image : '/' ~ site.logo_image }}" alt="{{ site.logo_text|default(site.title) }}" loading="eager">
             {% else %}
@@ -18,14 +18,14 @@
                 {% for item in nav %}
                 {% if item.active is not defined or item.active %}
                 <li>
-                    <a class="text-sm font-medium tracking-wide text-walnut/80 hover:text-secondary" href="{{ item.href starts with '#' ? '/' ~ item.href : item.href }}">{{ item.label }}</a>
+                    <a class="text-sm font-medium tracking-wide text-walnut/80 hover:text-secondary" href="{{ item.href starts with '#' ? locale_prefix ~ '/' ~ item.href : item.href }}">{{ item.label }}</a>
                 </li>
                 {% endif %}
                 {% endfor %}
             </ul>
         </nav>
         {% if contact_id|default('') %}
-        <a class="hidden shrink-0 items-center rounded-[6px] bg-secondary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 md:inline-flex" href="/#{{ contact_id }}">{{ content.labels.sticky_inquiry|default('Kontakt') }}</a>
+        <a class="hidden shrink-0 items-center rounded-[6px] bg-secondary px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 md:inline-flex" href="{{ locale_prefix }}/#{{ contact_id }}">{{ content.labels.sticky_inquiry|default('Kontakt') }}</a>
         {% endif %}
         {% if languages|default(['de'])|length > 1 %}
         <div class="relative hidden shrink-0 md:block">

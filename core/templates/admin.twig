@@ -6,7 +6,8 @@
     <title>Admin · {{ site_name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    {# Statisches Admin-CSS (dev/build-css.sh --admin), sonst Laufzeit-CDN als Fallback. #}
+    {% if admin_css|default('') %}<link rel="stylesheet" href="{{ admin_css }}">{% else %}<script src="https://cdn.tailwindcss.com"></script>{% endif %}
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
     <style>
       .section-nav-link.is-active,
@@ -65,7 +66,7 @@
                 {% if languages is defined and languages|length > 1 %}
                 <div class="flex items-center gap-1 rounded-lg border border-[#241E18]/10 bg-white p-0.5" data-lang-switch-group title="Felder auf diese Sprache umschalten">
                     {% for lang in languages %}
-                    <button type="button" class="cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold uppercase transition {% if loop.first %}bg-[#355E4B] text-white{% else %}text-[#241E18]/50 hover:bg-[#241E18]/5{% endif %}" data-lang-switch="{{ lang }}">{{ lang }}</button>
+                    <button type="button" class="cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold uppercase transition {% if loop.first %} bg-[#355E4B] text-white {% else %} text-[#241E18]/50 hover:bg-[#241E18]/5 {% endif %}" data-lang-switch="{{ lang }}">{{ lang }}</button>
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -77,7 +78,7 @@
     </header>
 
     <main class="mx-auto max-w-6xl space-y-8 px-4 py-8 pb-24">
-        {% if flash or flash_command %}<p class="border border-[#355E4B]/30 bg-[#FBF8F2] px-4 py-3 text-sm{% if restore_scroll|default(0) > 0 %} fixed bottom-16 left-1/2 z-40 w-[min(42rem,calc(100%-2rem))] -translate-x-1/2 rounded-xl shadow-lg{% endif %}">{{ flash }}{% if flash_command %}<span class="ml-1 inline-flex items-center gap-1 rounded border border-[#355E4B]/30 bg-white px-1.5 py-0.5 align-middle" data-copy-host><code class="font-mono text-xs text-[#355E4B]" data-copy-source>{{ flash_command }}</code><button type="button" data-copy-command title="Befehl in Zwischenablage kopieren" class="inline-flex cursor-pointer items-center text-[#355E4B] transition hover:text-[#2c4f40]"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></button></span>{% endif %}{{ flash_after }}</p>{% endif %}
+        {% if flash or flash_command %}<p class="border border-[#355E4B]/30 bg-[#FBF8F2] px-4 py-3 text-sm {% if restore_scroll|default(0) > 0 %} fixed bottom-16 left-1/2 z-40 w-[min(42rem,calc(100%-2rem))] -translate-x-1/2 rounded-xl shadow-lg {% endif %}">{{ flash }}{% if flash_command %}<span class="ml-1 inline-flex items-center gap-1 rounded border border-[#355E4B]/30 bg-white px-1.5 py-0.5 align-middle" data-copy-host><code class="font-mono text-xs text-[#355E4B]" data-copy-source>{{ flash_command }}</code><button type="button" data-copy-command title="Befehl in Zwischenablage kopieren" class="inline-flex cursor-pointer items-center text-[#355E4B] transition hover:text-[#2c4f40]"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></button></span>{% endif %}{{ flash_after }}</p>{% endif %}
         {% if update_info %}
         <div class="rounded-xl border border-[#241E18]/5 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] px-4 py-3 text-sm">
             <p>{{ update_info.message }}</p>
@@ -181,6 +182,10 @@
                         <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-images">Bildverwaltung</a>
                         {{ _self.nav_info('Bilder hochladen, löschen und Varianten nachziehen – Sektionen greifen über den Bild-Picker hierauf zu.') }}
                     </div>
+                    <div class="flex items-center gap-1">
+                        <a class="section-nav-link transition-colors block flex-1 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 hover:bg-[#355E4B]/10" href="#panel-inquiries">Anfragen{% if inquiries|length %} <span class="ml-1 rounded-full bg-[#355E4B]/10 px-1.5 text-[11px] font-semibold text-[#355E4B]">{{ inquiries|length }}</span>{% endif %}</a>
+                        {{ _self.nav_info('Einsendungen aus dem Kontaktformular – mit Versandstatus der Benachrichtigungs-Mail.') }}
+                    </div>
                 </div>
 
                 {% if current_is_admin %}
@@ -253,7 +258,7 @@
                     <form class="flex-1" method="post">
                         <input type="hidden" name="csrf" value="{{ csrf }}">
                         <input type="hidden" name="do" value="check-update">
-                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if updateReady %}cursor-pointer text-[#241E18]/70 hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not updateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt"{% endif %}>Update prüfen</button>
+                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if updateReady %} cursor-pointer text-[#241E18]/70 hover:bg-[#355E4B]/10 {% else %} cursor-not-allowed text-[#241E18]/30 {% endif %}" type="submit" {% if not updateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt"{% endif %}>Update prüfen</button>
                     </form>
                     {{ _self.nav_info('Prüft über die Manifest-URL in data/config.json, ob eine neuere Core-Version verfügbar ist.') }}
                     </div>
@@ -261,7 +266,7 @@
                     <form class="flex-1" method="post">
                         <input type="hidden" name="csrf" value="{{ csrf }}">
                         <input type="hidden" name="do" value="update">
-                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if updateReady %}cursor-pointer text-[#B87333] hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not updateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt"{% endif %}>Core aktualisieren</button>
+                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if updateReady %} cursor-pointer text-[#B87333] hover:bg-[#355E4B]/10 {% else %} cursor-not-allowed text-[#241E18]/30 {% endif %}" type="submit" {% if not updateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt"{% endif %}>Core aktualisieren</button>
                     </form>
                     {{ _self.nav_info('Installiert die neueste Core-Version – nur Code wird ausgetauscht, deine Inhalte bleiben unberührt.') }}
                     </div>
@@ -282,7 +287,7 @@
                     <form class="flex-1" method="post">
                         <input type="hidden" name="csrf" value="{{ csrf }}">
                         <input type="hidden" name="do" value="check-components-update">
-                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if componentsUpdateReady %}cursor-pointer text-[#241E18]/70 hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not componentsUpdateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt (update.components_manifest_url)"{% endif %}>Components prüfen</button>
+                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if componentsUpdateReady %} cursor-pointer text-[#241E18]/70 hover:bg-[#355E4B]/10 {% else %} cursor-not-allowed text-[#241E18]/30 {% endif %}" type="submit" {% if not componentsUpdateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt (update.components_manifest_url)"{% endif %}>Components prüfen</button>
                     </form>
                     {{ _self.nav_info('Prüft über update.components_manifest_url, ob eine neuere Components-Version verfügbar ist.') }}
                     </div>
@@ -290,7 +295,7 @@
                     <form class="flex-1" method="post">
                         <input type="hidden" name="csrf" value="{{ csrf }}">
                         <input type="hidden" name="do" value="components-update">
-                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if componentsUpdateReady %}cursor-pointer text-[#B87333] hover:bg-[#355E4B]/10{% else %}cursor-not-allowed text-[#241E18]/30{% endif %}" type="submit" {% if not componentsUpdateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt (update.components_manifest_url)"{% endif %}>Components aktualisieren</button>
+                        <button class="block w-full rounded-lg px-3 py-2 text-left text-sm {% if componentsUpdateReady %} cursor-pointer text-[#B87333] hover:bg-[#355E4B]/10 {% else %} cursor-not-allowed text-[#241E18]/30 {% endif %}" type="submit" {% if not componentsUpdateReady %}disabled title="Keine Manifest-URL in data/config.json gesetzt (update.components_manifest_url)"{% endif %}>Components aktualisieren</button>
                     </form>
                     {{ _self.nav_info('Installiert die neueste Components-Version – nur Code wird ausgetauscht, deine Inhalte bleiben unberührt.') }}
                     </div>
@@ -345,7 +350,7 @@
                                     <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">{{ layoutSchema.label|default(region) }}</p>
                                     {% if layoutSchema.has_toggle|default(false) %}
                                         {% set regionEnabled = attribute(config.layout|default({}), region).enabled|default(false) %}
-                                        <button type="submit" form="toggle-{{ region }}" class="cursor-pointer rounded-full border px-2 py-0.5 text-[10px] font-semibold transition {% if regionEnabled %}border-[#355E4B] bg-[#355E4B] text-white hover:brightness-110{% else %}border-[#241E18]/20 bg-[#241E18]/[0.08] text-[#241E18]/60 hover:bg-[#241E18]/15{% endif %}" title="Klicken zum {{ regionEnabled ? 'Deaktivieren' : 'Aktivieren' }}">{{ regionEnabled ? 'Aktiv' : 'Inaktiv' }}</button>
+                                        <button type="submit" form="toggle-{{ region }}" class="cursor-pointer rounded-full border px-2 py-0.5 text-[10px] font-semibold transition {% if regionEnabled %} border-[#355E4B] bg-[#355E4B] text-white hover:brightness-110 {% else %} border-[#241E18]/20 bg-[#241E18]/[0.08] text-[#241E18]/60 hover:bg-[#241E18]/15 {% endif %}" title="Klicken zum {{ regionEnabled ? 'Deaktivieren' : 'Aktivieren' }}">{{ regionEnabled ? 'Aktiv' : 'Inaktiv' }}</button>
                                     {% endif %}
                                 </div>
                                 {% for field in layoutSchema.fields %}
@@ -433,7 +438,7 @@
                             <p class="mt-1 text-xs text-[#241E18]/40">Wird automatisch mitgeliefert. Für Suchmaschinen belastbare absolute URLs in der sitemap braucht es die Basis-URL oben.</p>
                             <ul class="mt-2 space-y-1">
                                 {% for schema in seo_schemas %}
-                                <li class="flex items-center gap-1.5 text-xs {% if schema.active %}text-[#355E4B]{% else %}text-[#241E18]/35{% endif %}" {% if not schema.active %}title="Sektion fehlt oder ist noch ohne Inhalt"{% endif %}>
+                                <li class="flex items-center gap-1.5 text-xs {% if schema.active %} text-[#355E4B] {% else %} text-[#241E18]/35 {% endif %}" {% if not schema.active %}title="Sektion fehlt oder ist noch ohne Inhalt"{% endif %}>
                                     <span class="inline-block h-1.5 w-1.5 rounded-full {{ schema.active ? 'bg-[#355E4B]' : 'bg-[#241E18]/25' }}"></span>
                                     {{ schema.label }} <span class="text-[#241E18]/35">({{ schema.active ? 'aktiv' : 'inaktiv' }})</span>
                                 </li>
@@ -598,7 +603,7 @@
                                     Bezeichnung
                                     {% set labelMap = section.label is iterable ? section.label : {(languages|default(['de'])|first): section.label|default('')} %}
                                     {% for lang in (languages is defined and languages|length > 1 ? languages : [languages|default(['de'])|first]) %}
-                                    <input class="h-8 w-40 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-xs font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10 {% if not loop.first %}hidden{% endif %}" data-lang-panel="{{ lang }}" name="sections[{{ section.id }}][label][{{ lang }}]" value="{{ attribute(labelMap, lang)|default(attribute(labelMap, languages|default(['de'])|first)|default('')) }}" placeholder="optional">
+                                    <input class="h-8 w-40 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-xs font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10 {% if not loop.first %} hidden {% endif %}" data-lang-panel="{{ lang }}" name="sections[{{ section.id }}][label][{{ lang }}]" value="{{ attribute(labelMap, lang)|default(attribute(labelMap, languages|default(['de'])|first)|default('')) }}" placeholder="optional">
                                     {% endfor %}
                                 </label>
                                 <label class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40" title="Technischer Anker für Links (#anker), z. B. in der Navigation. Nur Kleinbuchstaben, Ziffern, Bindestriche - Umbenennen zieht passende Nav-Links automatisch mit.">
@@ -672,6 +677,9 @@
                 <section id="panel-theme" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-theme" hidden>
                     <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Themes</h2>
                     <p class="text-xs text-[#241E18]/40">Ein Theme bündelt Marken-Farben/-Fonts sowie Header-/Footer-/Sticky-Leisten-Variante. Anwenden ändert diese Werte in config.json direkt – wie eine einzelne Sektion speichern, kein Neuladen der Seite nötig.</p>
+                    {% if not has_dev_tools %}
+                    <p class="rounded-lg bg-[#355E4B]/[0.06] px-3 py-2 text-xs text-[#241E18]/70">Das Layout dieser Website (Theme, Header, Footer, Topbar, Sticky-Leiste, Cookie-Banner) wird im Generator entwickelt und von dort übernommen – hier nur zur Ansicht. Texte und Inhalte der Bereiche bleiben unter „Seite“ bearbeitbar.</p>
+                    {% endif %}
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {% for theme in themes %}
                         <div class="flex h-full flex-col overflow-hidden rounded-xl border border-[#241E18]/10 bg-white">
@@ -688,6 +696,19 @@
                                 </div>
                                 <p class="text-xs text-[#241E18]/50">{{ theme.description|default('') }}</p>
                                 <p class="text-[11px] uppercase tracking-wide text-[#241E18]/35">{{ theme.brand.font_display|default('') }} / {{ theme.brand.font_body|default('') }}</p>
+                                {# Verwendete Bereiche auf einen Blick – ein Theme ohne Header/Footer (z. B. versehentlich mit "— Keine —" gespeichert) fällt so sofort auf. #}
+                                <ul class="space-y-0.5 text-[11px] text-[#241E18]/55">
+                                    {% for region, labelText in {header: 'Header', footer: 'Footer', topbar: 'Topbar', stickybar: 'Sticky-Leiste', cookiebanner: 'Cookie-Banner'} %}
+                                    {% set slug = attribute(theme.layout|default({}), region)|default('') %}
+                                    {% set variantLabel = slug %}
+                                    {% for variant in attribute(regionVariants, region) %}{% if variant.slug == slug %}{% set variantLabel = variant.label %}{% endif %}{% endfor %}
+                                    <li><span class="font-semibold">{{ labelText }}:</span> {{ slug ? variantLabel : '–' }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% if not theme.layout.header|default('') or not theme.layout.footer|default('') %}
+                                <p class="rounded-lg bg-amber-50 px-2 py-1 text-[11px] text-amber-800">Kein {{ not theme.layout.header|default('') ? 'Header' : '' }}{{ not theme.layout.header|default('') and not theme.layout.footer|default('') ? ' und kein ' : '' }}{{ not theme.layout.footer|default('') ? 'Footer' : '' }} gewählt – die Seite hätte mit diesem Theme keinen. Über „Bearbeiten“ ergänzen.</p>
+                                {% endif %}
+                                {% if has_dev_tools %}
                                 <div class="mt-auto flex gap-2 pt-1">
                                     <button type="button" class="flex h-9 flex-1 cursor-pointer items-center justify-center rounded-lg border border-[#355E4B]/30 text-sm font-semibold text-[#355E4B] transition hover:bg-[#355E4B]/5"
                                        data-theme-edit
@@ -714,11 +735,13 @@
                                     </form>
                                     {% endif %}
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
                         {% endfor %}
                     </div>
 
+                    {% if has_dev_tools %}
                     <div id="theme-builder" class="border-t border-[#241E18]/10 pt-4">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <h3 class="font-['Commissioner',sans-serif] text-base font-semibold tracking-tight">Theme bearbeiten oder neu erstellen</h3>
@@ -749,13 +772,14 @@
                                 </label>
                                 {% endfor %}
                             </div>
+                            <p class="hidden rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800" data-theme-region-warning>Kein Header oder kein Footer gewählt – die Seite hätte mit diesem Theme dann keinen. Absichtlich? Sonst oben eine Variante auswählen.</p>
                             <div>
                                 <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Sprachen</p>
                                 <p class="mt-0.5 text-xs text-[#241E18]/40">Deutsch ist immer aktiv (Standard-/Fallback-Sprache). Weitere aktivieren, um bei Texten pro Sprache umschalten zu können – ohne Übersetzung wird automatisch Deutsch gezeigt.</p>
                                 <div class="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
                                     {% set currentLanguages = active_theme_data.languages|default(['de']) %}
                                     {% for code, langLabel in available_languages %}
-                                    <label class="flex items-center gap-2 rounded-lg border border-[#241E18]/10 bg-white px-3 py-2 text-sm {% if code == 'de' %}opacity-60{% endif %}" data-theme-lang-option>
+                                    <label class="flex items-center gap-2 rounded-lg border border-[#241E18]/10 bg-white px-3 py-2 text-sm {% if code == 'de' %} opacity-60 {% endif %}" data-theme-lang-option>
                                         <input type="checkbox" name="languages[]" value="{{ code }}" {% if code in currentLanguages %}checked{% endif %} {% if code == 'de' %}disabled{% endif %} class="h-4 w-4 rounded border-[#241E18]/30 text-[#355E4B] focus:ring-[#355E4B]/30">
                                         {{ langLabel }} <span class="text-[#241E18]/40">({{ code }})</span>
                                     </label>
@@ -765,6 +789,7 @@
                             <button class="h-11 cursor-pointer rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2c4f40] hover:shadow-md active:translate-y-px" type="submit">Theme speichern &amp; aktivieren</button>
                         </form>
                     </div>
+                    {% endif %}
 
                     <div class="rounded-xl border border-[#241E18]/10 bg-white p-4">
                         <h3 class="font-['Commissioner',sans-serif] text-base font-semibold tracking-tight">Sprachen verwalten</h3>
@@ -834,7 +859,7 @@
                             <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Neue Version
                                 <input class="mt-1 block h-10 w-36 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="version" placeholder="z. B. 1.1.0" pattern="\d+\.\d+\.\d+" required {% if not core_update_pending %}disabled{% endif %}>
                             </label>
-                            <button class="h-10 rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition {% if core_update_pending %}cursor-pointer hover:brightness-110{% else %}cursor-not-allowed opacity-40{% endif %}" type="submit" {% if not core_update_pending %}disabled title="Kein Update offen: core/ entspricht dem Stand des letzten Update-Pakets."{% endif %}>Paket erstellen</button>
+                            <button class="h-10 rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition {% if core_update_pending %} cursor-pointer hover:brightness-110 {% else %} cursor-not-allowed opacity-40 {% endif %}" type="submit" {% if not core_update_pending %}disabled title="Kein Update offen: core/ entspricht dem Stand des letzten Update-Pakets."{% endif %}>Paket erstellen</button>
                         </form>
                     </div>
 
@@ -886,7 +911,7 @@
                             <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Neue Version
                                 <input class="mt-1 block h-10 w-36 rounded-lg border border-transparent bg-[#241E18]/[0.035] px-2.5 text-sm font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" type="text" name="version" placeholder="z. B. 1.1.0" pattern="\d+\.\d+\.\d+" required {% if not components_update_pending %}disabled{% endif %}>
                             </label>
-                            <button class="h-10 rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition {% if components_update_pending %}cursor-pointer hover:brightness-110{% else %}cursor-not-allowed opacity-40{% endif %}" type="submit" {% if not components_update_pending %}disabled title="Kein Update offen: Components entsprechen dem Stand des letzten Update-Pakets."{% endif %}>Paket erstellen</button>
+                            <button class="h-10 rounded-lg bg-[#355E4B] px-4 text-sm font-semibold text-white transition {% if components_update_pending %} cursor-pointer hover:brightness-110 {% else %} cursor-not-allowed opacity-40 {% endif %}" type="submit" {% if not components_update_pending %}disabled title="Kein Update offen: Components entsprechen dem Stand des letzten Update-Pakets."{% endif %}>Paket erstellen</button>
                         </form>
                     </div>
 
@@ -1187,7 +1212,7 @@
                     <ul class="divide-y divide-[#241E18]/10 text-sm">
                         {% for u in users %}
                         <li class="flex flex-wrap items-center justify-between gap-3 py-3">
-                            <span class="font-medium">{{ u.username }}{% if u.username == current_user %} <span class="text-xs text-[#355E4B]">(du)</span>{% endif %} <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide {% if u.is_admin|default(false) %}bg-[#B87333]/15 text-[#B87333]{% else %}bg-[#241E18]/[0.06] text-[#241E18]/50{% endif %}">{{ u.is_admin|default(false) ? 'Admin' : 'User' }}</span></span>
+                            <span class="font-medium">{{ u.username }}{% if u.username == current_user %} <span class="text-xs text-[#355E4B]">(du)</span>{% endif %} <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide {% if u.is_admin|default(false) %} bg-[#B87333]/15 text-[#B87333] {% else %} bg-[#241E18]/[0.06] text-[#241E18]/50 {% endif %}">{{ u.is_admin|default(false) ? 'Admin' : 'User' }}</span></span>
                             <div class="flex flex-wrap items-center gap-2">
                                 <form method="post" class="flex items-center gap-2">
                                     <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -1285,6 +1310,45 @@
                         <button class="h-9 cursor-pointer rounded-lg border border-[#241E18]/20 px-3 text-xs" type="submit">Thumbnails nachziehen</button>
                         <p class="mt-1 text-xs text-[#241E18]/40">Erzeugt für alle vorhandenen Bilder die responsiven Varianten (480/960/1600/1920 px) nach – nur nötig für Bilder, die vor dieser Funktion hochgeladen wurden.</p>
                     </form>
+                </section>
+
+                <section id="panel-inquiries" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-inquiries" hidden>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Anfragen</h2>
+                        {% if inquiries|length %}
+                        <form method="post" data-confirm="Alle {{ inquiries|length }} Anfragen endgültig löschen?">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <input type="hidden" name="do" value="inquiries-delete-all">
+                            <button type="submit" class="h-9 cursor-pointer rounded-lg border border-red-800/40 px-3 text-xs text-red-800 transition hover:border-red-800 hover:bg-red-50">Alle löschen</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-[#241E18]/40">Einsendungen aus dem Kontaktformular, neueste zuerst. Jede Anfrage wird zusätzlich per Mail an die Betriebs-E-Mail geschickt; schlägt das fehl, ist sie hier trotzdem gespeichert. {% if inquiries_retention_days > 0 %}Anfragen werden nach {{ inquiries_retention_days }} Tagen automatisch gelöscht (Datenschutz).{% else %}Automatisches Löschen ist ausgeschaltet.{% endif %}</p>
+                    {% for inquiry in inquiries %}
+                    <article class="space-y-2 rounded-lg border border-[#241E18]/10 bg-white p-4">
+                        <div class="flex flex-wrap items-start justify-between gap-2">
+                            <div class="text-sm">
+                                <strong>{{ inquiry.name|default('–') }}</strong>
+                                {% if inquiry.email|default('') %}· <a class="text-[#355E4B] underline" href="mailto:{{ inquiry.email }}">{{ inquiry.email }}</a>{% endif %}
+                                {% if inquiry.phone|default('') %}· <a class="text-[#355E4B] underline" href="tel:{{ inquiry.phone }}">{{ inquiry.phone }}</a>{% endif %}
+                                <div class="text-xs text-[#241E18]/50">{{ inquiry.at|default('')|date('d.m.Y H:i') }}{% if inquiry.subject|default('') %} · Anliegen: {{ inquiry.subject }}{% endif %}</div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                {% set mailState = inquiry.mail|default('') %}
+                                <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold {{ mailState == 'gesendet' ? 'bg-[#355E4B]/10 text-[#355E4B]' : (mailState == 'fehlgeschlagen' ? 'bg-red-50 text-red-800' : 'bg-[#241E18]/[0.06] text-[#241E18]/60') }}">{{ mailState == 'gesendet' ? 'Mail gesendet' : (mailState == 'fehlgeschlagen' ? 'Mail fehlgeschlagen' : (mailState == 'kein-empfaenger' ? 'keine Empfänger-Adresse' : 'ohne Mail-Status')) }}</span>
+                                <form method="post" data-confirm="Anfrage von „{{ inquiry.name|default('–') }}“ löschen?">
+                                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                                    <input type="hidden" name="do" value="inquiry-delete">
+                                    <input type="hidden" name="id" value="{{ inquiry.id }}">
+                                    <button type="submit" class="cursor-pointer rounded-lg px-2 py-1 text-xs text-red-800 hover:bg-red-50">Löschen</button>
+                                </form>
+                            </div>
+                        </div>
+                        <p class="whitespace-pre-line text-sm text-[#241E18]/80">{{ inquiry.message|default('') }}</p>
+                    </article>
+                    {% else %}
+                    <p class="text-sm text-[#241E18]/50">Noch keine Anfragen.</p>
+                    {% endfor %}
                 </section>
             </div>
         </div>
@@ -2401,8 +2465,25 @@
           });
           var builder = document.getElementById('theme-builder');
           if (builder) builder.scrollIntoView({ behavior: 'smooth' });
+          updateThemeRegionWarning();
         }
       });
+
+      // Hinweis im Theme-Formular, wenn Header oder Footer auf "— Keine —" steht.
+      function updateThemeRegionWarning() {
+        var form = document.querySelector('[data-theme-form]');
+        var hint = form && form.querySelector('[data-theme-region-warning]');
+        if (!hint) return;
+        var missing = ['header', 'footer'].some(function (region) {
+          var select = form.querySelector('select[name="regions[' + region + ']"]');
+          return select && select.value === '';
+        });
+        hint.classList.toggle('hidden', !missing);
+      }
+      document.addEventListener('change', function (e) {
+        if (e.target.matches && e.target.matches('[data-theme-form] select[name^="regions["]')) updateThemeRegionWarning();
+      });
+      updateThemeRegionWarning();
     </script>
 </body>
 </html>

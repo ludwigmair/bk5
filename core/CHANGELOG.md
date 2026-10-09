@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.7.0 – 2026-10-09
+
+Backups bleiben erhalten (data/backups statt cache/). Neues Panel „Anfragen“ mit Löschfrist, Spam-Bremse im Kontaktformular, richtige Zeitzone. Admin ohne Tailwind-CDN. Theme-Karten zeigen ihre Bereiche. Layout kommt zur Laufzeit aus dem Theme; Themes sind nur im Generator bearbeitbar.
+
 ## 2.6.0 – 2026-10-08
 
 Mailversand: Core\Mail mit UTF-8-Headern und optionalem Absender (config mail.from), Admin-Button „Testmail senden“ unter Betrieb / Kontaktdaten.
