@@ -1,7 +1,7 @@
 {
     "note": "Vom Generator verwaltet (dev/sync-instance.php) – Core, Layout und Components nur im Generator ändern.",
-    "synced_at": "2026-10-09T08:06:58+00:00",
-    "generator_commit": "23b13a7",
+    "synced_at": "2026-10-09T08:16:31+00:00",
+    "generator_commit": "978d6c2",
     "theme": "theme-bk01",
     "regions": [
         "headers/header-bk01",
