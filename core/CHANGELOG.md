@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.9.0 – 2026-10-09
+
+„Live-Stand holen“: online gepflegte Inhalte per Paket vom Server in den Generator holen (nur Inhalte, Layout bleibt). In Instanzen nur noch Export („Live-Stand exportieren“). Menü „Projekte“ im Generator.
+
 ## 2.8.1 – 2026-10-09
 
 Topbar-Schalter im Admin auch bei Topbar-Varianten ohne eigene Felder (z. B. topbar-bl01).

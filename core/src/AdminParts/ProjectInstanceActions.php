@@ -177,7 +177,7 @@ trait ProjectInstanceActions
                 continue;
             }
             // Optionale 4. Spalte = gehostete URL (nur für dev/check-live.sh).
-            if (!preg_match('/^([a-z0-9][a-z0-9-]*)\s+(\d+)\s+(\S+)(?:\s+\S+)?\s*$/', $line, $m)) {
+            if (!preg_match('/^([a-z0-9][a-z0-9-]*)\s+(\d+)\s+(\S+)(?:\s+(\S+))?\s*$/', $line, $m)) {
                 continue;
             }
             // Der Generator selbst (docroot = web/ = this->cms->root() synced sich
@@ -193,6 +193,7 @@ trait ProjectInstanceActions
                 'port' => (int) $m[2],
                 'path' => $path,
                 'exists' => is_dir($path),
+                'url' => (string) ($m[4] ?? ''),
             ];
         }
         return $instances;
@@ -473,6 +474,11 @@ trait ProjectInstanceActions
     private function importProjectPackage(): void
     {
         $root = $this->cms->root();
+        // Live-Stand holen gibt es nur im Generator: in einer Instanz würde ein Paket
+        // Layout/Components einspielen, die dort ausschließlich aus dem Generator kommen.
+        if (!$this->hasDevTools()) {
+            $this->redirectToPanel('Pakete werden nur im Generator importiert (Live-Stand holen) – hier nur exportieren.', 'panel-export-instance');
+        }
         $fileField = $_FILES['package'] ?? null;
         if (!is_array($fileField) || ($fileField['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || ($fileField['size'] ?? 0) <= 0) {
             $this->redirectToPanel('Keine gültige Paket-Datei übermittelt.', 'panel-import-project');
@@ -548,39 +554,53 @@ trait ProjectInstanceActions
             return;
         }
 
-        // Bestehende Instanz-Konfiguration merken, damit die Admin-Logins der
-        // Instanz beim Import erhalten bleiben (die pflegt nur die Instanz selbst)
-        // und die Update-Manifests (Update-Buttons "ausgegraut", wenn leer).
-        $existing = CMS::readJson($root . '/data/config.json');
-        $existingUsers = array_values($existing['admin']['users'] ?? []);
-        $existingUpdate = $existing['update'] ?? [];
-
-        $written = 0;
-        foreach ($entries as $rel => $content) {
-            $dest = $root . '/' . $rel;
-            if (!is_dir(dirname($dest))) {
-                mkdir(dirname($dest), 0775, true);
-            }
-            file_put_contents($dest, $content);
-            $written++;
+        // Live-Stand holen: nur INHALTE übernehmen – Texte (content.json), Bilder und
+        // die inhaltlichen Schalter aus config.json (Topbar an/aus, Sprachen). Theme,
+        // Varianten und Components aus dem Paket werden ignoriert: deren Quelle ist
+        // der Generator selbst.
+        $pkgContent = json_decode($entries['data/content.json'], true);
+        if (!is_array($pkgContent)) {
+            $this->removeDir($tmpDir);
+            $this->redirectToPanel('data/content.json im Paket ist kein gültiges JSON.', 'panel-import-project');
+        }
+        $titleOf = fn (array $c): string => $this->displayString($c['site']['title'] ?? '');
+        $current = CMS::readJson($root . '/data/content.json');
+        $pkgTitle = $titleOf($pkgContent);
+        $curTitle = $titleOf($current);
+        if ($pkgTitle !== $curTitle && ($_POST['force'] ?? '') !== '1') {
+            $this->removeDir($tmpDir);
+            $this->redirectToPanel('Das Paket gehört zu „' . $pkgTitle . '“, geladen ist „' . $curTitle . '“ – erst das passende Projekt laden oder „trotzdem importieren“ anhaken.', 'panel-import-project');
         }
 
-        // Seeds nachziehen (ensureSeeded-Fallback) – der Import soll auch eine
-        // noch nie gebootete Instanz standfest machen. config.seed.json behält
-        // bewusst die leere Nutzerliste; Logins erzeugt ensureSeeded() aus .env.
-        copy($root . '/data/content.json', $root . '/data/content.seed.json');
-        $newConfig = CMS::readJson($root . '/data/config.json');
-        $newConfig['admin']['users'] = $existingUsers;
-        $newConfig['update'] = $existingUpdate;
-        CMS::writeJson($root . '/data/config.json', $newConfig);
-        $seedConfig = $newConfig;
-        $seedConfig['admin']['users'] = [];
-        CMS::writeJson($root . '/data/config.seed.json', $seedConfig);
+        file_put_contents($root . '/data/content.json', $entries['data/content.json']);
+        $images = 0;
+        foreach ($entries as $rel => $body) {
+            if (str_starts_with($rel, 'uploads/') && substr_count($rel, '/') === 1 && !str_starts_with(basename($rel), '.')) {
+                file_put_contents($root . '/' . $rel, $body);
+                $images++;
+            }
+        }
+        $pkgConfig = json_decode($entries['data/config.json'] ?? '{}', true);
+        $config = CMS::readJson($root . '/data/config.json');
+        if (is_array($pkgConfig)) {
+            if (isset($pkgConfig['layout']['topbar']['enabled'])) {
+                $config['layout']['topbar']['enabled'] = (bool) $pkgConfig['layout']['topbar']['enabled'];
+            }
+            foreach (['languages', 'languages_allowed', 'languages_disabled'] as $key) {
+                if (array_key_exists($key, $pkgConfig)) {
+                    $config[$key] = $pkgConfig[$key];
+                }
+            }
+        }
+        CMS::writeJson($root . '/data/config.json', $config);
+        $ignored = count(array_filter(array_keys($entries), static fn ($r) => str_starts_with($r, 'themes-and-plugins/')));
 
         $this->removeDir($root . '/cache/pages');
         $this->removeDir($tmpDir);
 
-        $this->redirectToPanel('Projekt-Paket importiert: ' . $written . ' Dateien (content.json, config.json, uploads/, Theme + verwendete Components). Admin-Logins dieser Instanz blieben erhalten, der Page-Cache wurde geleert.', 'panel-import-project');
+        $this->redirectToPanel('Live-Stand von „' . $pkgTitle . '“ übernommen: Texte, ' . $images . ' Bilder, Topbar an/aus und Sprachen'
+            . ($ignored ? ' (' . $ignored . ' Layout-/Component-Dateien aus dem Paket ignoriert – das Layout kommt aus dem Generator)' : '')
+            . '. Weiter: „Stand sichern“ unter Projekte bzw. „Instanz angleichen“ für die lokale Instanz.', 'panel-import-project');
     }
 
     /**
