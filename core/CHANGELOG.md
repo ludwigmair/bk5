@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.11.0 – 2026-10-09
+
+Generator: Im Formular „Theme bearbeiten“ lassen sich jetzt Farben (Farbwähler oder Hex), Schriften und Eckenradius eines Themes einstellen – gespeichert in theme.json, ausgerollt per Deploy. Eine Kopie unter neuem Namen übernimmt die übrigen Werte des Ausgangs-Themes.
+
 ## 2.10.2 – 2026-10-09
 
 Spam-Schutz: E-Mail-Adressen und Telefonnummern stehen jetzt auch nach dem Laden der Seite nirgends mehr als Text im Code (auch nicht im Element-Inspektor). Besucher sehen sie normal und können sie anklicken; markieren/kopieren geht dadurch nicht mehr.
