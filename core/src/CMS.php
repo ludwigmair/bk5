@@ -60,6 +60,14 @@ final class CMS
         // Theme-Vorschau (Admin → Themes → „Vorschau“): nur beim Rendern der öffentlichen
         // Seite ($locale gesetzt), nur im Generator (dev/ vorhanden) und nur in dieser
         // Sitzung – config.json bleibt unberührt, der Admin sieht die echte Config.
+        // Aktives Theme einer Instanz kommt mit dem Deploy (themes-and-plugins/active-theme.json,
+        // vom Sync geschrieben) – nicht aus der Server-config.json, die nie deployt wird. So
+        // kommt auch ein Theme-Wechsel aus dem Generator sicher live an. Im Generator gibt es
+        // die Datei nicht, dort gilt config.theme.
+        $deployedTheme = self::deployedTheme($root);
+        if ($deployedTheme !== '') {
+            $config['theme'] = $deployedTheme;
+        }
         $themePreview = '';
         if ($locale !== null && !empty($_SESSION['theme_preview']) && basename($root) === 'web' && is_dir(dirname($root) . '/dev')) {
             $themePreview = (string) $_SESSION['theme_preview'];
@@ -1355,6 +1363,16 @@ final class CMS
      * (oder ohne config.theme) gilt die Config unverändert. Nur im Speicher – die
      * Datei wird nicht umgeschrieben.
      */
+    /** Vom Sync in jede Instanz geschriebenes, mit deploytes aktives Theme. */
+    public const ACTIVE_THEME_FILE = '/themes-and-plugins/active-theme.json';
+
+    public static function deployedTheme(string $root): string
+    {
+        $theme = (string) (self::readJson($root . self::ACTIVE_THEME_FILE)['theme'] ?? '');
+
+        return preg_match('/^[a-z0-9][a-z0-9_-]*$/i', $theme) === 1 && is_file($root . '/themes-and-plugins/themes/' . $theme . '/theme.json') ? $theme : '';
+    }
+
     /** Farben, die ein Farbset (theme.json → palettes) überschreibt. */
     public const PALETTE_COLORS = ['primary', 'secondary', 'ash', 'walnut'];
 

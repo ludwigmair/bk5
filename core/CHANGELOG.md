@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.14.0 – 2026-10-09
+
+Das aktive Theme einer Website wird jetzt mit ausgeliefert – ein Theme-Wechsel aus dem Generator kommt damit sicher auf der Website an.
+
 ## 2.13.0 – 2026-10-09
 
 Der schmale dunkle Streifen am linken Bildschirmrand ist entfernt – Seiten gehen jetzt über die volle Breite. Neu im Theme: Seitenbreite „Wide“ (wie bisher) oder „Boxed“ (ganze Seite als mittiger Kasten).

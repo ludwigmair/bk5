@@ -97,6 +97,7 @@ trait ProjectInstanceActions
                 $dest . "/themes-and-plugins/themes/{$theme}"
             );
             $this->copyThemePalettes($root, $dest, $theme);
+            CMS::writeJson($dest . CMS::ACTIVE_THEME_FILE, ['theme' => $theme]);
         }
         foreach (['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] as $region) {
             // Der gemeinsame Pool wird IMMER mitgenommen – er ist die alleinige
@@ -367,7 +368,7 @@ trait ProjectInstanceActions
             $this->addDirToZipSkipping($zip, $root . '/uploads', 'uploads', ['.optim']);
         }
 
-        $theme = (string) ($cleanConfig['theme'] ?? '');
+        $theme = (string) ($this->cms->config()['theme'] ?? $cleanConfig['theme'] ?? '');
         if ($theme !== '' && is_dir($root . "/themes-and-plugins/themes/{$theme}")) {
             $this->addDirToZip($zip, $root . "/themes-and-plugins/themes/{$theme}", 'themes-and-plugins/themes/' . $theme);
         }
