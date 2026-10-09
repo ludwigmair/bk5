@@ -6,7 +6,8 @@
     <title>Benutzerhandbuch · {{ site_name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    {# Statisches Admin-CSS (dev/build-css.sh --admin), sonst Laufzeit-CDN als Fallback. #}
+    {% if admin_css|default('') %}<link rel="stylesheet" href="{{ admin_css }}">{% else %}<script src="https://cdn.tailwindcss.com"></script>{% endif %}
     <style>
       .manual h1 { font-family: 'Commissioner', sans-serif; font-weight: 600; font-size: 1.75rem; margin: 0 0 0.5rem; }
       .manual h2 { font-family: 'Commissioner', sans-serif; font-weight: 600; font-size: 1.3rem; margin: 2rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid rgba(36,30,24,.08); }

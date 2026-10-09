@@ -34,3 +34,6 @@
 
 # Kontaktanfragen aus dem Kontaktformular – Personendaten, nie in Git.
 /data/inquiries.json
+
+# Personendaten, nie in Git.
+/data/backups/

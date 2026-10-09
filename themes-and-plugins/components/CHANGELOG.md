@@ -1,5 +1,9 @@
 # Changelog – Components
 
+## 1.2.8 – 2026-10-09
+
+Kontaktformular: Spam-Bremse (5 Anfragen pro Stunde und IP), Anfragen über Core\Inquiries mit Löschfrist und Admin-Panel.
+
 ## 1.2.7 – 2026-10-08
 
 Kontaktformular: gewähltes Anliegen kommt in der Mail an, Umlaute korrekt, Versandstatus pro Anfrage, Anfragen bleiben in data/inquiries.json erhalten (lagen in cache/ und gingen bei jedem Deploy verloren).

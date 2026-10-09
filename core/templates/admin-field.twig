@@ -94,10 +94,10 @@
           <span class="mx-0.5 h-7 w-px shrink-0 bg-[#241E18]/15"></span>
           <span class="shrink-0 text-[10px] text-[#241E18]/40 transition group-open:rotate-90">▶</span>
           {% if thumbField %}
-          <img class="h-8 w-8 shrink-0 rounded-md border border-[#241E18]/10 object-cover {% if not thumb %}hidden{% endif %}" data-repeater-thumb src="{{ thumb starts with 'http' ? thumb : '/' ~ thumb }}" alt="" loading="lazy">
+          <img class="h-8 w-8 shrink-0 rounded-md border border-[#241E18]/10 object-cover {% if not thumb %} hidden {% endif %}" data-repeater-thumb src="{{ thumb starts with 'http' ? thumb : '/' ~ thumb }}" alt="" loading="lazy">
           {% endif %}
           <span class="min-w-0 flex-1 truncate" data-repeater-summary>{{ label|default('Eintrag ' ~ loop.index) }}</span>
-          <button type="button" class="h-7 shrink-0 cursor-pointer rounded-full border px-3 text-xs font-semibold shadow-sm transition {% if rowActive %}border-[#355E4B] bg-[#355E4B] text-white{% else %}border-[#241E18]/20 bg-[#241E18]/[0.08] text-[#241E18]/60{% endif %}" data-toggle-active aria-pressed="{{ rowActive ? 'true' : 'false' }}" title="Aktiv / Inaktiv">{{ rowActive ? 'Aktiv' : 'Inaktiv' }}</button>
+          <button type="button" class="h-7 shrink-0 cursor-pointer rounded-full border px-3 text-xs font-semibold shadow-sm transition {% if rowActive %} border-[#355E4B] bg-[#355E4B] text-white {% else %} border-[#241E18]/20 bg-[#241E18]/[0.08] text-[#241E18]/60 {% endif %}" data-toggle-active aria-pressed="{{ rowActive ? 'true' : 'false' }}" title="Aktiv / Inaktiv">{{ rowActive ? 'Aktiv' : 'Inaktiv' }}</button>
           <input type="hidden" name="{{ prefix }}[{{ field.name }}][{{ loop.index0 }}][active]" value="{{ rowActive ? '1' : '0' }}" data-active-input>
           <button type="button" class="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-red-800/10 bg-red-800/5 text-base font-semibold text-red-700/80 shadow-sm transition hover:border-red-800/30 hover:bg-red-50 hover:text-red-700" data-remove-item title="Eintrag entfernen">✕</button>
         </summary>
@@ -120,7 +120,7 @@
   <div data-image-field>
     <label class="{{ labelBase }}">{{ field.label }}</label>
     <div class="mt-1 flex items-center gap-2.5">
-      <img class="h-10 w-10 shrink-0 rounded-lg border border-[#241E18]/10 object-cover {% if not value %}hidden{% endif %}" data-value-preview src="{{ value ? (value starts with 'http' ? value : '/' ~ value) : '' }}" alt="" loading="lazy">
+      <img class="h-10 w-10 shrink-0 rounded-lg border border-[#241E18]/10 object-cover {% if not value %} hidden {% endif %}" data-value-preview src="{{ value ? (value starts with 'http' ? value : '/' ~ value) : '' }}" alt="" loading="lazy">
       <span class="min-w-0 flex-1 truncate text-sm text-[#241E18]/70" data-value-name>{{ value ? value|split('/')|last : 'Kein Bild ausgewählt' }}</span>
       <input type="hidden" name="{{ name }}" value="{{ value }}" data-url-input>
       <input type="file" class="hidden" accept=".jpg,.jpeg,.png,.webp,.gif{{ current_is_admin|default(false) ? ",.svg" : "" }}" data-image-file>
@@ -156,14 +156,14 @@
     <div class="mt-1.5" data-tabs>
       <div class="flex flex-wrap gap-1 border-b border-[#241E18]/10 pb-1.5">
         {% for catSlug, cat in icon_categories %}
-        <button type="button" class="cursor-pointer rounded-md px-2 py-1 text-[11px] font-medium transition {% if catSlug == selectedCategory %}bg-[#355E4B]/10 text-[#355E4B]{% else %}text-[#241E18]/50 hover:bg-[#241E18]/5{% endif %}" data-tab-btn="{{ catSlug }}">{{ cat.label }}</button>
+        <button type="button" class="cursor-pointer rounded-md px-2 py-1 text-[11px] font-medium transition {% if catSlug == selectedCategory %} bg-[#355E4B]/10 text-[#355E4B] {% else %} text-[#241E18]/50 hover:bg-[#241E18]/5 {% endif %}" data-tab-btn="{{ catSlug }}">{{ cat.label }}</button>
         {% endfor %}
-        <button type="button" class="cursor-pointer rounded-md px-2 py-1 text-[11px] font-medium transition {% if selectedCategory == 'custom' %}bg-[#355E4B]/10 text-[#355E4B]{% else %}text-[#241E18]/50 hover:bg-[#241E18]/5{% endif %}" data-tab-btn="custom">Eigener Pfad</button>
+        <button type="button" class="cursor-pointer rounded-md px-2 py-1 text-[11px] font-medium transition {% if selectedCategory == 'custom' %} bg-[#355E4B]/10 text-[#355E4B] {% else %} text-[#241E18]/50 hover:bg-[#241E18]/5 {% endif %}" data-tab-btn="custom">Eigener Pfad</button>
       </div>
       {% for catSlug, cat in icon_categories %}
       <div class="{{ catSlug == selectedCategory ? 'grid' : 'hidden' }} grid-cols-6 gap-1.5 pt-2 sm:grid-cols-8" data-tab-panel="{{ catSlug }}">
         {% for slug, def in cat.icons %}
-        <button type="button" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-[#241E18]/70 transition {% if value == slug %}border-[#355E4B]/40 bg-[#355E4B]/10 text-[#355E4B]{% else %}border-[#241E18]/15 bg-white hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5{% endif %}" data-btn-group-option="{{ slug }}" title="{{ def.label }}">
+        <button type="button" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-[#241E18]/70 transition {% if value == slug %} border-[#355E4B]/40 bg-[#355E4B]/10 text-[#355E4B] {% else %} border-[#241E18]/15 bg-white hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 {% endif %}" data-btn-group-option="{{ slug }}" title="{{ def.label }}">
           <span class="h-4.5 w-4.5 [&>svg]:h-full [&>svg]:w-full">{{ icon(slug)|raw }}</span>
         </button>
         {% endfor %}
@@ -194,7 +194,7 @@
     <input type="hidden" name="{{ name }}" value="{{ value }}" data-btn-group-input>
     <div class="mt-1.5 flex gap-1.5">
       {% for opt in alignOptions %}
-      <button type="button" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-[#241E18]/70 transition {% if value == opt.value %}border-[#355E4B]/40 bg-[#355E4B]/10 text-[#355E4B]{% else %}border-[#241E18]/15 bg-white hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5{% endif %}" data-btn-group-option="{{ opt.value }}" title="{{ opt.label }}">
+      <button type="button" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border text-[#241E18]/70 transition {% if value == opt.value %} border-[#355E4B]/40 bg-[#355E4B]/10 text-[#355E4B] {% else %} border-[#241E18]/15 bg-white hover:border-[#355E4B]/30 hover:bg-[#355E4B]/5 {% endif %}" data-btn-group-option="{{ opt.value }}" title="{{ opt.label }}">
         <svg class="h-4.5 w-4.5" viewBox="0 0 24 24" fill="currentColor">{{ opt.path|raw }}</svg>
       </button>
       {% endfor %}
@@ -214,7 +214,7 @@
     <label class="{{ labelBase }}">{{ field.label }}</label>
     <div class="mt-1 flex items-center gap-0.5">
       {% for i in 1..maxStars %}
-      <button class="cursor-pointer text-2xl leading-none transition {% if i <= current %}text-[#B87333]{% else %}text-[#241E18]/15{% endif %}" type="button" data-rating-star="{{ i }}" title="{{ i }} von {{ maxStars }}">★</button>
+      <button class="cursor-pointer text-2xl leading-none transition {% if i <= current %} text-[#B87333] {% else %} text-[#241E18]/15 {% endif %}" type="button" data-rating-star="{{ i }}" title="{{ i }} von {{ maxStars }}">★</button>
       {% endfor %}
     </div>
     <input type="hidden" name="{{ name }}" value="{{ current }}" data-rating-input>

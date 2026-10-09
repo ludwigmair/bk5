@@ -14,7 +14,7 @@
     <div class="h-px bg-walnut/10"></div>
     {% endif %}
     {% if contact_id|default('') %}
-    <a class="flex flex-col items-center gap-1 px-4 py-3 text-secondary transition hover:bg-ash/50" href="/#{{ contact_id }}" title="Zur Anfrage">
+    <a class="flex flex-col items-center gap-1 px-4 py-3 text-secondary transition hover:bg-ash/50" href="{{ locale_prefix }}/#{{ contact_id }}" title="Zur Anfrage">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H8l-4 4V5Z"/></svg>
         <span class="text-xs font-medium">{{ content.labels.sticky_inquiry|default('Anfrage') }}</span>
     </a>

@@ -46,6 +46,12 @@ final class Admin
             if (in_array($action, self::ADMIN_ONLY_ACTIONS, true) && !$this->currentIsAdmin()) {
                 $this->redirect('Keine Berechtigung.');
             }
+            // Layout-Sperre: Themes (und damit Header/Footer/…-Varianten) werden nur im
+            // Generator entwickelt und per Sync/Deploy übernommen – in einer Instanz
+            // würde eine Änderung beim nächsten Sync überschrieben (bzw. ihn blockieren).
+            if (in_array($action, ['apply-theme', 'build-theme', 'delete-theme'], true) && !$this->hasDevTools()) {
+                $this->redirectToPanel('Themes werden nur im Generator bearbeitet – dort ändern und per Sync/Deploy übernehmen.', 'panel-theme');
+            }
             if ($action === 'check-update') {
                 $this->runCheckUpdate();
                 return;
@@ -71,6 +77,8 @@ final class Admin
                 'image-upload' => $this->uploadImage(),
                 'image-delete' => $this->deleteImage(),
                 'image-delete-many' => $this->deleteImagesMany(),
+                'inquiry-delete' => $this->deleteInquiry(),
+                'inquiries-delete-all' => $this->deleteAllInquiries(),
                 'image-import' => $this->importImages(),
                 'regen-thumbs' => $this->regenerateThumbnails(),
                 'reorder-sections' => $this->reorderSections(),
@@ -285,6 +293,8 @@ final class Admin
             'content_rev' => $this->contentRevision(),
             'mail_from' => Mail::fromAddress($this->cms->config(), $this->cms->content()),
             'uploads' => $this->listUploads(),
+            'inquiries' => Inquiries::all($this->cms->root(), Inquiries::retentionDays($this->cms->config())),
+            'inquiries_retention_days' => Inquiries::retentionDays($this->cms->config()),
             'active_languages' => CMS::activeLanguages($this->cms->config()),
             'available_languages' => $this->availableLanguages(),
             'dev_imports' => $this->scanDevImports(),
@@ -668,6 +678,20 @@ final class Admin
         $this->redirectToPanel($ok
             ? "Testmail an {$to} vom Server angenommen (Absender {$from}). Bitte Postfach prüfen – auch den Spam-Ordner. Landet sie dort oder gar nicht, in data/config.json \"mail\": {\"from\": \"…\"} auf eine Adresse der Webhoster-Domain setzen."
             : "Der Server hat die Testmail an {$to} abgelehnt (mail() fehlgeschlagen) – beim Webhoster prüfen, ob PHP-mail() aktiviert ist.", 'panel-business');
+    }
+
+    /** Panel "Anfragen": eine Einsendung löschen (auch für Bearbeiter – sie betreuen die Anfragen). */
+    private function deleteInquiry(): void
+    {
+        $id = (string) ($_POST['id'] ?? '');
+        $deleted = $id !== '' && Inquiries::delete($this->cms->root(), $id);
+        $this->redirectToPanel($deleted ? 'Anfrage gelöscht.' : 'Anfrage nicht gefunden.', 'panel-inquiries');
+    }
+
+    private function deleteAllInquiries(): void
+    {
+        $count = Inquiries::deleteAll($this->cms->root());
+        $this->redirectToPanel($count . ' Anfrage' . ($count === 1 ? '' : 'n') . ' gelöscht.', 'panel-inquiries');
     }
 
     /** Prüfsumme von data/content.json – wechselt mit jedem Speichern, egal von wem. */

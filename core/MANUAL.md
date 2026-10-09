@@ -174,6 +174,17 @@ Anklicken öffnet unter dem Feld mehrere Vorschläge, ein Klick auf einen Vorsch
 dieser Website (Marken-/Stil-Vorgaben aus den Stammdaten) mit einbezieht – die
 Vorschläge sind Anregungen, jeder kann einzeln übernommen oder verworfen werden.
 
+## Anfragen
+
+Unter **Anfragen** stehen alle Nachrichten aus dem Kontaktformular, die neueste
+oben – mit Name, E-Mail, Telefon, gewähltem Anliegen und dem Text. Jede Anfrage
+wird zusätzlich per Mail an die E-Mail unter Betrieb / Kontaktdaten geschickt; das
+Feld rechts zeigt, ob das geklappt hat (**Mail gesendet** / **Mail fehlgeschlagen**).
+Auch bei fehlgeschlagener Mail ist die Anfrage hier gespeichert. Erledigte Anfragen
+über **Löschen** entfernen; nach 180 Tagen werden Anfragen automatisch gelöscht
+(Datenschutz). Wer mehr als fünf Anfragen pro Stunde abschickt, wird vorübergehend
+gebremst (Spam-Schutz).
+
 ## Bilder einfügen
 
 Bild-Felder zeigen ein kleines Vorschaubild plus drei Buttons:
@@ -306,6 +317,7 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
 
 ## Projekte (nur mit Admin-Rolle)
 
+- **Themes** (nur im Generator bearbeitbar – in einer ausgelieferten Website ist das Panel reine Ansicht, das Layout kommt aus dem Generator): jede Karte zeigt, welche Header-/Footer-/Topbar-/Sticky-/Cookie-Variante das Theme nutzt; fehlt Header oder Footer, steht dort ein Hinweis (gleicher Hinweis im Bearbeiten-Formular).
 - **Projekt-Instanz erstellen**: exportiert den aktuellen Stand (Inhalte, Bilder,
   aktives Theme) als eigenständigen, deploybaren Ordner – der Weg von "im
   Generator fertig" zu "beim Kunden live". Nur beim ersten Export sinnvoll bzw.

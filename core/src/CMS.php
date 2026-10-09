@@ -52,6 +52,12 @@ final class CMS
         self::ensureSeeded($root);
 
         $config = self::readJson($root . '/data/config.json');
+        // Zeitzone für alle Zeitangaben (Admin-Anzeige, Backup-Namen, Anfragen):
+        // ohne Vorgabe liefen viele Hoster (und php -S lokal) auf UTC, die Zeiten
+        // im Admin waren dann 1–2 Stunden versetzt. config.json → timezone.
+        $timezone = (string) ($config['timezone'] ?? 'Europe/Berlin');
+        date_default_timezone_set(in_array($timezone, \DateTimeZone::listIdentifiers(), true) ? $timezone : 'Europe/Berlin');
+        $config = self::applyThemeToConfig($root, $config);
         $content = self::readJson($root . '/data/content.json');
         $languages = self::activeLanguages($config);
         $available = self::availableLanguages($config);
@@ -110,6 +116,9 @@ final class CMS
         $twig->addGlobal('config', $config);
         $twig->addGlobal('content', $content);
         $twig->addGlobal('csrf', $_SESSION['csrf'] ?? '');
+        // Statisches Admin-CSS (dev/build-css.sh --admin); ?v= gegen Browser-Cache nach Core-Updates.
+        $adminCss = $root . '/core/assets/admin.css';
+        $twig->addGlobal('admin_css', is_file($adminCss) ? '/core/assets/admin.css?v=' . filemtime($adminCss) : '');
         $twig->addGlobal('icons', Icons::all());
         $twig->addGlobal('icon_categories', Icons::byCategory());
         $twig->addGlobal('languages', $languages);
@@ -1319,6 +1328,49 @@ final class CMS
         foreach (glob($root . self::PAGE_CACHE_DIR . '/*.html') ?: [] as $file) {
             @unlink($file);
         }
+    }
+
+    /**
+     * Das aktive Theme ist die Quelle für das Layout: Farben/Schriften (brand) und
+     * die Region-Varianten kommen zur Laufzeit aus themes/<theme>/theme.json, nicht
+     * aus der beim Anwenden kopierten Fassung in data/config.json. Grund: config.json
+     * gehört dem Server und wird nie deployt – eine Theme-Änderung im Generator käme
+     * sonst nie live an. theme.json geht mit jedem Deploy mit.
+     *
+     * In config.json bleiben: welches Theme aktiv ist, Inhaltsschalter wie
+     * topbar.enabled und brand-Schlüssel, die das Theme nicht kennt. Ohne theme.json
+     * (oder ohne config.theme) gilt die Config unverändert. Nur im Speicher – die
+     * Datei wird nicht umgeschrieben.
+     */
+    public static function applyThemeToConfig(string $root, array $config): array
+    {
+        $name = (string) ($config['theme'] ?? '');
+        if ($name === '' || !preg_match('/^[a-z0-9][a-z0-9_-]*$/i', $name)) {
+            return $config;
+        }
+        $theme = self::readJson($root . '/themes-and-plugins/themes/' . $name . '/theme.json');
+        if ($theme === []) {
+            return $config;
+        }
+        if (is_array($theme['brand'] ?? null)) {
+            $config['brand'] = array_replace(is_array($config['brand'] ?? null) ? $config['brand'] : [], $theme['brand']);
+        }
+        if (is_array($theme['layout'] ?? null)) {
+            foreach (['header', 'footer', 'stickybar', 'cookiebanner'] as $region) {
+                if (array_key_exists($region, $theme['layout'])) {
+                    $config['layout'][$region] = (string) $theme['layout'][$region];
+                }
+            }
+            if (array_key_exists('topbar', $theme['layout'])) {
+                $topbar = $config['layout']['topbar'] ?? [];
+                $config['layout']['topbar'] = [
+                    'enabled' => (bool) (is_array($topbar) ? ($topbar['enabled'] ?? false) : false),
+                    'theme' => (string) $theme['layout']['topbar'],
+                ];
+            }
+        }
+
+        return $config;
     }
 
     /**

@@ -293,8 +293,14 @@ trait UpdateActions
      * deaktiviert (404) statt "offen ohne Prüfung" - ein leerer erwarteter
      * Wert darf nie automatisch "passt" bedeuten.
      *
-     * Sichert nur data/ (Content, Config, Bearbeitungsverlauf) und uploads/
-     * (Bilder) - der Code selbst kommt aus Git und braucht kein Backup.
+     * Sichert nur data/ (Content, Config, Bearbeitungsverlauf, Anfragen) und
+     * uploads/ (Bilder) - der Code selbst kommt aus Git und braucht kein Backup.
+     *
+     * Ablage in data/backups/ (per .htaccess gesperrt, vom Deploy nie angefasst).
+     * Früher lag sie in cache/backups/ - den cache/-Ordner hat der Deploy-Workflow
+     * aber VOR jedem Backup komplett gelöscht, es gab also nie mehr als das eine
+     * Backup des letzten Deploys. data/backups/ selbst wird beim Zippen
+     * übersprungen (sonst enthielte jedes Backup alle vorherigen).
      */
     private function runBackup(): void
     {
@@ -315,11 +321,15 @@ trait UpdateActions
         }
 
         $root = $this->cms->root();
-        $backupDir = $root . '/cache/backups';
+        $backupDir = $root . '/data/backups';
         if (!is_dir($backupDir) && !mkdir($backupDir, 0775, true) && !is_dir($backupDir)) {
             http_response_code(500);
             echo json_encode(['ok' => false, 'error' => 'backup directory could not be created']);
             exit;
+        }
+        // Noch vorhandene Backups vom alten Ablageort übernehmen.
+        foreach (glob($root . '/cache/backups/backup-*.zip') ?: [] as $legacy) {
+            @rename($legacy, $backupDir . '/' . basename($legacy));
         }
 
         $file = $backupDir . '/backup-' . date('Ymd-His') . '.zip';
@@ -330,7 +340,7 @@ trait UpdateActions
             exit;
         }
         if (is_dir($root . '/data')) {
-            $this->addDirToZip($zip, $root . '/data', 'data');
+            $this->addDirToZipSkipping($zip, $root . '/data', 'data', ['backups']);
         }
         if (is_dir($root . '/uploads')) {
             $this->addDirToZip($zip, $root . '/uploads', 'uploads');
