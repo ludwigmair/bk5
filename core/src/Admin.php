@@ -59,7 +59,7 @@ final class Admin
             // Layout-Sperre: Themes (und damit Header/Footer/…-Varianten) werden nur im
             // Generator entwickelt und per Sync/Deploy übernommen – in einer Instanz
             // würde eine Änderung beim nächsten Sync überschrieben (bzw. ihn blockieren).
-            if (in_array($action, ['apply-theme', 'build-theme', 'delete-theme', 'theme-preview', 'theme-preview-end'], true) && !$this->hasDevTools()) {
+            if (in_array($action, ['apply-theme', 'build-theme', 'delete-theme', 'theme-preview', 'theme-preview-end', 'save-palette-pool'], true) && !$this->hasDevTools()) {
                 $this->redirectToPanel('Themes werden nur im Generator bearbeitet – dort ändern und per Sync/Deploy übernehmen.', 'panel-theme');
             }
             if ($action === 'check-update') {
@@ -83,6 +83,8 @@ final class Admin
                 'build-theme' => $this->buildTheme(),
                 'delete-theme' => $this->deleteTheme(),
                 'toggle-topbar' => $this->toggleTopbar(),
+                'set-palette' => $this->setPalette(),
+                'save-palette-pool' => $this->savePalettePool(),
                 'mail-test' => $this->sendTestMail(),
                 'theme-preview' => $this->startThemePreview(),
                 'theme-preview-end' => $this->endThemePreview(),
@@ -264,7 +266,7 @@ final class Admin
     private const ADMIN_ONLY_ACTIONS = [
         'check-update', 'update', 'check-components-update', 'components-update',
         'user-add', 'user-remove', 'user-setpw',
-        'apply-theme', 'build-theme', 'delete-theme', 'toggle-topbar', 'mail-test', 'theme-preview', 'theme-preview-end',
+        'apply-theme', 'build-theme', 'delete-theme', 'toggle-topbar', 'set-palette', 'save-palette-pool', 'mail-test', 'theme-preview', 'theme-preview-end',
         'add', 'delete', 'reorder-sections',
         'switch-project', 'export-import', 'restore-import', 'restore-history',
         'build-update-package', 'download-update-package', 'delete-update-package',
@@ -351,6 +353,8 @@ final class Admin
             'themes' => $this->scanThemes(),
             'active_theme' => $activeThemeName,
             'active_theme_data' => $activeThemeData,
+            'active_theme_palettes' => CMS::themePalettes($this->cms->root(), is_array($activeThemeData) ? $activeThemeData : []),
+            'palette_pool' => CMS::poolPalettes($this->cms->root()),
             'regionVariants' => [
                 'header' => $this->scanRegionVariants('header'),
                 'footer' => $this->scanRegionVariants('footer'),
@@ -1439,6 +1443,91 @@ final class Admin
     }
 
     /**
+     * Farbset des aktiven Themes wählen (config.palette, leer = Standard). Wie die
+     * Topbar ein Inhaltsschalter: bewusst NICHT in der Layout-Sperre, damit der
+     * Kunde im Admin seiner Website umschalten kann; die Sets selbst stehen in der
+     * theme.json und werden nur im Generator gepflegt.
+     */
+    private function setPalette(): void
+    {
+        $path = $this->cms->root() . '/data/config.json';
+        $config = CMS::readJson($path);
+        $theme = CMS::readJson($this->cms->root() . '/themes-and-plugins/themes/' . basename((string) ($config['theme'] ?? '')) . '/theme.json');
+        $palettes = CMS::themePalettes($this->cms->root(), $theme);
+        $choice = trim((string) ($_POST['palette'] ?? ''));
+        if ($choice !== '' && !isset($palettes[$choice])) {
+            $this->redirectToPanel('Dieses Farbset gibt es im aktiven Theme nicht.', 'panel-site');
+        }
+        if ($choice === '') {
+            unset($config['palette']);
+        } else {
+            $config['palette'] = $choice;
+        }
+        CMS::writeJson($path, $config);
+        $label = $choice === '' ? 'Standard' : (string) ($palettes[$choice]['label'] ?? $choice);
+        $this->redirectToPanel('Farbvariante „' . $label . '“ aktiv.', 'panel-site');
+    }
+
+    /**
+     * Speichert die zentrale Farbset-Bibliothek (themes-and-plugins/palettes/<slug>.json,
+     * nur im Generator). Bestehende Sets behalten ihren Slug auch beim Umbenennen
+     * (Themes verweisen darüber); entfernt wird nur, was kein Theme mehr anbietet.
+     */
+    private function savePalettePool(): void
+    {
+        $dir = $this->cms->root() . CMS::PALETTE_DIR;
+        $existing = CMS::poolPalettes($this->cms->root());
+        $sets = [];
+        foreach (is_array($_POST['pool'] ?? null) ? $_POST['pool'] : [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $label = trim((string) ($row['label'] ?? ''));
+            if ($label === '') {
+                continue;
+            }
+            $slug = (string) ($row['slug'] ?? '');
+            if (!isset($existing[$slug])) {
+                $slug = CMS::slugify($label);
+            }
+            if (mb_strlen($label) > 30 || $slug === '' || $slug === 'standard' || isset($sets[$slug])) {
+                $this->redirectToPanel('Ungültiger oder doppelter Farbset-Name: „' . $label . '“ – nichts gespeichert.', 'panel-theme');
+            }
+            $set = ['label' => $label];
+            foreach (CMS::PALETTE_COLORS as $key) {
+                $color = trim((string) ($row[$key] ?? ''));
+                if (preg_match('/^#[0-9a-fA-F]{6}$/', $color) !== 1) {
+                    $this->redirectToPanel('Farbset „' . $label . '“: ungültige Farbe für ' . $key . ' – nichts gespeichert.', 'panel-theme');
+                }
+                $set[$key] = $color;
+            }
+            $sets[$slug] = $set;
+        }
+        // Noch von einem Theme angebotene Sets nicht löschen
+        foreach (array_diff(array_keys($existing), array_keys($sets)) as $removed) {
+            $users = [];
+            foreach ($this->scanThemes() as $theme) {
+                if (in_array($removed, (array) ($theme['palette_refs'] ?? []), true)) {
+                    $users[] = (string) ($theme['label'] ?? $theme['name'] ?? '');
+                }
+            }
+            if ($users !== []) {
+                $this->redirectToPanel('Farbset „' . ($existing[$removed]['label'] ?? $removed) . '“ wird noch angeboten von: ' . implode(', ', $users) . ' – dort erst abwählen, nichts gespeichert.', 'panel-theme');
+            }
+        }
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+            $this->redirectToPanel('Ordner für die Farbset-Bibliothek konnte nicht angelegt werden.', 'panel-theme');
+        }
+        foreach ($sets as $slug => $set) {
+            CMS::writeJson("{$dir}/{$slug}.json", $set);
+        }
+        foreach (array_diff(array_keys($existing), array_keys($sets)) as $removed) {
+            @unlink("{$dir}/{$removed}.json");
+        }
+        $this->redirectToPanel('Farbset-Bibliothek gespeichert (' . count($sets) . ' Sets).', 'panel-theme');
+    }
+
+    /**
      * Baut ein neues, eigenständiges Theme aus Region-Varianten, die im Admin
      * einzeln gewählt wurden (Header/Footer/Topbar/Sticky-Bar/Cookie-Banner).
      * Kopiert die gewählten template.twig/schema.json-Dateien aus dem
@@ -1493,6 +1582,45 @@ final class Admin
                 $this->redirectToPanel('Ungültiger Wert für ' . $key . ': „' . $value . '“ – nichts gespeichert.', 'panel-theme');
             }
             $brandOverrides[$key] = $value;
+        }
+        // Weitere Farbsets (theme.json → palettes): Name + die vier Farben je Zeile,
+        // leere Zeilen werden ignoriert. Die Auswahl trifft der Admin der Website
+        // (setPalette()), gepflegt werden die Sets nur hier.
+        $palettes = [];
+        foreach (is_array($_POST['palettes'] ?? null) ? $_POST['palettes'] : [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $paletteLabel = trim((string) ($row['label'] ?? ''));
+            if ($paletteLabel === '') {
+                continue;
+            }
+            $paletteSlug = CMS::slugify($paletteLabel);
+            if (mb_strlen($paletteLabel) > 30 || $paletteSlug === '' || $paletteSlug === 'standard' || isset($palettes[$paletteSlug])) {
+                $this->redirectToPanel('Ungültiger oder doppelter Farbset-Name: „' . $paletteLabel . '“ – nichts gespeichert.', 'panel-theme');
+            }
+            $set = ['label' => $paletteLabel];
+            foreach (CMS::PALETTE_COLORS as $key) {
+                $color = trim((string) ($row[$key] ?? ''));
+                if (preg_match('/^#[0-9a-fA-F]{6}$/', $color) !== 1) {
+                    $this->redirectToPanel('Farbset „' . $paletteLabel . '“: ungültige Farbe für ' . $key . ' – nichts gespeichert.', 'panel-theme');
+                }
+                $set[$key] = $color;
+            }
+            $palettes[$paletteSlug] = $set;
+        }
+        // Aus der Bibliothek angebotene Sets (theme.json → palette_refs)
+        $pool = CMS::poolPalettes($this->cms->root());
+        $paletteRefs = [];
+        foreach (is_array($_POST['palette_refs'] ?? null) ? $_POST['palette_refs'] : [] as $ref) {
+            $ref = (string) $ref;
+            if (!isset($pool[$ref])) {
+                $this->redirectToPanel('Farbset „' . $ref . '“ gibt es in der Bibliothek nicht – nichts gespeichert.', 'panel-theme');
+            }
+            if (isset($palettes[$ref])) {
+                $this->redirectToPanel('Eigenes Farbset „' . $palettes[$ref]['label'] . '“ heißt wie ein Bibliotheks-Set – bitte umbenennen, nichts gespeichert.', 'panel-theme');
+            }
+            $paletteRefs[] = $ref;
         }
 
         $root = $this->cms->root();
@@ -1560,6 +1688,12 @@ final class Admin
             'languages' => $languages,
             'layout' => $chosen,
         ];
+        if ($palettes !== []) {
+            $themeJson['palettes'] = $palettes;
+        }
+        if ($paletteRefs !== []) {
+            $themeJson['palette_refs'] = array_values(array_unique($paletteRefs));
+        }
         CMS::writeJson("{$themeDir}/theme.json", $themeJson);
 
         $config['theme'] = $slug;

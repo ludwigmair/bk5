@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.12.0 – 2026-10-09
+
+Farbsets: Ein Theme kann mehrere benannte Farbsets anbieten – eigene oder aus der neuen Farbset-Bibliothek, die für alle Themes gilt (beides im Generator gepflegt). Welches Set gilt, wählt der Admin der Website unter „Seite“ → „Farbvariante“. Außerdem behoben: Buttons, die einen eigenen Wert mitschicken, verloren ihn beim Absenden.
+
 ## 2.11.0 – 2026-10-09
 
 Generator: Im Formular „Theme bearbeiten“ lassen sich jetzt Farben (Farbwähler oder Hex), Schriften und Eckenradius eines Themes einstellen – gespeichert in theme.json, ausgerollt per Deploy. Eine Kopie unter neuem Namen übernimmt die übrigen Werte des Ausgangs-Themes.
