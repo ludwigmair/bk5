@@ -1389,6 +1389,8 @@ final class CMS
      *
      * @return array{lifetime: int, path: string, secure: bool, httponly: bool, samesite: string}
      */
+    public const SESSION_LIFETIME = 28800;
+
     public static function sessionCookieOptions(): array
     {
         $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
@@ -1404,7 +1406,9 @@ final class CMS
             return;
         }
         session_set_cookie_params(self::sessionCookieOptions());
-        session_start(['use_strict_mode' => 1]);
+        // 8 h statt PHP-Standard 24 min: wer den Admin offen lässt und später
+        // etwas absendet (z. B. „Core aktualisieren“), war sonst schon abgemeldet.
+        session_start(['use_strict_mode' => 1, 'gc_maxlifetime' => self::SESSION_LIFETIME]);
     }
 
     /**
