@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.8.1 – 2026-10-09
+
+Topbar-Schalter im Admin auch bei Topbar-Varianten ohne eigene Felder (z. B. topbar-bl01).
+
 ## 2.8.0 – 2026-10-09
 
 Generator: Projekt laden bringt Daten und zugewiesenes Theme, Theme-Vorschau ohne Speichern, Zuweisen pro Projekt, Rückfrage bei ungesicherten Änderungen. In Instanzen keine sichtbare Änderung.

@@ -357,7 +357,8 @@
 
                         {% for region in ['header', 'footer', 'topbar', 'stickybar', 'cookiebanner'] %}
                             {% set layoutSchema = attribute(layoutSchemas, region) %}
-                            {% if layoutSchema.fields is defined and layoutSchema.fields is not empty %}
+                            {# Auch ohne eigene Felder anzeigen, wenn der Bereich einen An/Aus-Schalter hat (z. B. topbar-bl01 – sonst gäbe es den Schalter im Admin gar nicht). #}
+                            {% if (layoutSchema.fields is defined and layoutSchema.fields is not empty) or layoutSchema.has_toggle|default(false) %}
                             <div class="border-t border-[#241E18]/10 pt-3">
                                 <div class="flex items-center gap-2">
                                     <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">{{ layoutSchema.label|default(region) }}</p>
