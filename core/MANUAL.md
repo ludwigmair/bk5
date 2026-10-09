@@ -255,9 +255,10 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   Handelsregister, Öffnungszeiten, abweichender Kartensuchbegriff. Wird für
   Kontaktformular-Infokarte, Footer, JSON-LD (Suchmaschinen), Telefon-/Mail-Buttons
   und `{business.*}`-Platzhalter verwendet. **Spam-Schutz:** E-Mail-Adressen und
-  Telefonnummern stehen verschlüsselt im Quelltext der Website und werden erst im
-  Browser lesbar gemacht – Besucher sehen und klicken sie ganz normal, einfache
-  Adress-Sammler finden sie nicht. Das gilt auch für Adressen in Textfeldern. Die E-Mail ist zugleich Empfänger der
+  Telefonnummern stehen nirgends lesbar im Code der Website – Besucher sehen sie
+  und können sie anklicken (Mailprogramm/Telefon öffnet sich), Adress-Sammler finden
+  sie nicht. Markieren und Kopieren der Adresse ist dadurch nicht möglich. Das gilt
+  auch für Adressen in Textfeldern. Die E-Mail ist zugleich Empfänger der
   Kontaktformular-Anfragen. **„Testmail senden"** (Admin-Rolle) prüft, ob der Server
   Mails verschickt – kommt nichts an (auch Spam-Ordner prüfen), siehe
   `docs/COMPONENTS.md` → „contact-form: Mailversand".
