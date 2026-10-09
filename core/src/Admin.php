@@ -1471,6 +1471,30 @@ final class Admin
             $chosen[$region] = $variant;
         }
 
+        // Farben/Schriften/Radius aus dem Formular prüfen, bevor irgendetwas angelegt wird; später über
+        // das bisherige brand gelegt – übrige brand-
+        // Schlüssel (hero_cta, zebra_accent, …) bleiben erhalten, leere Felder
+        // lassen den bisherigen Wert stehen. Validiert, weil die Werte ungefiltert
+        // in CSS-Variablen und die Google-Fonts-URL (layout.twig) gehen.
+        $brandRules = [
+            'primary' => '/^#[0-9a-fA-F]{6}$/', 'secondary' => '/^#[0-9a-fA-F]{6}$/',
+            'ash' => '/^#[0-9a-fA-F]{6}$/', 'walnut' => '/^#[0-9a-fA-F]{6}$/',
+            'font_display' => '/^[A-Za-z0-9 ]{1,40}$/', 'font_body' => '/^[A-Za-z0-9 ]{1,40}$/',
+            'radius' => '/^(0|\d+(\.\d+)?(rem|px|em))$/',
+        ];
+        $brandOverrides = [];
+        $postedBrand = is_array($_POST['brand'] ?? null) ? $_POST['brand'] : [];
+        foreach ($brandRules as $key => $pattern) {
+            $value = trim((string) ($postedBrand[$key] ?? ''));
+            if ($value === '') {
+                continue;
+            }
+            if (preg_match($pattern, $value) !== 1) {
+                $this->redirectToPanel('Ungültiger Wert für ' . $key . ': „' . $value . '“ – nichts gespeichert.', 'panel-theme');
+            }
+            $brandOverrides[$key] = $value;
+        }
+
         $root = $this->cms->root();
         $themeDir = $root . "/themes-and-plugins/themes/{$slug}";
         if (!is_dir($themeDir) && !mkdir($themeDir, 0775, true) && !is_dir($themeDir)) {
@@ -1519,7 +1543,14 @@ final class Admin
         // überschreiben. Nur ein wirklich neues Theme startet bei brand vom
         // aktuell aktiven config (sinnvoller Ausgangspunkt).
         $existingThemeJson = is_file("{$themeDir}/theme.json") ? CMS::readJson("{$themeDir}/theme.json") : null;
-        $brand = $existingThemeJson['brand'] ?? $config['brand'] ?? [];
+        // Neues Theme (Kopie): Basis ist das Theme, von dem aus „Bearbeiten“ geklickt wurde.
+        $source = trim((string) ($_POST['theme_source'] ?? ''));
+        $sourceBrand = null;
+        if ($existingThemeJson === null && preg_match('/^[a-z0-9][a-z0-9_-]*$/', $source) === 1) {
+            $sourceBrand = CMS::readJson($root . "/themes-and-plugins/themes/{$source}/theme.json")['brand'] ?? null;
+        }
+        $brand = $existingThemeJson['brand'] ?? $sourceBrand ?? $config['brand'] ?? [];
+        $brand = array_replace($brand, $brandOverrides);
 
         $themeJson = [
             'name' => $slug,

@@ -698,7 +698,7 @@
                 {% if current_is_admin %}
                 <section id="panel-theme" class="section-panel space-y-4 rounded-xl border border-[#241E18]/5 border-l-4 border-l-[#B87333]/60 bg-[#FBF8F2] shadow-sm shadow-[#241E18]/[0.03] p-5" data-panel="panel-theme" hidden>
                     <h2 class="font-['Commissioner',sans-serif] text-lg font-semibold tracking-tight">Themes</h2>
-                    <p class="text-xs text-[#241E18]/40">Ein Theme bündelt Marken-Farben/-Fonts sowie Header-/Footer-/Sticky-Leisten-Variante. Anwenden ändert diese Werte in config.json direkt – wie eine einzelne Sektion speichern, kein Neuladen der Seite nötig.</p>
+                    <p class="text-xs text-[#241E18]/40">Ein Theme bündelt Farben, Schriften und die Bereichs-Varianten (Header, Footer, Topbar, Sticky-Leiste, Cookie-Banner). Gespeichert in seiner theme.json – gilt für jedes Projekt mit diesem Theme und kommt per Deploy auf die Instanzen.</p>
                     {% if not has_dev_tools %}
                     <p class="rounded-lg bg-[#355E4B]/[0.06] px-3 py-2 text-xs text-[#241E18]/70">Das Layout dieser Website (Theme, Header, Footer, Topbar, Sticky-Leiste, Cookie-Banner) wird im Generator entwickelt und von dort übernommen – hier nur zur Ansicht. Texte und Inhalte der Bereiche bleiben unter „Seite“ bearbeitbar.</p>
                     {% endif %}
@@ -746,7 +746,9 @@
                                        data-topbar="{{ theme.layout.topbar|default('') }}"
                                        data-stickybar="{{ theme.layout.stickybar|default('') }}"
                                        data-cookiebanner="{{ theme.layout.cookiebanner|default('') }}"
-                                       data-languages="{{ (theme.languages|default(['de']))|join(',') }}">Bearbeiten</button>
+                                       data-languages="{{ (theme.languages|default(['de']))|join(',') }}"
+                                       data-brand="{{ theme.brand|default({})|json_encode }}"
+                                       data-name="{{ theme.name }}">Bearbeiten</button>
                                     {% if active_theme != theme.name %}
                                     {% if theme_preview != theme.name %}
                                     <form class="flex-1" method="post">
@@ -782,10 +784,12 @@
                             <h3 class="font-['Commissioner',sans-serif] text-base font-semibold tracking-tight">Theme bearbeiten oder neu erstellen</h3>
                             <button type="button" class="text-xs font-semibold text-[#355E4B] underline-offset-2 transition hover:underline" data-theme-form-reset>+ Neues Theme (Felder leeren)</button>
                         </div>
-                        <p class="mt-1 text-xs text-[#241E18]/40">Vorausgefüllt mit der Auswahl des aktiven Themes: einzelne Regionen ändern und unter demselben Namen speichern, um es zu bearbeiten. Für ein neues Theme oben "Felder leeren" klicken, dann Namen und Regionen frei wählen.</p>
+                        <p class="mt-1 text-xs text-[#241E18]/40">Vorausgefüllt mit dem aktiven Theme („Bearbeiten“ auf einer Karte lädt ein anderes): Bereiche, Farben oder Schriften ändern und unter demselben Namen speichern. Soll nur ein Projekt anders aussehen, unter einem neuen Namen speichern (= Kopie) und das neue Theme dem Projekt zuweisen. „Felder leeren“ setzt Namen und Bereiche zurück, die Farben bleiben als Startpunkt.</p>
                         <form method="post" class="mt-3 space-y-3" data-theme-form>
                             <input type="hidden" name="csrf" value="{{ csrf }}">
                             <input type="hidden" name="do" value="build-theme">
+                            {# Ausgangs-Theme: liefert einer Kopie die brand-Werte ohne Formularfeld (hero_cta, zebra_accent, …). #}
+                            <input type="hidden" name="theme_source" value="{{ active_theme }}" data-theme-source>
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Name
                                     <input class="mt-1 h-11 w-full rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="theme_label" value="{{ active_theme_data.label|default('') }}" placeholder="z. B. Mein Projekt 2026" required>
@@ -808,6 +812,33 @@
                                 {% endfor %}
                             </div>
                             <p class="hidden rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800" data-theme-region-warning>Kein Header oder kein Footer gewählt – die Seite hätte mit diesem Theme dann keinen. Absichtlich? Sonst oben eine Variante auswählen.</p>
+                            {% set themeBrand = active_theme_data.brand|default({}) %}
+                            <div>
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Farben &amp; Schriften</p>
+                                <p class="mt-0.5 text-xs text-[#241E18]/40">Gelten für jedes Projekt mit diesem Theme. Schriften: Name einer Google-Font, z. B. „Open Sans“.</p>
+                                <div class="mt-1.5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    {% for key, colorLabel in {primary: 'Hauptfarbe (Buttons, dunkle Abschnitte)', secondary: 'Akzentfarbe', ash: 'Hintergrund', walnut: 'Text & Footer (dunkel)'} %}
+                                    {% set colorValue = attribute(themeBrand, key)|default('#000000') %}
+                                    <label class="flex items-center gap-3 rounded-lg border border-[#241E18]/10 bg-white px-3 py-2 text-sm" data-brand-color>
+                                        <input type="color" class="h-8 w-10 shrink-0 cursor-pointer rounded border border-[#241E18]/15 bg-white p-0.5" value="{{ colorValue }}" aria-label="{{ colorLabel }}" data-brand-picker>
+                                        <span class="min-w-0 flex-1 text-[#241E18]/70">{{ colorLabel }}</span>
+                                        <input type="text" class="h-8 w-24 rounded-md border border-[#241E18]/15 px-2 font-mono text-xs" name="brand[{{ key }}]" value="{{ colorValue }}" pattern="#[0-9a-fA-F]{6}" maxlength="7" data-brand-hex>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                {% set knownFonts = [] %}
+                                {% for t in themes %}{% set knownFonts = knownFonts|merge([t.brand.font_display|default(''), t.brand.font_body|default('')]) %}{% endfor %}
+                                <datalist id="theme-font-list">
+                                    {% for font in knownFonts|filter(f => f)|reduce((carry, f) => f in carry ? carry : carry|merge([f]), []) %}<option value="{{ font }}"></option>{% endfor %}
+                                </datalist>
+                                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                    {% for key, fieldLabel in {font_display: 'Schrift Überschriften', font_body: 'Schrift Fließtext', radius: 'Eckenradius'} %}
+                                    <label class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">{{ fieldLabel }}
+                                        <input class="mt-1 h-11 w-full rounded-lg border border-transparent bg-[#241E18]/[0.035] px-3.5 text-[15px] font-normal normal-case tracking-normal text-[#241E18] outline-none transition focus:border-[#355E4B]/30 focus:bg-white focus:ring-4 focus:ring-[#355E4B]/10" name="brand[{{ key }}]" value="{{ attribute(themeBrand, key)|default('') }}" {% if key == 'radius' %}placeholder="z. B. 0.375rem"{% else %}list="theme-font-list"{% endif %} data-brand-text>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
                             <div>
                                 <p class="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#241E18]/40">Sprachen</p>
                                 <p class="mt-0.5 text-xs text-[#241E18]/40">Deutsch ist immer aktiv (Standard-/Fallback-Sprache). Weitere aktivieren, um bei Texten pro Sprache umschalten zu können – ohne Übersetzung wird automatisch Deutsch gezeigt.</p>
@@ -2618,10 +2649,31 @@
           themeForm.querySelectorAll('input[name="languages[]"]').forEach(function (cb) {
             cb.checked = cb.disabled || langs.indexOf(cb.value) !== -1;
           });
+          var source = themeForm.querySelector('[data-theme-source]');
+          if (source) source.value = editLink.dataset.name || '';
+          var brand = {};
+          try { brand = JSON.parse(editLink.dataset.brand || '{}') || {}; } catch (err) { brand = {}; }
+          themeForm.querySelectorAll('input[name^="brand["]').forEach(function (input) {
+            var key = input.name.slice(6, -1);
+            input.value = brand[key] || '';
+            var row = input.closest('[data-brand-color]');
+            var picker = row && row.querySelector('[data-brand-picker]');
+            if (picker && /^#[0-9a-fA-F]{6}$/.test(input.value)) picker.value = input.value;
+          });
           var builder = document.getElementById('theme-builder');
           if (builder) builder.scrollIntoView({ behavior: 'smooth' });
           updateThemeRegionWarning();
         }
+      });
+
+      // Farbwähler und Hex-Feld im Theme-Formular synchron halten.
+      document.addEventListener('input', function (e) {
+        var row = e.target.closest && e.target.closest('[data-brand-color]');
+        if (!row) return;
+        var picker = row.querySelector('[data-brand-picker]');
+        var hex = row.querySelector('[data-brand-hex]');
+        if (e.target === picker) hex.value = picker.value;
+        else if (e.target === hex && /^#[0-9a-fA-F]{6}$/.test(hex.value)) picker.value = hex.value;
       });
 
       // Hinweis im Theme-Formular, wenn Header oder Footer auf "— Keine —" steht.
