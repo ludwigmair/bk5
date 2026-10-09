@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.10.2 – 2026-10-09
+
+Spam-Schutz: E-Mail-Adressen und Telefonnummern stehen jetzt auch nach dem Laden der Seite nirgends mehr als Text im Code (auch nicht im Element-Inspektor). Besucher sehen sie normal und können sie anklicken; markieren/kopieren geht dadurch nicht mehr.
+
 ## 2.10.1 – 2026-10-09
 
 Spam-Schutz verstärkt: Im Quelltext steht auch keine „name [at] domain“-Form der E-Mail-Adresse mehr (die viele Sammler auflösen). Besucher sehen Adresse und Telefonnummer weiterhin normal, auch ohne JavaScript.

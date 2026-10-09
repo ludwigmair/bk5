@@ -10,14 +10,20 @@ namespace Core;
  * Seiten-Cache) statt in jeder Vorlage – gilt damit automatisch für alle
  * Header/Footer/Topbars/Components/Rich-Text und künftige Themes.
  *
- * - mailto:/tel:/WhatsApp-Links: href wird zu "#" + data-obf-href (kodiert).
+ * Ziel: Die echte Adresse steht nirgends als Text in der Seite – weder im
+ * Quelltext noch nach dem Laden im DOM (Element-Inspektor).
+ *
  * - E-Mail-Adressen und Telefonnummern im Text (Text von tel:-Links und die
- *   übergebenen Nummern aus den Stammdaten): <span data-obf>, Ersatztext ohne JS
- *   siehe textSpan() – rückwärts, per CSS richtig herum angezeigt.
- * - E-Mails in sonstigen Attributen (meta, title, …): "[at]"-Form, ohne Rückweg.
- * Ein kleines Inline-Skript vor </body> stellt Links und Text im Browser wieder
- * her; ohne JavaScript bleibt der Ersatztext lesbar. <script>/<style>/<textarea>
- * bleiben unangetastet (JSON-LD baut CMS::buildStructuredData() selbst ohne E-Mail).
+ *   übergebenen Nummern aus den Stammdaten): leeres <span>, die Anzeige kommt
+ *   per CSS-Pseudo-Element aus RÜCKWÄRTS geschriebenen Attributen (E-Mail ohne
+ *   „@“ in zwei Teilen), per bidi-override richtig herum dargestellt. Funktioniert
+ *   ohne JavaScript; Kehrseite: der Text lässt sich nicht markieren/kopieren.
+ * - mailto:/tel:/WhatsApp-Links: href="#" + data-obf-href (kodiert). Das Skript setzt
+ *   den echten Link erst im Moment des Klicks und gleich danach wieder zurück;
+ *   ebenso data-mail-address für die Mail-Vorbelegung (layout.twig).
+ * - E-Mails in sonstigen Attributen (meta, title, …): durch „[E-Mail]“ ersetzt.
+ * <script>/<style>/<textarea> bleiben unangetastet (JSON-LD baut
+ * CMS::buildStructuredData() selbst ohne E-Mail).
  *
  * Bewusst ohne Abhängigkeiten (wie RichText/Markdown), damit tests/run.php die
  * Klasse direkt requiren kann.
@@ -60,11 +66,11 @@ final class Obfuscate
                     }
                     $new = $part;
                 }
-                // Adresse für die Mail-Vorbelegung (layout.twig, data-mail-template) –
-                // kodiert statt [at], sonst wäre der vorbelegte mailto-Link kaputt.
+                // Adresse für die Mail-Vorbelegung (layout.twig, data-mail-template):
+                // kodiert, das Skript setzt sie nur im Moment des Klicks.
                 $new = preg_replace_callback('/\sdata-mail-address\s*=\s*(["\'])([^"\']*)\1/i', static fn (array $m): string => $m[2] === '' ? $m[0] : ' data-obf-mail="' . self::encode(html_entity_decode($m[2], ENT_QUOTES | ENT_HTML5, 'UTF-8')) . '"', $new) ?? $new;
                 // E-Mails in übrigen Attributen (alt, title, content, …)
-                $new = preg_replace_callback('/' . self::EMAIL . '/', static fn (array $m): string => self::atForm($m[0]), $new) ?? $new;
+                $new = preg_replace('/' . self::EMAIL . '/', '[E-Mail]', $new) ?? $new;
                 if ($new !== $part) {
                     $parts[$i] = $new;
                     $changed = true;
@@ -75,7 +81,9 @@ final class Obfuscate
             // Textknoten
             $new = preg_replace_callback('/' . self::EMAIL . '/', static fn (array $m): string => self::textSpan(html_entity_decode($m[0], ENT_QUOTES | ENT_HTML5, 'UTF-8')), $part) ?? $part;
             if ($inTel && trim($new) !== '' && preg_match('/\d{4,}/', preg_replace('/\D/', '', $new) ?? '') === 1 && !str_contains($new, 'data-obf')) {
-                $new = self::textSpan(html_entity_decode($new, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                // Leerraum um die Nummer bleibt Text, nur die Nummer wird ersetzt
+                preg_match('/^(\s*)(.*?)(\s*)$/s', $new, $ws);
+                $new = $ws[1] . self::textSpan(html_entity_decode($ws[2], ENT_QUOTES | ENT_HTML5, 'UTF-8')) . $ws[3];
             } else {
                 foreach ($phones as $phone) {
                     $needle = htmlspecialchars($phone, ENT_QUOTES, 'UTF-8');
@@ -91,43 +99,57 @@ final class Obfuscate
         }
 
         $out = implode('', $parts);
-        // Skript nur, wenn etwas wiederherzustellen ist (nicht bei reinen [at]-Attributen)
-        if (!$changed || !str_contains($out, 'data-obf')) {
+        $assets = '';
+        if ($changed && str_contains($out, 'data-obf-t')) {
+            // Anzeige ohne Text im DOM: Pseudo-Element aus den rückwärts geschriebenen
+            // Attributen, bidi-override dreht es für die Anzeige richtig herum.
+            $assets .= '<style>[data-obf-t]::before{unicode-bidi:bidi-override;direction:rtl;content:attr(data-oa)}'
+                . '[data-obf-t="m"]::before{content:attr(data-oa) "@" attr(data-ob)}</style>';
+        }
+        if ($changed && (str_contains($out, 'data-obf-href') || str_contains($out, 'data-obf-mail'))) {
+            // Echter Link nur im Moment des Klicks (Capture-Phase, vor dem Handler der
+            // Mail-Vorbelegung und vor der Navigation), danach sofort zurück auf "#".
+            $assets .= '<script>(function(){function d(s){try{return decodeURIComponent(escape(atob(s))).split("").reverse().join("")}catch(e){return ""}}'
+                . 'function go(e){var a=e.target&&e.target.closest?e.target.closest("[data-obf-href],[data-obf-mail]"):null;if(!a)return;'
+                . 'var h=a.getAttribute("data-obf-href"),m=a.getAttribute("data-obf-mail");'
+                . 'if(h!==null)a.setAttribute("href",d(h));if(m!==null)a.setAttribute("data-mail-address",d(m));'
+                . 'setTimeout(function(){if(h!==null)a.setAttribute("href","#");if(m!==null)a.removeAttribute("data-mail-address")},0)}'
+                . 'document.addEventListener("click",go,true);document.addEventListener("auxclick",go,true)})();</script>';
+        }
+        if ($assets === '') {
             return $out;
         }
-        $script = '<script>(function(){function d(s){try{return decodeURIComponent(escape(atob(s))).split("").reverse().join("")}catch(e){return ""}}'
-            . 'document.querySelectorAll("[data-obf-href],[data-obf],[data-obf-mail]").forEach(function(e){var h=e.getAttribute("data-obf-href");'
-            . 'if(h!==null){e.setAttribute("href",d(h));e.removeAttribute("data-obf-href")}'
-            . 'var m=e.getAttribute("data-obf-mail");if(m!==null){e.setAttribute("data-mail-address",d(m));e.removeAttribute("data-obf-mail")}'
-            . 'var t=e.getAttribute("data-obf");if(t!==null){e.textContent=d(t);e.removeAttribute("data-obf");e.removeAttribute("style")}})})();</script>';
         $pos = strripos($out, '</body>');
 
-        return $pos === false ? $out . $script : substr($out, 0, $pos) . $script . substr($out, $pos);
+        return $pos === false ? $out . $assets : substr($out, 0, $pos) . $assets . substr($out, $pos);
     }
 
-    /** Umgekehrt + Base64 (UTF-8-sicher) – reicht gegen Quelltext-Sammler, das Skript dreht es zurück. */
+    /** Umgekehrt + Base64 (UTF-8-sicher) – das Skript dreht es beim Klick zurück. */
     public static function encode(string $s): string
     {
-        return base64_encode(implode('', array_reverse(mb_str_split($s, 1, 'UTF-8'))));
+        return base64_encode(self::reverse($s));
     }
 
-    private static function atForm(string $email): string
+    private static function reverse(string $s): string
     {
-        return str_replace('@', ' [at] ', $email);
+        return implode('', array_reverse(mb_str_split($s, 1, 'UTF-8')));
     }
 
     /**
-     * Ersatztext für Besucher ohne JavaScript: Zeichen rückwärts und durch leere
-     * Kommentare getrennt im Quelltext, per bidi-override trotzdem richtig herum
-     * angezeigt. Im Rohtext steht so weder die Adresse noch eine „[at]“-Form, und
-     * auch ohne Kommentare ergibt sich nur die rückwärts geschriebene Fassung
-     * (keine gültige Adresse). Das Skript ersetzt den Text und entfernt den Stil.
+     * Leeres <span>, Anzeige per CSS aus rückwärts geschriebenen Attributen. Bei
+     * E-Mails ohne „@“: data-oa = Domain rückwärts, data-ob = Name rückwärts, das
+     * „@“ setzt das CSS dazwischen. So steht weder im Quelltext noch im DOM eine
+     * gültige Adresse oder Nummer.
      */
     private static function textSpan(string $plain): string
     {
-        $chars = array_reverse(mb_str_split($plain, 1, 'UTF-8'));
-        $fallback = implode('<!---->', array_map(static fn (string $c): string => htmlspecialchars($c, ENT_QUOTES, 'UTF-8'), $chars));
+        $esc = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+        $at = strrpos($plain, '@');
+        if ($at !== false) {
+            return '<span data-obf-t="m" data-oa="' . $esc(self::reverse(substr($plain, $at + 1)))
+                . '" data-ob="' . $esc(self::reverse(substr($plain, 0, $at))) . '"></span>';
+        }
 
-        return '<span data-obf="' . self::encode($plain) . '" style="unicode-bidi:bidi-override;direction:rtl">' . $fallback . '</span>';
+        return '<span data-obf-t="t" data-oa="' . $esc(self::reverse($plain)) . '"></span>';
     }
 }
