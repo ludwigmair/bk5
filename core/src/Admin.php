@@ -1564,11 +1564,18 @@ final class Admin
     private function assertCsrf(): void
     {
         $token = (string) ($_POST['csrf'] ?? '');
-        if ($token === '' || !hash_equals($_SESSION['csrf'] ?? '', $token)) {
-            http_response_code(400);
-            echo 'Ungültige Sitzung.';
-            exit;
+        if ($token !== '' && hash_equals($_SESSION['csrf'] ?? '', $token)) {
+            return;
         }
+        // Meist eine abgelaufene Sitzung (Admin lange offen, dann abgeschickt) –
+        // statt nackter Fehlerseite zurück zum Login bzw. Dashboard mit Hinweis.
+        // Die abgeschickte Aktion wird NICHT ausgeführt.
+        if ($this->isLoggedIn()) {
+            $this->redirect('Die Seite war nicht mehr aktuell – bitte die Aktion noch einmal ausführen.');
+        }
+        $_SESSION['login_notice'] = 'Sitzung abgelaufen – bitte erneut anmelden und die Aktion wiederholen.';
+        header('Location: ?admin=1');
+        exit;
     }
 
     private function redirect(string $message): never

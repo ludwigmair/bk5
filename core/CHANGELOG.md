@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.9.3 – 2026-10-09
+
+Abgelaufene Sitzung (Admin lange offen, dann z. B. „Core aktualisieren“) zeigt keine nackte Fehlerseite „Ungültige Sitzung.“ mehr, sondern führt mit Hinweis zum Login bzw. Dashboard zurück. Admin-Sitzung hält jetzt 8 Stunden statt 24 Minuten.
+
 ## 2.9.2 – 2026-10-09
 
 Generator: neuer Menüpunkt „Dokus“ (docs/*.md lesbar in neuem Fenster). Handbuch: Code-Blöcke und nummerierte Listen werden jetzt sauber dargestellt.

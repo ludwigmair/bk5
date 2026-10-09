@@ -16,7 +16,8 @@ trait UserActions
 {
     private function handleLogin(): void
     {
-        $error = '';
+        $error = (string) ($_SESSION['login_notice'] ?? '');
+        unset($_SESSION['login_notice']);
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->assertCsrf();
             $username = trim((string) ($_POST['username'] ?? ''));
