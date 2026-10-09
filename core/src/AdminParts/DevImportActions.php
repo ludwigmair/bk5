@@ -194,6 +194,42 @@ trait DevImportActions
      * (Infrastruktur des Generators, kein Projekt-Inhalt). Die Marker dev_import,
      * dev_import_source und dev_import_rev sind rein lokal.
      */
+    /**
+     * Legt den aktuell geladenen Stand (inkl. ungesicherter Änderungen) als neues
+     * Projekt dev-imports/<slug>/ an und stellt den Generator gleich darauf um – ein
+     * anschließendes „Zuweisen“ trifft so die Kopie, nicht das Original. Die Kopie hat
+     * noch keine lokale Instanz (meta.json ohne instance). Nur im Generator.
+     */
+    private function copyProject(): void
+    {
+        if (!$this->hasDevTools()) {
+            $this->redirectToPanel('Projekte gibt es nur im Generator.', 'panel-dev-import');
+        }
+        $label = trim((string) ($_POST['project_label'] ?? ''));
+        $slug = CMS::slugify($label);
+        if ($label === '' || mb_strlen($label) > 60 || preg_match('/^[a-z0-9][a-z0-9_-]*$/', $slug) !== 1 || $slug === self::EXAMPLE_PROJECT) {
+            $this->redirectToPanel('Bitte einen gültigen Namen für das neue Projekt angeben.', 'panel-dev-import');
+        }
+        $dest = dirname($this->cms->root()) . '/dev-imports/' . $slug;
+        if (file_exists($dest)) {
+            $this->redirectToPanel('Ein Projekt „' . $slug . '“ gibt es schon (dev-imports/' . $slug . '/) – bitte einen anderen Namen wählen, nichts überschrieben.', 'panel-dev-import');
+        }
+        $configPath = $this->cms->root() . '/data/config.json';
+        $from = (string) (CMS::readJson($configPath)['dev_import'] ?? '');
+        if ($this->saveGeneratorToProject($slug) === '') {
+            $this->redirectToPanel('Kopie konnte nicht angelegt werden.', 'panel-dev-import');
+        }
+        CMS::writeJson($dest . '/meta.json', ['label' => $label] + ($from !== '' ? ['copied_from' => $from] : []));
+
+        $config = CMS::readJson($configPath);
+        $config['dev_import'] = $slug;
+        $config['dev_import_source'] = 'dev-imports';
+        $config['dev_import_rev'] = $this->generatorContentRev();
+        CMS::writeJson($configPath, $config);
+
+        $this->redirectToPanel('Projekt „' . $label . '“ als Kopie angelegt (dev-imports/' . $slug . '/) und geladen – das Original bleibt unverändert. Jetzt unter Themes ein Theme wählen und zuweisen.', 'panel-dev-import');
+    }
+
     private function switchProject(): void
     {
         $slug = trim((string) ($_POST['project'] ?? ''));

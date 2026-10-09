@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.15.0 – 2026-10-09
+
+Generator: „Als neues Projekt kopieren“ – den geladenen Stand unter neuem Namen als eigenes Projekt anlegen, z. B. um dieselben Inhalte mit einem anderen Theme auszuprobieren, ohne das Original zu ändern.
+
 ## 2.14.0 – 2026-10-09
 
 Das aktive Theme einer Website wird jetzt mit ausgeliefert – ein Theme-Wechsel aus dem Generator kommt damit sicher auf der Website an.
