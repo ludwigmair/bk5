@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.9.2 – 2026-10-09
+
+Generator: neuer Menüpunkt „Dokus“ (docs/*.md lesbar in neuem Fenster). Handbuch: Code-Blöcke und nummerierte Listen werden jetzt sauber dargestellt.
+
 ## 2.9.1 – 2026-10-09
 
 Instanz angleichen nur noch in die Instanz des geladenen Projekts. Live-Stand holen: Links zu Staging und Live.

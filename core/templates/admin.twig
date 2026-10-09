@@ -246,6 +246,14 @@
                         {{ _self.nav_info(has_dev_tools ? 'Aktuellen Stand als eigenständige, deploybare Instanz nach project-instances/ exportieren – optional mit Git-Workflow (main/develop/staging).' : 'Aktuelle Inhalte dieser Website als Paket herunterladen – für den Generator („Live-Stand holen“) oder als Snapshot.') }}
                     </div>
                 </div>
+                {% if dev_docs|default([]) is not empty %}
+                <div class="border-t border-[#241E18]/10 p-3">
+                    <h2 class="mb-1 text-xs font-semibold uppercase tracking-wide text-[#B87333]">Dokus</h2>
+                    {% for doc in dev_docs %}
+                    <a class="flex items-center justify-between gap-2 truncate rounded-lg px-2 py-2 text-sm text-[#241E18]/70 transition-colors hover:bg-[#355E4B]/10" href="?admin=1&do=doc&file={{ doc.file|url_encode }}" target="_blank" rel="noopener" title="{{ doc.title }} (docs/{{ doc.file }}) in neuem Fenster öffnen"><span class="truncate">{{ doc.title }}</span><span class="shrink-0 text-[#241E18]/30" aria-hidden="true">↗</span></a>
+                    {% endfor %}
+                </div>
+                {% endif %}
                 <div class="border-t border-[#241E18]/10 p-3">
                     <div class="mb-1 flex items-center gap-1.5">
                         <h2 class="text-xs font-semibold uppercase tracking-wide text-[#B87333]">System-Updates</h2>

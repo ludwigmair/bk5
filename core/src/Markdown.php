@@ -7,8 +7,9 @@ namespace Core;
 /**
  * Sehr kompakter Markdown-Renderer nur für lokale .md-Dokumentationsdateien
  * (siehe Admin::renderManual()) – deckt ab, was docs/*.md tatsächlich nutzt:
- * Überschriften (#–####), **fett**, `code`, [Links](url), Aufzählungen (- Punkt),
- * einfache Pipe-Tabellen, Absätze. Kein allgemeiner Markdown-Parser, keine externe
+ * Überschriften (#–####), **fett**, `code`, [Links](url), Aufzählungen (- Punkt,
+ * 1. Punkt), Code-Blöcke (```), einfache Pipe-Tabellen, Absätze; einzeilige
+ * HTML-Kommentare (z. B. TOC-Marker) werden übersprungen. Kein allgemeiner Markdown-Parser, keine externe
  * Library nötig. Escaped zuerst alles per htmlspecialchars, wie RichText.
  */
 final class Markdown
@@ -24,8 +25,13 @@ final class Markdown
     {
         $text = str_replace(["\r\n", "\r"], "\n", $text);
         $out = [];
+        $inFence = false;
         foreach (explode("\n", $text) as $line) {
-            if (preg_match('/^##\s+(.+)$/', trim($line), $m)) {
+            if (str_starts_with($line, "```")) {
+                $inFence = !$inFence;
+                continue;
+            }
+            if (!$inFence && preg_match('/^##\s+(.+)$/', trim($line), $m)) {
                 $label = trim($m[1]);
                 $slug = self::slugify($label);
                 if ($slug !== '') {
@@ -68,6 +74,7 @@ final class Markdown
         $html = [];
         $paragraph = [];
         $listItems = [];
+        $listTag = 'ul';
 
         $flushParagraph = static function () use (&$paragraph, &$html): void {
             if ($paragraph === []) {
@@ -76,18 +83,39 @@ final class Markdown
             $html[] = '<p>' . self::inline(implode(' ', $paragraph)) . '</p>';
             $paragraph = [];
         };
-        $flushList = static function () use (&$listItems, &$html): void {
+        $flushList = static function () use (&$listItems, &$listTag, &$html): void {
             if ($listItems === []) {
                 return;
             }
             $items = array_map(static fn (string $item): string => '<li>' . self::inline($item) . '</li>', $listItems);
-            $html[] = '<ul>' . implode('', $items) . '</ul>';
+            $html[] = '<' . $listTag . '>' . implode('', $items) . '</' . $listTag . '>';
             $listItems = [];
         };
 
         $i = 0;
         while ($i < $count) {
             $trimmed = trim($lines[$i]);
+
+            // Code-Block nur ab Spalte 0 (wie dev/build-toc.php) – eingerückte
+            // ```-Zeilen in Listen bleiben normaler Text.
+            if (str_starts_with($lines[$i], '```')) {
+                $flushParagraph();
+                $flushList();
+                $code = [];
+                $i++;
+                while ($i < $count && !str_starts_with($lines[$i], '```')) {
+                    $code[] = $lines[$i];
+                    $i++;
+                }
+                $i++; // schließende ```
+                $html[] = '<pre><code>' . htmlspecialchars(implode("\n", $code), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</code></pre>';
+                continue;
+            }
+
+            if (preg_match('/^<!--.*-->$/', $trimmed)) {
+                $i++;
+                continue;
+            }
 
             if ($trimmed === '') {
                 $flushParagraph();
@@ -107,9 +135,14 @@ final class Markdown
                 continue;
             }
 
-            if (preg_match('/^-\s+(.+)$/', $trimmed, $m)) {
+            if (preg_match('/^(-|\d+\.)\s+(.+)$/', $trimmed, $m)) {
                 $flushParagraph();
-                $listItems[] = $m[1];
+                $tag = $m[1] === '-' ? 'ul' : 'ol';
+                if ($listItems !== [] && $tag !== $listTag) {
+                    $flushList();
+                }
+                $listTag = $tag;
+                $listItems[] = $m[2];
                 $i++;
                 continue;
             }
