@@ -203,16 +203,16 @@ jobs:
           sed 's/^/  - /' /tmp/stale-top.txt /tmp/stale-loose.txt
 
           {
-            echo "$LFTP"
             echo "cd \"$TARGET\""
             while read -r d; do echo "rm -rf \"${d%/}\""; done < /tmp/stale-top.txt
             while read -r f; do echo "rm \"$f\""; done < /tmp/stale-loose.txt
             # Upload-Gedächtnis zurücksetzen: sonst würde eine gelöschte Datei, die
             # später unverändert zurückkommt, nie wieder hochgeladen.
             echo "rm -f .sftp_upload_action_hashes"
-            echo "bye"
           } > /tmp/cleanup.lftp
-          lftp -u "$FTP_USERNAME,$FTP_PASSWORD" -f /tmp/cleanup.lftp "sftp://$FTP_SERVER"
+          # Zugangsdaten nicht in die Datei: Verbindung wie in den anderen Schritten,
+          # Befehle per source (lftp erlaubt -f nicht zusammen mit -u/URL).
+          lftp -u "$FTP_USERNAME,$FTP_PASSWORD" -e "$LFTP; source /tmp/cleanup.lftp; bye" "sftp://$FTP_SERVER"
         shell: bash
 
       - name: SFTP-Deploy (nur bei develop→staging-Merge)
