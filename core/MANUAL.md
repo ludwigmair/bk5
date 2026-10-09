@@ -26,8 +26,8 @@ Die Seitenleiste ist in Gruppen sortiert:
 - **Admin** – nur für Accounts mit Admin-Rolle: Navigation, Beschriftungen, Themes,
   Sicherung, Benutzer verwalten. Wer diese Rolle hat, verwaltet
   `docs/ADMIN-USERS.md`.
-- **Projekte** (Admin-Rolle) – Projekt-Instanz erstellen, Projekt-Import (lokal,
-  nur sichtbar wenn vorhanden).
+- **Projekte** (Admin-Rolle) – im Generator: Projekte, Live-Stand holen, Projekt-Instanz
+  erstellen; auf einer ausgelieferten Website: Live-Stand exportieren.
 - **System-Updates** (Admin-Rolle) – Update prüfen/Core aktualisieren und
   Components prüfen/aktualisieren, siehe `docs/UPDATE-CORE.md` und
   `docs/UPDATE-COMPONENTS.md`.
@@ -291,7 +291,7 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   Theme für das geladene Projekt fest (Farben/Fonts/Layout; die Sprachen des Projekts
   bleiben). Inhalte und Bilder (Texte, Sektionen) gehören zum
   **Projekt** und bleiben beim Theme-Wechsel unverändert; ein kompletter
-  Wechsel inkl. Inhalten läuft über „Projekt-Import" (siehe unten). „✕
+  Wechsel inkl. Inhalten läuft über „Projekte" (siehe unten). „✕
   Löschen" entfernt ein Theme dauerhaft (geht nicht für das gerade aktive).
   Jede Karte hat einen „Bearbeiten"-Button, der das Formular „Theme bearbeiten
   oder neu erstellen" darunter mit den Werten dieses Themes befüllt – unter
@@ -327,22 +327,17 @@ Felder wie "Einträge", "Bilder" oder "Fragen" sind aufklappbare Listen:
   zwischenzeitlich geänderte Inhalte/Bilder überschreiben. Die neue Instanz startet
   immer mit **„Von Suchmaschinen ausschließen“** (noindex, `robots.txt` sperrt alles) –
   für den Livegang dort unter SEO den Haken entfernen.
-- **Projekt-Import (lokal)**: nur im Generator – „Laden" holt die Daten eines Projekts
+- **Projekte**: nur im Generator – „Laden" holt die Daten eines Projekts
   samt zugewiesenem Theme (aus der lokalen Instanz, sonst aus dev-imports, sonst das
   Beispiel-Projekt); „Stand sichern" schreibt den aktuellen Stand zurück.
   Entwickler-Werkzeug, nicht für den täglichen Redaktionsbetrieb.
-- **Theme & Daten als Paket exportieren**: legt `cache/projekt-<zeitstempel>.zip`
-  an (Liste mit Download/Löschen), das Inhalte, Bilder, aktives Theme und die
-  verwendeten Bausteine enthält – bewusst **ohne** `core/` und ohne `.optim`-Bildvarianten.
-- **Projekt-Paket importieren**: nimmt ein solches ZIP entgegen und übernimmt
-  Inhalte/Bilder/Theme in diese Instanz. Die **Admin-Logins dieser Instanz werden
-  dabei geschützt** und bleiben unverändert; der Rest (z. B. Texte der
-  Ziel-Instanz) wird durch den Paketstand ersetzt. Ablehnungen bei manipulierten
-  Pfaden, fehlendem Manifest oder Prüfsummen-Differenz.
-  Export und Import funktionieren in beide Richtungen: eine Instanz kann ihr Paket
-  bauen, das der Generator (oder eine andere Instanz) importiert – und umgekehrt.
-  Voraussetzung auf jeder Instanz ist ein aktuelles Core (siehe System-Updates);
-  ist der Button nicht da, erst das Core-Update einspielen.
+- **Live-Stand exportieren** (auf der ausgelieferten Website): „Paket erstellen“ legt ein
+  ZIP mit den aktuellen Inhalten und Bildern an (Liste mit Download/Löschen). Es dient
+  dazu, die hier gepflegten Inhalte zurück in die Entwicklung zu geben.
+- **Live-Stand holen** (nur im Generator): nimmt so ein ZIP entgegen und übernimmt die
+  Inhalte (Texte, Bilder, Topbar an/aus, Sprachen) in das geladene Projekt – das
+  Layout bleibt das des Generators. Passt das Paket nicht zum geladenen Projekt, wird
+  nur nach ausdrücklicher Bestätigung übernommen.
 
 ## System-Updates (nur mit Admin-Rolle)
 
