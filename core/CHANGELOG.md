@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.10.0 – 2026-10-09
+
+Spam-Schutz: E-Mail-Adressen und Telefonnummern stehen verschlüsselt im Quelltext und werden erst im Browser lesbar gemacht – Besucher sehen und klicken sie normal, einfache Adress-Sammler finden sie nicht. Gilt automatisch für alle Bereiche und Textfelder. Die E-Mail steht nicht mehr in den Daten für Suchmaschinen (Telefon bleibt).
+
 ## 2.9.4 – 2026-10-09
 
 Sitzung abgelaufen beim Speichern: Statt Fehlerseite erscheint ein Anmelde-Dialog über der Seite – nach dem Anmelden wird mit allen Eingaben gespeichert, nichts geht verloren. Bei offenem Admin wird die Sitzung automatisch verlängert.
