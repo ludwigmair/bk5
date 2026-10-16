@@ -1,5 +1,9 @@
 # Changelog – Components
 
+## 1.3.0 – 2026-10-16
+
+Neue Component „team“: Mitarbeiter-Raster mit Porträt, Name, Funktion und Detailzeilen; ohne Foto erscheinen die Initialen.
+
 ## 1.2.8 – 2026-10-09
 
 Kontaktformular: Spam-Bremse (5 Anfragen pro Stunde und IP), Anfragen über Core\Inquiries mit Löschfrist und Admin-Panel.
