@@ -1,5 +1,14 @@
 DirectoryIndex index.php
 
+# Admin-Formular großer Projekte (Galerien) hat weit über 1000 Felder – siehe .user.ini
+# für PHP-FPM/CGI; hier für Apache mit mod_php (sonst wirkungslos, kein Fehler).
+<IfModule mod_php.c>
+    php_value max_input_vars 10000
+</IfModule>
+<IfModule mod_php7.c>
+    php_value max_input_vars 10000
+</IfModule>
+
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>

@@ -394,10 +394,12 @@
                                         <button type="submit" form="toggle-{{ region }}" class="cursor-pointer rounded-full border px-2 py-0.5 text-[10px] font-semibold transition {% if regionEnabled %} border-[#355E4B] bg-[#355E4B] text-white hover:brightness-110 {% else %} border-[#241E18]/20 bg-[#241E18]/[0.08] text-[#241E18]/60 hover:bg-[#241E18]/15 {% endif %}" title="Klicken zum {{ regionEnabled ? 'Deaktivieren' : 'Aktivieren' }}">{{ regionEnabled ? 'Aktiv' : 'Inaktiv' }}</button>
                                     {% endif %}
                                 </div>
+                                {% set regionData = attribute(content, region)|default({}) %}
                                 {% for field in layoutSchema.fields %}
+                                    {# Wie bei Sections: ein Schema-default gilt, solange der Wert nie gespeichert wurde. #}
                                     {% include 'admin-field.twig' with {
                                         field: field,
-                                        value: attribute(attribute(content, region)|default({}), field.name)|default(''),
+                                        value: regionData is iterable and field.name in (regionData|keys) ? attribute(regionData, field.name) : (field.default is defined ? field.default : ''),
                                         prefix: region
                                     } %}
                                 {% endfor %}
@@ -680,6 +682,9 @@
                         </article>
                         {% endif %}
                     {% endfor %}
+                    {# Muss das letzte Feld bleiben: fehlt es im POST, hat PHP das Formular am
+                       max_input_vars-Limit abgeschnitten – saveContent() speichert dann nicht. #}
+                    <input type="hidden" name="form_complete" value="1">
                 </form>
 
                 {# Toggle-/Testmail-Formulare bewusst AUSSERHALB von #content-form: ein
@@ -1773,6 +1778,11 @@
           var clone = proto.cloneNode(true);
           clone.querySelectorAll('input, textarea').forEach(function (el) { el.value = ''; });
           clone.querySelectorAll('select[data-fill-url]').forEach(function (el) { el.value = ''; });
+          // Übrige Auswahlfelder auf die erste Option statt auf den Wert des kopierten ersten Eintrags.
+          clone.querySelectorAll('select:not([data-fill-url])').forEach(function (el) {
+            Array.from(el.options).forEach(function (o) { o.removeAttribute('selected'); });
+            el.selectedIndex = 0;
+          });
           clone.querySelectorAll('[data-repeater-thumb], [data-value-preview]').forEach(function (el) {
             el.removeAttribute('src');
             el.classList.add('hidden');
@@ -1800,6 +1810,8 @@
           if (clone.tagName === 'DETAILS') clone.open = true;
           wrap.appendChild(clone);
           reindex(wrap, btn.getAttribute('data-repeater-add'));
+          // show_when-Felder passend zur zurückgesetzten Auswahl ein-/ausblenden.
+          clone.querySelectorAll('select').forEach(function (el) { el.dispatchEvent(new Event('change', { bubbles: true })); });
         });
       });
 

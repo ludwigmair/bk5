@@ -74,6 +74,14 @@
         {% set thumb = thumbField ? attribute(row, thumbField.name)|default('') : '' %}
         {% set labelRaw = labelField ? attribute(row, labelField.name)|default('') : '' %}
         {% set label = labelRaw is iterable ? (attribute(labelRaw, 'de')|default(labelRaw|first)|default('')) : labelRaw %}
+        {# Leerer Titel: gewählte Option des ersten Auswahlfelds zeigen (z. B. Kachel-Art) statt „Eintrag n“. #}
+        {% if not label %}
+          {% for sub in field.fields|filter(sub => sub.type == 'select') %}
+            {% if not label %}
+              {% for opt in sub.options|default([])|filter(o => o.value == attribute(row, sub.name)|default('')) %}{% set label = opt.label|default(opt.value) %}{% endfor %}
+            {% endif %}
+          {% endfor %}
+        {% endif %}
         {% set rowActive = row.active is not defined or row.active %}
       <details class="group overflow-hidden rounded-lg border border-[#241E18]/[0.06] bg-[#FBF8F2] open:border-[#355E4B]/30 open:bg-white open:shadow-md" data-repeater-item {% if loop.first %}open{% endif %}>
         <summary class="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm text-[#241E18]/70 select-none [&::-webkit-details-marker]:hidden group-open:bg-[#355E4B]/[0.06]">

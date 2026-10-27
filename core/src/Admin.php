@@ -583,6 +583,12 @@ final class Admin
             $this->renderSaveConflict();
             return;
         }
+        // PHP verwirft stillschweigend alle Felder über max_input_vars – ohne diese
+        // Prüfung fehlten danach die letzten Sections (z. B. Kontakt) im Inhalt.
+        if (!isset($_POST['form_complete'])) {
+            $this->redirect('Nicht gespeichert: Der Server hat nur einen Teil des Formulars angenommen (PHP-Einstellung max_input_vars = '
+                . (int) ini_get('max_input_vars') . ', das Formular hat mehr Felder). Bitte beim Hoster max_input_vars auf mindestens 10000 setzen lassen – web/.user.ini bzw. .htaccess tun das, wo der Server es erlaubt.');
+        }
         $content = CMS::readJson($path);
         $this->pushHistory($content);
         $incoming = $_POST['sections'] ?? [];
