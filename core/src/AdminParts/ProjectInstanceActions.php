@@ -39,7 +39,7 @@ trait ProjectInstanceActions
 
         // Core + Grundgerüst 1:1
         $this->copyDir($root . '/core', $dest . '/core');
-        foreach (['index.php', '.htaccess', 'composer.json', 'composer.lock'] as $file) {
+        foreach (['index.php', '.htaccess', '.user.ini', 'composer.json', 'composer.lock'] as $file) {
             if (is_file($root . '/' . $file)) {
                 copy($root . '/' . $file, $dest . '/' . $file);
             }
