@@ -1,5 +1,9 @@
 # Changelog – Core
 
+## 2.16.1 – 2026-11-04
+
+Admin: Repeater/Galerie-Einträge sind standardmäßig alle geschlossen
+
 ## 2.16.0 – 2026-10-27
 
 Admin: Speichern verliert bei sehr großen Seiten keine Sections mehr (Schutz vor dem PHP-Limit max_input_vars, Limit auf 10000 angehoben). Listen: „+ Eintrag hinzufügen“ startet bei Auswahlfeldern leer statt mit dem Wert des ersten Eintrags. Bereichs-Felder (z. B. Sticky-Leiste) können Standardwerte vorbelegen.
