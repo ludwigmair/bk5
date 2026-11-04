@@ -83,7 +83,7 @@
           {% endfor %}
         {% endif %}
         {% set rowActive = row.active is not defined or row.active %}
-      <details class="group overflow-hidden rounded-lg border border-[#241E18]/[0.06] bg-[#FBF8F2] open:border-[#355E4B]/30 open:bg-white open:shadow-md" data-repeater-item {% if loop.first %}open{% endif %}>
+      <details class="group overflow-hidden rounded-lg border border-[#241E18]/[0.06] bg-[#FBF8F2] open:border-[#355E4B]/30 open:bg-white open:shadow-md" data-repeater-item>
         <summary class="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm text-[#241E18]/70 select-none [&::-webkit-details-marker]:hidden group-open:bg-[#355E4B]/[0.06]">
           <span class="flex h-7 w-6 shrink-0 cursor-grab select-none items-center justify-center rounded-md border border-[#241E18]/25 bg-[#E7E1D3] text-[#241E18]/80 shadow-sm transition hover:border-[#355E4B]/50 hover:bg-[#355E4B]/15 hover:text-[#355E4B] active:cursor-grabbing" draggable="true" data-drag-handle title="Ziehen zum Sortieren">
             <svg width="9" height="14" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
